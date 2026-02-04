@@ -3,69 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vasteria Gate | Portal</title>
+    <title>Vasteria Gate | RPG System</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Cinzel:wght@400;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <section id="auth-section" class="screen-full">
-        <div class="floating-card login-card">
-            <h1 class="brand-title">VASTERIA GATE</h1>
-            <p class="brand-subtitle">SISTEMA DE ACESSO UNIVERSAL</p>
+        <div class="login-card-universal">
+            <h1 class="brand-title-large">VASTERIA GATE</h1>
+            <p class="brand-subtitle-large">SISTEMA DE ACESSO RPG</p>
             
             <div id="login-box">
-                <div class="input-group">
-                    <label>IDENTIFICAÇÃO</label>
-                    <input type="text" id="login-input" placeholder="Agente ou E-mail">
-                </div>
-                <div class="input-group">
-                    <label>CHAVE DE ACESSO</label>
-                    <input type="password" id="login-pass" placeholder="Senha">
-                </div>
-                <button onclick="realizarLogin()" class="btn-primary">CONECTAR AO SERVIDOR</button>
-                <div class="divider"></div>
-                <p class="link-text" onclick="toggleAuth()">Solicitar Credenciais</p>
+                <div class="input-group-universal"><label>IDENTIFICAÇÃO</label><input type="text" id="login-input" placeholder="Agente ou E-mail"></div>
+                <div class="input-group-universal"><label>CHAVE DE ACESSO</label><input type="password" id="login-pass" placeholder="Senha"></div>
+                <button onclick="realizarLogin()" class="btn-universal-primary">CONECTAR</button>
+                <div class="divider-universal"></div>
+                <p class="link-text-universal" onclick="toggleAuth()">Solicitar Credenciais</p>
             </div>
             
             <div id="register-box" style="display:none;">
-                <div class="input-group"><label>CODINOME</label><input type="text" id="reg-apelido"></div>
-                <div class="input-group"><label>E-MAIL</label><input type="email" id="reg-email"></div>
-                <div class="input-group"><label>SENHA</label><input type="password" id="reg-pass"></div>
-                <button onclick="realizarCadastro()" class="btn-primary">REGISTRAR</button>
-                <div class="divider"></div>
-                <p class="link-text" onclick="toggleAuth()">Voltar para Login</p>
+                <div class="user-photo-upload" onclick="document.getElementById('user-file-upload').click()">
+                    <div id="user-photo-preview" class="user-photo-preview"><span>+ FOTO</span></div>
+                    <input type="file" id="user-file-upload" accept="image/*" onchange="previewUserImage(event)" hidden>
+                </div>
+                <div class="input-group-universal"><label>CODINOME</label><input type="text" id="reg-apelido"></div>
+                <div class="input-group-universal"><label>E-MAIL</label><input type="email" id="reg-email"></div>
+                <div class="input-group-universal"><label>SENHA</label><input type="password" id="reg-pass"></div>
+                <button onclick="realizarCadastro()" class="btn-universal-primary">REGISTRAR</button>
+                <div class="divider-universal"></div>
+                <p class="link-text-universal" onclick="toggleAuth()">Voltar para Login</p>
             </div>
         </div>
     </section>
 
-    <section id="hub-section" class="screen-full" style="display:none;">
-        <div class="hub-container">
-            <header class="app-header">
-                <div class="user-info">
-                    <span class="status-dot"></span>
-                    <span id="user-tag">AGENTE</span>
+    <section id="user-profile-section" class="screen-full" style="display:none;">
+        <div class="profile-container">
+            <header class="profile-header">
+                <div class="user-identity">
+                    <div class="user-avatar-large" id="current-user-avatar"></div>
+                    <div class="user-details">
+                        <h2 id="current-user-name">AGENTE</h2>
+                        <span class="status-badge"><span class="status-dot"></span>Conectado</span>
+                    </div>
                 </div>
-                <button onclick="logout()" class="btn-ghost">DESCONECTAR</button>
+                <button onclick="logout()" class="btn-ghost-red">DESCONECTAR</button>
             </header>
             
-            <h2 class="section-title">ARQUIVOS DISPONÍVEIS</h2>
-            
-            <div id="hero-list" class="grid-modern"></div>
-            
-            <button onclick="mostrarModal()" class="btn-dashed">+ CRIAR NOVO REGISTRO</button>
+            <div class="profile-actions">
+                <button onclick="abrirUniversoRPG()" class="btn-universe-rpg">ABRIR UNIVERSO RPG</button>
+            </div>
         </div>
     </section>
 
-    <div id="creation-modal" class="modal-overlay" style="display:none;">
-        <div class="floating-card small">
-            <h3>NOVO ARQUIVO</h3>
-            <div class="input-group">
-                <label>NOME DO SUJEITO</label>
-                <input type="text" id="new-hero-name">
+    <div id="universe-modal" class="modal-overlay-solid" style="display:none;">
+        <div class="universe-container">
+            <aside class="universe-sidebar">
+                <div class="sidebar-title">ARQUIVOS</div>
+                <button class="side-tab active" onclick="switchUniverseTab('heroes')">HERÓIS</button>
+                <button class="side-tab" onclick="switchUniverseTab('books')">LIVROS</button>
+                <button class="side-tab disabled">CAMPANHAS</button>
+                <button class="side-tab disabled">ITENS</button>
+                <button class="side-tab disabled">HOMEBREWS</button>
+            </aside>
+
+            <main class="universe-content">
+                <header class="universe-header">
+                    <h2 id="universe-title">MEUS PERSONAGENS</h2>
+                    <button onclick="fecharUniversoRPG()" class="btn-close-modal">×</button>
+                </header>
+
+                <div id="content-heroes" class="universe-tab-content">
+                    <div id="hero-list-area" class="hero-list-layout"></div>
+                </div>
+
+                <div id="content-books" class="universe-tab-content" style="display:none;">
+                    <div class="rpg-books-area">
+                        <h3>BIBLIOTECA DE REGRAS</h3>
+                        <div class="book-grid">
+                            <div class="book-placeholder">📖 Livro do Jogador</div>
+                            <div class="book-placeholder">👹 Manual dos Monstros</div>
+                            <div class="book-placeholder">🎲 Guia do Mestre</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="creation-modal" class="modal-overlay-top" style="display:none;">
+        <div class="floating-card create-card">
+            <h3 class="modal-title">NOVO REGISTRO</h3>
+            <div class="char-photo-upload-center" onclick="document.getElementById('char-file-upload').click()">
+                <div id="char-photo-preview" class="char-photo-preview"><span>+ FOTO</span></div>
+                <input type="file" id="char-file-upload" accept="image/*" onchange="previewCharImage(event)" hidden>
             </div>
+            <div class="input-group-universal"><label>NOME DO PERSONAGEM</label><input type="text" id="new-hero-name" class="modern-input-large"></div>
+            <div class="input-group-universal"><label>NOME DO JOGADOR</label><input type="text" id="new-player-name" class="modern-input"></div>
+            <div class="input-group-universal"><label>CAMPANHA</label><input type="text" id="new-campaign-name" class="modern-input"></div>
+            <div class="input-group-universal"><label>BREVE DESCRIÇÃO</label><textarea id="new-char-desc" class="modern-area small" placeholder="Descrição..."></textarea></div>
             <div class="row-btn">
-                <button onclick="confirmarCriacao()" class="btn-primary">INICIAR</button>
+                <button onclick="confirmarCriacao()" class="btn-universal-primary">CRIAR FICHA</button>
                 <button onclick="fecharModal()" class="btn-ghost">CANCELAR</button>
             </div>
         </div>
@@ -73,148 +111,131 @@
 
     <section id="sheet-section" style="display:none;">
         <header class="sheet-header">
-            <button onclick="irParaHub()" class="btn-icon">⬅</button>
-            <div class="hero-identity">
-                <h1 id="display-hero-name">NOME</h1>
-                <span id="save-status">Sincronizado</span>
+            <div class="header-left">
+                <button onclick="irParaPerfil()" class="btn-icon">⬅</button>
+                <div class="sheet-avatar-small" id="sheet-avatar-display"></div>
+                <div class="hero-identity text-left">
+                    <h1 id="display-hero-name">NOME</h1>
+                    <span id="display-player-name">JOGADOR</span>
+                </div>
             </div>
-            <nav class="sheet-nav">
-                <button class="nav-item active" onclick="switchTab(event, 'tab1')">PRINCIPAL</button>
-                <button class="nav-item" onclick="switchTab(event, 'tab2')">BIO</button>
-                <button class="nav-item" onclick="switchTab(event, 'tab3')">MAGIAS</button>
-                <button class="nav-item" onclick="switchTab(event, 'tab4')">LOG</button>
-            </nav>
+            <div class="nav-globe-container">
+                <div class="nav-globe-main">
+                    🌍
+                    <div class="nav-satellite sat-1" onclick="switchTab('tab1')" title="Principal">⚔️</div>
+                    <div class="nav-satellite sat-2" onclick="switchTab('tab2')" title="Bio">📜</div>
+                    <div class="nav-satellite sat-3" onclick="switchTab('tab3')" title="Magia">✨</div>
+                    <div class="nav-satellite sat-4" onclick="switchTab('tab4')" title="Diário">📓</div>
+                </div>
+            </div>
         </header>
 
-        <div class="sheet-body">
-            <div id="tab1" class="page active">
-                <div class="floating-block header-stats">
-                    <div class="col"><label>CLASSE/NÍVEL</label><input id="c-class" class="modern-input"></div>
-                    <div class="col"><label>ANTECEDENTE</label><input id="c-bg" class="modern-input"></div>
-                    <div class="col"><label>RAÇA</label><input id="c-race" class="modern-input"></div>
-                    <div class="col"><label>TENDÊNCIA</label><input id="c-align" class="modern-input"></div>
-                    <div class="col"><label>XP</label><input id="c-xp" class="modern-input"></div>
-                </div>
-
-                <div class="modern-grid">
-                    <div class="col-side">
-                        <div id="attr-container"></div>
-                        
-                        <div class="floating-block mini">
-                            <label>PROFICIÊNCIA</label>
-                            <input id="c-prof" class="modern-input center highlight" value="+2">
-                        </div>
-                         <div class="floating-block mini">
-                            <label>INSPIRAÇÃO</label>
-                            <input id="c-insp" class="modern-input center">
-                        </div>
-                        
-                        <div class="floating-block list-container">
-                            <h4>SALVAGUARDAS</h4>
-                            <div id="saves-container"></div>
-                        </div>
-                        <div class="floating-block list-container">
-                            <h4>PERÍCIAS</h4>
-                            <div id="skills-container"></div>
-                        </div>
+        <div class="sheet-body-container">
+            <div class="sheet-body">
+                <div id="tab1" class="page active">
+                    <div class="floating-block header-stats">
+                        <div class="col"><label>CLASSE/NÍVEL</label><input id="c-class" class="modern-input"></div>
+                        <div class="col"><label>ANTECEDENTE</label><input id="c-bg" class="modern-input"></div>
+                        <div class="col"><label>RAÇA</label><input id="c-race" class="modern-input"></div>
+                        <div class="col"><label>ALINHAMENTO</label><input id="c-align" class="modern-input"></div>
+                        <div class="col"><label>XP</label><input id="c-xp" class="modern-input"></div>
                     </div>
-
-                    <div class="col-mid">
-                        <div class="stats-row">
-                            <div class="stat-card"><label>CA</label><input id="c-ca"></div>
-                            <div class="stat-card"><label>INI</label><input id="c-ini"></div>
-                            <div class="stat-card"><label>DESL</label><input id="c-speed"></div>
+                    <div class="modern-grid-symmetrical">
+                        <div class="col-sym">
+                            <div id="attr-container"></div>
+                            <div class="floating-block mini"><label>PROFICIÊNCIA</label><input id="c-prof" class="modern-input center highlight" value="+2"></div>
+                            <div class="floating-block list-container"><h4>SAVES</h4><div id="saves-container"></div></div>
+                            <div class="floating-block list-container"><h4>PERÍCIAS</h4><div id="skills-container"></div></div>
                         </div>
-
-                        <div class="floating-block hp-block">
-                            <div class="hp-row"><label>MÁXIMO</label><input id="c-hp-max"></div>
-                            <div class="hp-main"><input id="c-hp-cur" placeholder="HP ATUAL"></div>
-                            <div class="hp-row"><label>TEMP</label><input id="c-hp-temp"></div>
-                        </div>
-
-                        <div class="floating-block">
-                            <label class="block-label">DADOS DE VIDA & MORTE</label>
-                            <div class="row-flex" style="display:flex; justify-content:space-between; align-items:center;">
-                                <input id="c-hd-total" class="modern-input" placeholder="Dados Totais" style="width:100px;">
-                                <div class="death-saves">
-                                    <div>S: <input type="checkbox" id="ds-s1" class="save-field"><input type="checkbox" id="ds-s2" class="save-field"><input type="checkbox" id="ds-s3" class="save-field"></div>
-                                    <div>F: <input type="checkbox" id="ds-f1" class="save-field"><input type="checkbox" id="ds-f2" class="save-field"><input type="checkbox" id="ds-f3" class="save-field"></div>
+                        <div class="col-sym-mid">
+                            <div class="stats-row">
+                                <div class="stat-card"><label>CA</label><input id="c-ca"></div>
+                                <div class="stat-card"><label>INI</label><input id="c-ini"></div>
+                                <div class="stat-card"><label>DESL</label><input id="c-speed"></div>
+                            </div>
+                            <div class="floating-block hp-block">
+                                <div class="watermark heart-icon"></div>
+                                <div class="hp-row"><label>MAX</label><input id="c-hp-max"></div>
+                                <div class="hp-main"><input id="c-hp-cur" placeholder="HP"></div>
+                                <div class="hp-row"><label>TEMP</label><input id="c-hp-temp"></div>
+                            </div>
+                            <div class="floating-block flex-grow" style="min-height: 250px;">
+                                <div class="watermark sword-icon"></div>
+                                <label class="block-label">ATAQUES & CONJURAÇÃO</label>
+                                <textarea id="c-atks" class="modern-area transparent-area"></textarea>
+                            </div>
+                            <div class="floating-block flex-grow inventory-wrapper" style="min-height: 250px;">
+                                <div class="watermark bag-icon"></div>
+                                <div class="inventory-layout">
+                                    <div class="money-column">
+                                        <div class="coin-slot"><label>PL</label><input id="coin-pp"></div>
+                                        <div class="coin-slot"><label>PO</label><input id="coin-gp" class="gold"></div>
+                                        <div class="coin-slot"><label>PE</label><input id="coin-ep"></div>
+                                        <div class="coin-slot"><label>PP</label><input id="coin-sp"></div>
+                                        <div class="coin-slot"><label>PC</label><input id="coin-cp"></div>
+                                    </div>
+                                    <div class="inv-text-area clean-style">
+                                        <label class="block-label">EQUIPAMENTO</label>
+                                        <textarea id="c-equip" class="modern-area transparent-area"></textarea>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="floating-block flex-grow">
-                            <label class="block-label">ATAQUES</label>
-                            <textarea id="c-atks" class="modern-area" style="height:250px"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="col-side">
-                        <div class="floating-block"><label>TRAÇOS</label><textarea id="c-traits" class="modern-area small"></textarea></div>
-                        <div class="floating-block"><label>IDEAIS</label><textarea id="c-ideals" class="modern-area small"></textarea></div>
-                        <div class="floating-block"><label>VÍNCULOS</label><textarea id="c-bonds" class="modern-area small"></textarea></div>
-                        <div class="floating-block"><label>DEFEITOS</label><textarea id="c-flaws" class="modern-area small"></textarea></div>
-                        
-                        <div class="floating-block">
-                            <label class="block-label">PASSIVAS</label>
-                            <div class="passive-item"><span>Percepção</span><input id="c-pas-perc" readonly></div>
-                            <div class="passive-item"><span>Investigação</span><input id="c-pas-inv" readonly></div>
-                            <div class="passive-item"><span>Intuição</span><input id="c-pas-ins" readonly></div>
-                        </div>
-
-                        <div class="floating-block equip-block">
-                            <label class="block-label">INVENTÁRIO</label>
-                            <div class="coins-row">
-                                <input id="coin-cp" placeholder="PC"><input id="coin-sp" placeholder="PP">
-                                <input id="coin-ep" placeholder="PE"><input id="coin-gp" placeholder="PO" class="gold">
-                                <input id="coin-pp" placeholder="PL">
+                        <div class="col-sym">
+                            <div class="floating-block"><label>TRAÇOS</label><textarea id="c-traits" class="modern-area small"></textarea></div>
+                            <div class="floating-block"><label>IDEAIS</label><textarea id="c-ideals" class="modern-area small"></textarea></div>
+                            <div class="floating-block"><label>VÍNCULOS</label><textarea id="c-bonds" class="modern-area small"></textarea></div>
+                            <div class="floating-block"><label>DEFEITOS</label><textarea id="c-flaws" class="modern-area small"></textarea></div>
+                            <div class="floating-block">
+                                <label class="block-label">PASSIVAS</label>
+                                <div class="passive-item"><span>Percepção</span><input id="c-pas-perc" readonly></div>
+                                <div class="passive-item"><span>Investigação</span><input id="c-pas-inv" readonly></div>
+                                <div class="passive-item"><span>Intuição</span><input id="c-pas-ins" readonly></div>
                             </div>
-                            <textarea id="c-equip" class="modern-area" style="height:150px"></textarea>
+                             <div class="floating-block">
+                                <label class="block-label">VIDA & MORTE</label>
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px">
+                                    <div>DV: <input id="c-hd-total" class="modern-input" style="width:30px"></div>
+                                    <div class="death-saves">
+                                        <div>S: <input type="checkbox" id="ds-s1" class="save-field"><input type="checkbox" id="ds-s2" class="save-field"><input type="checkbox" id="ds-s3" class="save-field"></div>
+                                        <div>F: <input type="checkbox" id="ds-f1" class="save-field"><input type="checkbox" id="ds-f2" class="save-field"><input type="checkbox" id="ds-f3" class="save-field"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div id="tab2" class="page" style="display:none;">
-                <div class="floating-block header-stats">
-                    <div class="col"><label>IDADE</label><input id="b-age" class="modern-input"></div>
-                    <div class="col"><label>ALTURA</label><input id="b-height" class="modern-input"></div>
-                    <div class="col"><label>PESO</label><input id="b-weight" class="modern-input"></div>
-                    <div class="col"><label>OLHOS</label><input id="b-eyes" class="modern-input"></div>
-                    <div class="col"><label>PELE</label><input id="b-skin" class="modern-input"></div>
-                    <div class="col"><label>CABELO</label><input id="b-hair" class="modern-input"></div>
+                <div id="tab2" class="page" style="display:none;">
+                    <div class="floating-block"><textarea id="b-backstory" class="modern-area" rows="30" placeholder="História..."></textarea></div>
                 </div>
-                <div class="floating-block"><textarea id="b-backstory" class="modern-area" rows="20" placeholder="História do Personagem..."></textarea></div>
-            </div>
-
-            <div id="tab3" class="page" style="display:none;">
-                <div class="floating-block header-stats">
-                     <div class="col"><label>CLASSE CONJURADORA</label><input id="m-class" class="modern-input"></div>
-                     <div class="col"><label>ATRIBUTO</label><input id="m-ability" class="modern-input"></div>
-                     <div class="col"><label>CD</label><input id="m-dc" class="modern-input"></div>
-                     <div class="col"><label>BÔNUS ATK</label><input id="m-atk" class="modern-input"></div>
+                <div id="tab3" class="page" style="display:none;">
+                    <div class="floating-block header-stats">
+                         <div class="col"><label>ATRIBUTO CHAVE</label><input id="m-ability" class="modern-input"></div>
+                         <div class="col"><label>CD</label><input id="m-dc" class="modern-input"></div>
+                         <div class="col"><label>BÔNUS</label><input id="m-atk" class="modern-input"></div>
+                    </div>
+                    <div id="spells-grid-container" class="spells-grid"></div>
                 </div>
-                <div id="spells-grid-container" class="spells-grid"></div>
-            </div>
-
-            <div id="tab4" class="page" style="display:none;">
-                <textarea id="d-notepad" class="modern-notepad save-field" placeholder="Diário de Campanha e Anotações de Campo..."></textarea>
+                <div id="tab4" class="page" style="display:none;">
+                    <textarea id="d-notepad" class="modern-notepad save-field" placeholder="Anotações..."></textarea>
+                </div>
             </div>
         </div>
     </section>
 
-    <div id="theme-dock">
-        <div class="theme-options">
-            <button class="theme-btn" onclick="setTheme('modern')" style="background:#09090b; border:1px solid #3b82f6;" title="Vasteria Neon"></button>
-            <button class="theme-btn" onclick="setTheme('void')" style="background:#180b26; border:1px solid #d946ef;" title="The Void"></button>
-            <button class="theme-btn" onclick="setTheme('classic')" style="background:#111; border:1px solid #d4af37;" title="Classic Gold"></button>
-            <button class="theme-btn" onclick="setTheme('paper')" style="background:#f0e6d2; border:1px solid #8b4513;" title="Pergaminho"></button>
-            <button class="theme-btn" onclick="setTheme('blood')" style="background:#2a0000; border:1px solid #ff0000;" title="Vampiro"></button>
-            <button class="theme-btn" onclick="setTheme('nature')" style="background:#051a05; border:1px solid #4ade80;" title="Druida"></button>
-            <button class="theme-btn" onclick="setTheme('abyss')" style="background:#00101a; border:1px solid #00f0ff;" title="Abissal"></button>
+    <div id="theme-dock-panel" class="theme-panel hidden">
+        <h4>PALETA DE CORES</h4>
+        <div class="theme-grid">
+            <button onclick="setTheme('coffee')" class="theme-item" style="border-color:#d4a373"><div class="color-preview" style="background:#3e2f26"></div><span>Tavern (Café)</span></button>
+            <button onclick="setTheme('master')" class="theme-item" style="border-color:#ffd700"><div class="color-preview" style="background:radial-gradient(circle, #ffd700, #800000)"></div><span>MESTRE (Master)</span></button>
+            <button onclick="setTheme('arcane')" class="theme-item" style="border-color:#a855f7"><div class="color-preview" style="background:#3b0764"></div><span>Mago (Arcane)</span></button>
+            <button onclick="setTheme('might')" class="theme-item" style="border-color:#ef4444"><div class="color-preview" style="background:#450a0a"></div><span>Guerreiro (Might)</span></button>
+            <button onclick="setTheme('stealth')" class="theme-item" style="border-color:#10b981"><div class="color-preview" style="background:#064e3b"></div><span>Ladino (Stealth)</span></button>
+            <button onclick="setTheme('wild')" class="theme-item" style="border-color:#84cc16"><div class="color-preview" style="background:#1a2e05"></div><span>Druida (Wild)</span></button>
+            <button onclick="setTheme('classic')" class="theme-item" style="border-color:#eab308"><div class="color-preview" style="background:#000"></div><span>Clássico (Gold)</span></button>
         </div>
-        <button class="dock-trigger">🎨</button>
     </div>
+    <button class="dock-trigger-large" onclick="toggleThemePanel()">🎨</button>
 
     <script src="script.js"></script>
 </body>
