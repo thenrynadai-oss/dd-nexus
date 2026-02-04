@@ -3,219 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D&D Nexus | Master Edition</title>
+    <title>Vasteria Gate | Portal</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Cinzel:wght@400;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <section id="auth-section" class="screen-full">
-        <div class="glass-panel">
-            <h1 class="nexus-logo">D&D NEXUS</h1>
+        <div class="floating-card login-card">
+            <h1 class="brand-title">VASTERIA GATE</h1>
+            <p class="brand-subtitle">SISTEMA DE ACESSO UNIVERSAL</p>
             
             <div id="login-box">
-                <div class="input-container">
-                    <input type="text" id="login-input" placeholder=" ">
-                    <label>E-mail ou Apelido</label>
+                <div class="input-group">
+                    <label>IDENTIFICAÇÃO</label>
+                    <input type="text" id="login-input" placeholder="Agente ou E-mail">
                 </div>
-                <div class="input-container">
-                    <input type="password" id="login-pass" placeholder=" ">
-                    <label>Senha</label>
+                <div class="input-group">
+                    <label>CHAVE DE ACESSO</label>
+                    <input type="password" id="login-pass" placeholder="Senha">
                 </div>
-                <button onclick="realizarLogin()" class="btn-gold-glow">ABRIR PORTAL</button>
-                <p class="switch-text">Novo mestre? <a href="#" onclick="toggleAuth()">Iniciar Jornada</a></p>
+                <button onclick="realizarLogin()" class="btn-primary">CONECTAR AO SERVIDOR</button>
+                <div class="divider"></div>
+                <p class="link-text" onclick="toggleAuth()">Solicitar Credenciais</p>
             </div>
             
             <div id="register-box" style="display:none;">
-                <div class="input-container">
-                    <input type="text" id="reg-apelido" placeholder=" ">
-                    <label>Como quer ser chamado?</label>
-                </div>
-                <div class="input-container">
-                    <input type="email" id="reg-email" placeholder=" ">
-                    <label>E-mail</label>
-                </div>
-                <div class="input-container">
-                    <input type="password" id="reg-pass" placeholder=" ">
-                    <label>Senha</label>
-                </div>
-                <button onclick="realizarCadastro()" class="btn-gold-glow">FORJAR MESTRE</button>
-                <p class="switch-text">Já possui acesso? <a href="#" onclick="toggleAuth()">Entrar</a></p>
+                <div class="input-group"><label>CODINOME</label><input type="text" id="reg-apelido"></div>
+                <div class="input-group"><label>E-MAIL</label><input type="email" id="reg-email"></div>
+                <div class="input-group"><label>SENHA</label><input type="password" id="reg-pass"></div>
+                <button onclick="realizarCadastro()" class="btn-primary">REGISTRAR</button>
+                <div class="divider"></div>
+                <p class="link-text" onclick="toggleAuth()">Voltar para Login</p>
             </div>
         </div>
     </section>
 
     <section id="hub-section" class="screen-full" style="display:none;">
         <div class="hub-container">
-            <header class="hub-top">
-                <span id="user-tag" class="gold-text">MESTRE</span>
-                <button onclick="logout()" class="btn-text">SAIR</button>
+            <header class="app-header">
+                <div class="user-info">
+                    <span class="status-dot"></span>
+                    <span id="user-tag">AGENTE</span>
+                </div>
+                <button onclick="logout()" class="btn-ghost">DESCONECTAR</button>
             </header>
-            <h2 class="cinzel-title">HALL DOS HERÓIS</h2>
             
-            <div id="hero-list" class="grid-heroes"></div>
+            <h2 class="section-title">ARQUIVOS DISPONÍVEIS</h2>
             
-            <button onclick="mostrarModal()" class="btn-add-hero">+ NOVO AVENTUREIRO</button>
+            <div id="hero-list" class="grid-modern"></div>
+            
+            <button onclick="mostrarModal()" class="btn-dashed">+ CRIAR NOVO REGISTRO</button>
         </div>
     </section>
 
     <div id="creation-modal" class="modal-overlay" style="display:none;">
-        <div class="glass-panel small">
-            <h3>QUEM É O NOVO HERÓI?</h3>
-            <div class="input-container">
-                <input type="text" id="new-hero-name" placeholder=" ">
-                <label>Nome do Personagem</label>
+        <div class="floating-card small">
+            <h3>NOVO ARQUIVO</h3>
+            <div class="input-group">
+                <label>NOME DO SUJEITO</label>
+                <input type="text" id="new-hero-name">
             </div>
             <div class="row-btn">
-                <button onclick="confirmarCriacao()" class="btn-gold-glow">CRIAR</button>
-                <button onclick="fecharModal()" class="btn-text">CANCELAR</button>
+                <button onclick="confirmarCriacao()" class="btn-primary">INICIAR</button>
+                <button onclick="fecharModal()" class="btn-ghost">CANCELAR</button>
             </div>
         </div>
     </div>
 
     <section id="sheet-section" style="display:none;">
-        <div class="sheet-topbar">
-            <button onclick="irParaHub()" class="btn-back">⬅ VOLTAR</button>
-            <span id="display-hero-name" class="gold-text-large">NOME</span>
-            <div class="save-indicator" id="save-status">SINCRONIZADO</div>
-        </div>
-
-        <nav class="sheet-tabs">
-            <button class="tab active" onclick="switchTab(event, 'tab1')">PRINCIPAL</button>
-            <button class="tab" onclick="switchTab(event, 'tab2')">HISTÓRIA</button>
-            <button class="tab" onclick="switchTab(event, 'tab3')">MAGIAS</button>
-            <button class="tab" onclick="switchTab(event, 'tab4')">DIÁRIO</button>
-        </nav>
+        <header class="sheet-header">
+            <button onclick="irParaHub()" class="btn-icon">⬅</button>
+            <div class="hero-identity">
+                <h1 id="display-hero-name">NOME</h1>
+                <span id="save-status">Sincronizado</span>
+            </div>
+            <nav class="sheet-nav">
+                <button class="nav-item active" onclick="switchTab(event, 'tab1')">PRINCIPAL</button>
+                <button class="nav-item" onclick="switchTab(event, 'tab2')">BIO</button>
+                <button class="nav-item" onclick="switchTab(event, 'tab3')">MAGIAS</button>
+                <button class="nav-item" onclick="switchTab(event, 'tab4')">LOG</button>
+            </nav>
+        </header>
 
         <div class="sheet-body">
             <div id="tab1" class="page active">
-                <div class="dark-box header-info">
-                    <div class="field-row">
-                        <div class="f-group"><label>NOME</label><input id="c-name" class="dark-in"></div>
-                        <div class="f-group"><label>CLASSE/NÍVEL</label><input id="c-class" class="dark-in"></div>
-                        <div class="f-group"><label>ANTECEDENTE</label><input id="c-bg" class="dark-in"></div>
-                        <div class="f-group"><label>JOGADOR</label><input id="c-player" class="dark-in"></div>
-                    </div>
-                    <div class="field-row">
-                        <div class="f-group"><label>RAÇA</label><input id="c-race" class="dark-in"></div>
-                        <div class="f-group"><label>TENDÊNCIA</label><input id="c-align" class="dark-in"></div>
-                        <div class="f-group"><label>XP</label><input id="c-xp" class="dark-in"></div>
-                    </div>
+                <div class="floating-block header-stats">
+                    <div class="col"><label>CLASSE/NÍVEL</label><input id="c-class" class="modern-input"></div>
+                    <div class="col"><label>ANTECEDENTE</label><input id="c-bg" class="modern-input"></div>
+                    <div class="col"><label>RAÇA</label><input id="c-race" class="modern-input"></div>
+                    <div class="col"><label>TENDÊNCIA</label><input id="c-align" class="modern-input"></div>
+                    <div class="col"><label>XP</label><input id="c-xp" class="modern-input"></div>
                 </div>
 
-                <div class="main-columns">
-                    <div class="col-left">
+                <div class="modern-grid">
+                    <div class="col-side">
                         <div id="attr-container"></div>
                         
-                        <div class="dark-box simple-row">
-                            <label>BÔNUS DE PROFICIÊNCIA</label>
-                            <input id="c-prof" class="dark-in center-text highlight-gold" value="+2">
+                        <div class="floating-block mini">
+                            <label>PROFICIÊNCIA</label>
+                            <input id="c-prof" class="modern-input center highlight" value="+2">
                         </div>
-                        <div class="dark-box simple-row">
-                            <label>INSPIRAÇÃO</label><input id="c-insp" class="dark-in center-text">
+                         <div class="floating-block mini">
+                            <label>INSPIRAÇÃO</label>
+                            <input id="c-insp" class="modern-input center">
                         </div>
-
-                        <div class="dark-box list-box">
-                            <label>SALVAGUARDAS</label>
+                        
+                        <div class="floating-block list-container">
+                            <h4>SALVAGUARDAS</h4>
                             <div id="saves-container"></div>
                         </div>
-                        <div class="dark-box list-box">
-                            <label>PERÍCIAS</label>
+                        <div class="floating-block list-container">
+                            <h4>PERÍCIAS</h4>
                             <div id="skills-container"></div>
                         </div>
                     </div>
 
-                    <div class="col-center">
-                        <div class="combat-header">
-                            <div class="shield-box"><label>CA</label><input id="c-ca" class="dark-in big-stat"></div>
-                            <div class="box-sq"><label>INI</label><input id="c-ini" class="dark-in big-stat"></div>
-                            <div class="box-sq"><label>DESL</label><input id="c-speed" class="dark-in big-stat"></div>
+                    <div class="col-mid">
+                        <div class="stats-row">
+                            <div class="stat-card"><label>CA</label><input id="c-ca"></div>
+                            <div class="stat-card"><label>INI</label><input id="c-ini"></div>
+                            <div class="stat-card"><label>DESL</label><input id="c-speed"></div>
                         </div>
 
-                        <div class="dark-box hp-box">
-                            <div class="hp-row"><label>PV MÁXIMOS</label><input id="c-hp-max" class="dark-in"></div>
-                            <div class="hp-row big-hp"><label>PV ATUAIS</label><input id="c-hp-cur" class="dark-in big-num"></div>
-                            <div class="hp-row"><label>PV TEMPORÁRIOS</label><input id="c-hp-temp" class="dark-in"></div>
+                        <div class="floating-block hp-block">
+                            <div class="hp-row"><label>MÁXIMO</label><input id="c-hp-max"></div>
+                            <div class="hp-main"><input id="c-hp-cur" placeholder="HP ATUAL"></div>
+                            <div class="hp-row"><label>TEMP</label><input id="c-hp-temp"></div>
                         </div>
 
-                        <div class="dice-death-row">
-                            <div class="dark-box half">
-                                <label>DADOS DE VIDA</label>
-                                <div style="display:flex; gap:5px">
-                                    <input id="c-hd-total" class="dark-in" placeholder="Total">
-                                    <input id="c-hd-current" class="dark-in" placeholder="Atuais">
+                        <div class="floating-block">
+                            <label class="block-label">DADOS DE VIDA & MORTE</label>
+                            <div class="row-flex" style="display:flex; justify-content:space-between; align-items:center;">
+                                <input id="c-hd-total" class="modern-input" placeholder="Dados Totais" style="width:100px;">
+                                <div class="death-saves">
+                                    <div>S: <input type="checkbox" id="ds-s1" class="save-field"><input type="checkbox" id="ds-s2" class="save-field"><input type="checkbox" id="ds-s3" class="save-field"></div>
+                                    <div>F: <input type="checkbox" id="ds-f1" class="save-field"><input type="checkbox" id="ds-f2" class="save-field"><input type="checkbox" id="ds-f3" class="save-field"></div>
                                 </div>
                             </div>
-                            <div class="dark-box half">
-                                <label>TESTES DE MORTE</label>
-                                <div class="checks">S: <input type="checkbox" id="ds-s1" class="save-field"><input type="checkbox" id="ds-s2" class="save-field"><input type="checkbox" id="ds-s3" class="save-field"></div>
-                                <div class="checks">F: <input type="checkbox" id="ds-f1" class="save-field"><input type="checkbox" id="ds-f2" class="save-field"><input type="checkbox" id="ds-f3" class="save-field"></div>
-                            </div>
                         </div>
 
-                        <div class="dark-box"><label>ATAQUES & MAGIAS</label><textarea id="c-atks" class="dark-in" rows="10"></textarea></div>
+                        <div class="floating-block flex-grow">
+                            <label class="block-label">ATAQUES</label>
+                            <textarea id="c-atks" class="modern-area" style="height:250px"></textarea>
+                        </div>
                     </div>
 
-                    <div class="col-right">
-                        <div class="dark-box"><label>TRAÇOS DE PERSONALIDADE</label><textarea id="c-traits" class="dark-in" rows="2"></textarea></div>
-                        <div class="dark-box"><label>IDEAIS</label><textarea id="c-ideals" class="dark-in" rows="2"></textarea></div>
-                        <div class="dark-box"><label>VÍNCULOS</label><textarea id="c-bonds" class="dark-in" rows="2"></textarea></div>
-                        <div class="dark-box"><label>DEFEITOS</label><textarea id="c-flaws" class="dark-in" rows="2"></textarea></div>
+                    <div class="col-side">
+                        <div class="floating-block"><label>TRAÇOS</label><textarea id="c-traits" class="modern-area small"></textarea></div>
+                        <div class="floating-block"><label>IDEAIS</label><textarea id="c-ideals" class="modern-area small"></textarea></div>
+                        <div class="floating-block"><label>VÍNCULOS</label><textarea id="c-bonds" class="modern-area small"></textarea></div>
+                        <div class="floating-block"><label>DEFEITOS</label><textarea id="c-flaws" class="modern-area small"></textarea></div>
                         
-                        <div class="dark-box">
-                            <label>SENTIDOS PASSIVOS</label>
-                            <div class="passive-row">Percepção: <input id="c-pas-perc" class="dark-in short" readonly></div>
-                            <div class="passive-row">Investigação: <input id="c-pas-inv" class="dark-in short" readonly></div>
-                            <div class="passive-row">Intuição: <input id="c-pas-ins" class="dark-in short" readonly></div>
+                        <div class="floating-block">
+                            <label class="block-label">PASSIVAS</label>
+                            <div class="passive-item"><span>Percepção</span><input id="c-pas-perc" readonly></div>
+                            <div class="passive-item"><span>Investigação</span><input id="c-pas-inv" readonly></div>
+                            <div class="passive-item"><span>Intuição</span><input id="c-pas-ins" readonly></div>
                         </div>
 
-                        <div class="dark-box"><label>IDIOMAS & OUTRAS PROFICIÊNCIAS</label><textarea id="c-langs" class="dark-in" rows="4"></textarea></div>
-
-                        <div class="dark-box equip-box">
-                            <label>EQUIPAMENTO & MOEDAS</label>
-                            <div class="coins-grid">
-                                <div><label>PC</label><input id="coin-cp" class="dark-in"></div>
-                                <div><label>PP</label><input id="coin-sp" class="dark-in"></div>
-                                <div><label>PE</label><input id="coin-ep" class="dark-in"></div>
-                                <div><label>PO</label><input id="coin-gp" class="dark-in gold-val"></div>
-                                <div><label>PL</label><input id="coin-pp" class="dark-in"></div>
+                        <div class="floating-block equip-block">
+                            <label class="block-label">INVENTÁRIO</label>
+                            <div class="coins-row">
+                                <input id="coin-cp" placeholder="PC"><input id="coin-sp" placeholder="PP">
+                                <input id="coin-ep" placeholder="PE"><input id="coin-gp" placeholder="PO" class="gold">
+                                <input id="coin-pp" placeholder="PL">
                             </div>
-                            <textarea id="c-equip" class="dark-in" rows="8"></textarea>
+                            <textarea id="c-equip" class="modern-area" style="height:150px"></textarea>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div id="tab2" class="page" style="display:none;">
-                <div class="dark-box bio-header">
-                    <div class="f-group"><label>IDADE</label><input id="b-age" class="dark-in"></div>
-                    <div class="f-group"><label>ALTURA</label><input id="b-height" class="dark-in"></div>
-                    <div class="f-group"><label>PESO</label><input id="b-weight" class="dark-in"></div>
-                    <div class="f-group"><label>OLHOS</label><input id="b-eyes" class="dark-in"></div>
-                    <div class="f-group"><label>PELE</label><input id="b-skin" class="dark-in"></div>
-                    <div class="f-group"><label>CABELO</label><input id="b-hair" class="dark-in"></div>
+                <div class="floating-block header-stats">
+                    <div class="col"><label>IDADE</label><input id="b-age" class="modern-input"></div>
+                    <div class="col"><label>ALTURA</label><input id="b-height" class="modern-input"></div>
+                    <div class="col"><label>PESO</label><input id="b-weight" class="modern-input"></div>
+                    <div class="col"><label>OLHOS</label><input id="b-eyes" class="modern-input"></div>
+                    <div class="col"><label>PELE</label><input id="b-skin" class="modern-input"></div>
+                    <div class="col"><label>CABELO</label><input id="b-hair" class="modern-input"></div>
                 </div>
-                <div class="dark-box img-area"><label>APARÊNCIA</label><div class="img-placeholder">IMAGEM DO PERSONAGEM</div></div>
-                <div class="dark-box"><label>HISTÓRIA</label><textarea id="b-backstory" class="dark-in" rows="15"></textarea></div>
-                <div class="dark-box"><label>ALIADOS</label><textarea id="b-allies" class="dark-in" rows="6"></textarea></div>
-                <div class="dark-box"><label>TESOURO</label><textarea id="b-treasure" class="dark-in" rows="6"></textarea></div>
+                <div class="floating-block"><textarea id="b-backstory" class="modern-area" rows="20" placeholder="História do Personagem..."></textarea></div>
             </div>
 
             <div id="tab3" class="page" style="display:none;">
-                <div class="dark-box magic-header">
-                    <div class="f-group"><label>CLASSE CONJURADORA</label><input id="m-class" class="dark-in"></div>
-                    <div class="f-group"><label>ATRIBUTO CHAVE</label><input id="m-ability" class="dark-in"></div>
-                    <div class="f-group"><label>CD DE MAGIA</label><input id="m-dc" class="dark-in"></div>
-                    <div class="f-group"><label>BÔNUS DE ATAQUE</label><input id="m-atk" class="dark-in"></div>
+                <div class="floating-block header-stats">
+                     <div class="col"><label>CLASSE CONJURADORA</label><input id="m-class" class="modern-input"></div>
+                     <div class="col"><label>ATRIBUTO</label><input id="m-ability" class="modern-input"></div>
+                     <div class="col"><label>CD</label><input id="m-dc" class="modern-input"></div>
+                     <div class="col"><label>BÔNUS ATK</label><input id="m-atk" class="modern-input"></div>
                 </div>
-                <div id="spells-grid-container"></div>
+                <div id="spells-grid-container" class="spells-grid"></div>
             </div>
 
             <div id="tab4" class="page" style="display:none;">
-                <textarea id="d-notepad" class="dark-notepad save-field" placeholder="Registro de aventuras..."></textarea>
+                <textarea id="d-notepad" class="modern-notepad save-field" placeholder="Diário de Campanha e Anotações de Campo..."></textarea>
             </div>
         </div>
     </section>
+
+    <div id="theme-dock">
+        <div class="theme-options">
+            <button class="theme-btn" onclick="setTheme('modern')" style="background:#09090b; border:1px solid #3b82f6;" title="Vasteria Neon"></button>
+            <button class="theme-btn" onclick="setTheme('void')" style="background:#180b26; border:1px solid #d946ef;" title="The Void"></button>
+            <button class="theme-btn" onclick="setTheme('classic')" style="background:#111; border:1px solid #d4af37;" title="Classic Gold"></button>
+            <button class="theme-btn" onclick="setTheme('paper')" style="background:#f0e6d2; border:1px solid #8b4513;" title="Pergaminho"></button>
+            <button class="theme-btn" onclick="setTheme('blood')" style="background:#2a0000; border:1px solid #ff0000;" title="Vampiro"></button>
+            <button class="theme-btn" onclick="setTheme('nature')" style="background:#051a05; border:1px solid #4ade80;" title="Druida"></button>
+            <button class="theme-btn" onclick="setTheme('abyss')" style="background:#00101a; border:1px solid #00f0ff;" title="Abissal"></button>
+        </div>
+        <button class="dock-trigger">🎨</button>
+    </div>
 
     <script src="script.js"></script>
 </body>
