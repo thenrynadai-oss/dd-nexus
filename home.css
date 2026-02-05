@@ -1,0 +1,50 @@
+.screen-full { position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); z-index: 100; }
+.login-card-universal { background: var(--bg-panel); border: 2px solid var(--accent); border-radius: 20px; padding: 40px; width: 400px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.6); backdrop-filter: blur(15px); }
+
+/* TIPOGRAFIA */
+.brand-title { font-family: 'Cinzel'; color: var(--accent); font-size: 36px; margin: 0; text-shadow: 0 0 20px var(--accent-glow); }
+.brand-subtitle { font-size: 12px; letter-spacing: 4px; color: var(--text-secondary); margin-bottom: 30px; }
+
+/* INPUTS E BOTÕES */
+#login-box input, #register-box input, .modal-card input { width: 100%; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-sizing: border-box; }
+.btn-primary { width: 100%; padding: 15px; background: var(--accent); color: var(--bg-app); border: none; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 10px; text-transform: uppercase; box-shadow: 0 0 15px var(--accent-glow); transition: 0.3s; }
+.btn-primary:hover { filter: brightness(1.2); transform: translateY(-2px); }
+.link { font-size: 12px; color: var(--text-secondary); margin-top: 15px; cursor: pointer; text-decoration: underline; }
+
+/* UPLOAD */
+.upload-circle { display: flex; justify-content: center; margin-bottom: 20px; }
+.preview-circle { width: 100px; height: 100px; border-radius: 50%; border: 2px solid var(--accent); display: flex; justify-content: center; align-items: center; cursor: pointer; background-size: cover; background-position: center; background-color: var(--bg-input); }
+
+/* HUB HEADER */
+#profile-section { padding: 40px 20px; display: flex; justify-content: center; }
+.hub-container { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 20px; }
+.hub-user-header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-panel); padding: 15px 30px; border-radius: 50px; border: 1px solid var(--border); }
+.user-info-area { display: flex; align-items: center; gap: 20px; }
+.avatar-small { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--accent); background-size: cover; }
+.hub-user-header h2 { margin: 0; font-family: 'Cinzel'; color: var(--accent); }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: 0.3s; }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+/* NAVEGAÇÃO ABAS */
+.hub-nav { display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.nav-btn { padding: 12px 24px; background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-secondary); border-radius: 8px; cursor: pointer; font-family: 'Cinzel'; font-weight: bold; transition: 0.3s; position: relative; }
+.nav-btn.active, .nav-btn:hover:not(.disabled) { background: var(--accent); color: var(--bg-app); border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); transform: translateY(-2px); }
+.nav-btn.disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+.badge { position: absolute; top: -8px; right: -5px; font-size: 9px; background: #ff4444; color: white; padding: 2px 6px; border-radius: 4px; font-family: sans-serif; }
+
+/* GRID DE PERSONAGENS */
+.hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 25px; padding: 20px 0; }
+.hero-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; cursor: pointer; transition: 0.4s; display: flex; flex-direction: column; height: 320px; position: relative; }
+.hero-card:hover { transform: translateY(-8px); border-color: var(--accent); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.hero-card-img { flex: 1; background-size: cover; background-position: center; border-bottom: 2px solid var(--accent); }
+.hero-card-info { padding: 20px; text-align: center; }
+.hero-card-info h4 { margin: 0; color: var(--accent); font-family: 'Cinzel'; font-size: 18px; }
+.hero-card-info p { margin: 5px 0 0 0; font-size: 12px; color: var(--text-secondary); }
+
+/* CARD CRIAR NOVO */
+.create-card-slot { border: 2px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; background: rgba(0,0,0,0.1); color: var(--text-secondary); opacity: 0.7; }
+.create-card-slot:hover { border-color: var(--accent); color: var(--accent); opacity: 1; background: var(--bg-panel); }
+.plus-icon { font-size: 40px; font-weight: bold; border: 2px solid currentColor; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(8px); }
+.row-btn { display: flex; gap: 10px; margin-top: 10px; }
