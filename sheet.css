@@ -1,11 +1,16 @@
-/* HEADER FLUTUANTE (Unificado) */
+/* =========================================
+   HEADER FLUTUANTE
+   ========================================= */
 .sheet-header-floating { width: 95%; max-width: 1300px; margin: 30px auto; display: flex; gap: 20px; align-items: stretch; }
 
 .hero-card-floating { 
     flex: 1; background: var(--bg-panel); border: 1px solid var(--border); 
     border-radius: 25px; padding: 25px; display: flex; gap: 30px; align-items: center; 
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3); backdrop-filter: blur(12px); 
+    transition: var(--transition);
 }
+.hero-card-floating:hover { border-color: var(--accent); box-shadow: 0 0 30px var(--accent-glow); }
+
 .hero-img-box { 
     width: 150px; height: 150px; border-radius: 20px; 
     background-size: cover; background-position: center; border: 3px solid var(--accent); 
@@ -13,27 +18,27 @@
 }
 .hero-text-box { flex: 1; display: flex; flex-direction: column; gap: 15px; width: 100%; justify-content: center; }
 
-/* LINHAS DE INFO DO HEADER */
+/* INFOS */
 .top-row-info { display: flex; gap: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 5px; }
 .bottom-row-info { display: flex; gap: 20px; }
 .info-group { display: flex; flex-direction: column; }
 .info-group.big { flex: 2; }
 .info-group label { font-size: 10px; font-weight: 800; color: var(--accent); letter-spacing: 1px; margin-bottom: 2px; }
-.info-group h1 { font-family: 'Cinzel'; font-size: 34px; margin: 0; line-height: 1; color: var(--text-primary); }
+.info-group h1 { font-family: 'Cinzel'; font-size: 34px; margin: 0; line-height: 1; color: var(--text-primary); text-shadow: 0 0 10px rgba(0,0,0,0.5); }
 .info-group p { font-size: 18px; margin: 0; color: var(--text-primary); font-weight: 600; }
 .input-header { background: transparent !important; border: none !important; border-bottom: 1px solid rgba(128,128,128,0.3) !important; color: var(--text-primary); font-size: 16px; width: 100%; padding: 0; }
 .input-header.small { font-size: 14px; text-align: left; }
 
-/* FLECHA VOLTAR */
-.btn-back-pro { width: 60px; height: 100%; min-height: 60px; border-radius: 50px; background: var(--bg-panel); border: 2px solid var(--accent); color: var(--accent); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.3s; align-self: center; }
-.btn-back-pro:hover { transform: scale(1.05); background: var(--accent); color: var(--bg-app); }
-.btn-back-pro svg { width: 28px; height: 28px; }
+.btn-back-pro { width: 60px; height: 100%; min-height: 60px; border-radius: 50px; background: var(--bg-panel); border: 2px solid var(--accent); color: var(--accent); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.3s; align-self: center; backdrop-filter: blur(5px); }
+.btn-back-pro:hover { transform: scale(1.1); background: var(--accent); color: var(--bg-app); box-shadow: 0 0 20px var(--accent-glow); }
 
-/* STATS FLOATING BOX (INFO GERAL) */
+/* =========================================
+   STATUS FLOATING BOX
+   ========================================= */
 .stats-floating-box { 
     background: var(--bg-panel); border: 1px solid var(--border); border-radius: 20px; 
     padding: 20px; margin-bottom: 25px; display: flex; justify-content: space-around; 
-    align-items: center; box-shadow: 0 5px 20px rgba(0,0,0,0.2); 
+    align-items: center; box-shadow: 0 5px 20px rgba(0,0,0,0.2); backdrop-filter: blur(12px);
 }
 .stat-cell { flex: 1; text-align: center; padding: 0 10px; position: relative; }
 .stat-cell label { display: block; font-size: 11px; color: var(--accent); font-weight: bold; margin-bottom: 5px; letter-spacing: 1px; }
@@ -42,113 +47,93 @@
 .special-insp { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
 /* =========================================
-   NOVO: BLOCOS DE COMBATE (CA, INI, DESL)
+   COMBAT BLOCKS (VIDRO PREMIUM)
    ========================================= */
-.combat-grid-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 15px;
-    margin-bottom: 20px;
+.combat-grid-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+.combat-box { 
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px 5px; 
+    text-align: center; background: var(--bg-panel); border: 1px solid var(--border); 
+    border-radius: 16px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); transition: 0.3s; backdrop-filter: blur(10px);
 }
+.combat-box:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 10px 25px var(--accent-glow); }
+.combat-box label { font-family: 'Cinzel'; font-size: 12px; font-weight: 800; color: var(--accent); letter-spacing: 1px; margin-bottom: 5px; }
+.combat-box .big-stat { font-size: 32px; font-weight: 800; text-align: center; width: 100%; background: transparent !important; border: none !important; color: var(--text-primary); padding: 0; }
 
-.combat-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 15px 5px;
-    text-align: center;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    transition: 0.3s;
-}
-
-.combat-box:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent);
-}
-
-.combat-box label {
-    font-family: 'Cinzel';
-    font-size: 12px;
-    font-weight: 800;
-    color: var(--accent);
-    letter-spacing: 1px;
-    margin-bottom: 5px;
-}
-
-.combat-box .big-stat {
-    font-size: 32px;
-    font-weight: 800;
-    text-align: center;
-    width: 100%;
-    background: transparent !important;
-    border: none !important;
-    color: var(--text-primary);
-    padding: 0;
-}
-
-/* GRID PRINCIPAL */
+/* =========================================
+   GRID PRINCIPAL
+   ========================================= */
 .sheet-body-container { width: 95%; max-width: 1300px; margin: 0 auto; padding-bottom: 150px; }
-.main-grid { display: grid; grid-template-columns: 380px 1fr 300px; gap: 20px; } /* Coluna esquerda ajustada */
+/* Ajustado para acomodar a tabela de perícias */
+.main-grid { display: grid; grid-template-columns: 440px 1fr 300px; gap: 20px; }
 .col-left, .col-mid, .col-right { display: flex; flex-direction: column; gap: 15px; }
 
 /* BLOCOS PADRÃO */
-.block { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 15px; position: relative; overflow: hidden; }
+.block { 
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; 
+    padding: 15px; position: relative; overflow: hidden; backdrop-filter: blur(10px);
+    transition: border-color 0.3s;
+}
+.block:hover { border-color: rgba(255,255,255,0.2); }
+
 .clean-input { width: 100%; background: transparent !important; border: none !important; border-bottom: 1px solid rgba(128,128,128,0.2) !important; text-align: center; font-weight: 600; color: var(--text-primary); }
 .clean-area { width: 100%; background: transparent !important; border: none !important; resize: none; min-height: 100px; color: var(--text-primary); line-height: 1.5; font-size: 14px; position: relative; z-index: 2; }
 .clean-area.small { min-height: 60px; }
 .full-height { min-height: 200px; height: 100%; }
 
 /* ATRIBUTOS */
-.attr-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-input); padding: 5px 10px; border-radius: 6px; margin-bottom: 5px; }
+.attr-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-input); padding: 5px 10px; border-radius: 6px; margin-bottom: 5px; transition: 0.3s; }
+.attr-row:hover { background: rgba(255,255,255,0.1); }
 .attr-val { width: 40px; text-align: center; border:none !important; background: transparent !important; font-weight: 800; font-size: 16px; }
 .attr-mod { font-size: 12px; background: var(--accent); color: var(--bg-app); padding: 2px 5px; border-radius: 4px; font-weight: bold; }
 
-/* PERÍCIAS & SAVES (GRID AVANÇADO) */
-.skill-header-row {
-    display: grid;
-    grid-template-columns: 30px 1fr 40px 40px 50px 50px;
-    gap: 8px;
-    padding: 10px 5px;
-    border-bottom: 2px solid var(--accent);
-    margin-bottom: 10px;
-    align-items: center;
-    text-align: center;
+/* =========================================
+   PERÍCIAS & SAVES (GRID AVANÇADO + CHECKBOX)
+   ========================================= */
+.skill-header-row { 
+    display: grid; 
+    /* Colunas: Dado | Nome | Attr | Check(Prof) | Bônus | Treino | Outro */
+    grid-template-columns: 30px 1fr 40px 30px 40px 45px 45px; 
+    gap: 5px; padding: 10px 5px; border-bottom: 2px solid var(--accent); 
+    margin-bottom: 10px; align-items: center; text-align: center; 
 }
-.skill-header-row span { font-size: 9px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+.skill-header-row span { font-size: 9px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
 .text-left { text-align: left !important; }
 
-.skill-row-pro {
-    display: grid;
-    grid-template-columns: 30px 1fr 40px 40px 50px 50px;
-    gap: 8px;
-    padding: 8px 5px;
-    align-items: center;
-    border-bottom: 1px solid rgba(128,128,128,0.1);
-    transition: 0.2s;
+.skill-row-pro { 
+    display: grid; 
+    grid-template-columns: 30px 1fr 40px 30px 40px 45px 45px; 
+    gap: 5px; padding: 8px 5px; align-items: center; 
+    border-bottom: 1px solid rgba(128,128,128,0.1); transition: 0.2s; border-radius: 4px; 
 }
-.skill-row-pro:hover { background: rgba(255,255,255,0.02); }
+.skill-row-pro:hover { background: rgba(255,255,255,0.05); transform: translateX(2px); }
 
+/* Botão de Rolar */
 .skill-icon-btn { width: 24px; height: 24px; cursor: pointer; background: none; border: none; fill: var(--text-primary); opacity: 0.7; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
-.skill-icon-btn:hover { opacity: 1; transform: scale(1.1); fill: var(--accent); }
+.skill-icon-btn:hover { opacity: 1; transform: scale(1.2) rotate(10deg); fill: var(--accent); filter: drop-shadow(0 0 5px var(--accent)); }
 .skill-icon-btn svg { width: 100%; height: 100%; }
 
+/* Textos da Tabela */
 .skill-name-pro { font-size: 13px; font-weight: 600; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .skill-attr-display { color: var(--text-secondary); font-size: 10px; font-family: var(--font-mono); text-align: center; }
 .skill-total-display { color: var(--accent); font-weight: 800; font-size: 14px; text-align: center; }
 
-.skill-input-line {
-    width: 100%; background: transparent !important; border: none !important;
-    border-bottom: 1px solid rgba(128,128,128,0.3) !important; border-radius: 0 !important;
-    text-align: center; color: var(--text-primary); font-size: 13px; padding: 0;
+/* CHECKBOX PERSONALIZADO (NOVO) */
+.prof-check { 
+    appearance: none; -webkit-appearance: none;
+    width: 16px; height: 16px; 
+    border: 2px solid var(--text-secondary); border-radius: 3px; cursor: pointer; position: relative;
+    transition: 0.2s; margin: 0 auto;
 }
+.prof-check:checked { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.prof-check:checked::after { content: "✔"; position: absolute; font-size: 10px; color: var(--bg-app); top: -2px; left: 2px; font-weight: bold; }
+
+/* Inputs da Tabela */
+.skill-input-line { width: 100%; background: transparent !important; border: none !important; border-bottom: 1px solid rgba(128,128,128,0.3) !important; border-radius: 0 !important; text-align: center; color: var(--text-primary); font-size: 13px; padding: 0; }
 .skill-input-line:focus { border-bottom-color: var(--accent) !important; }
 
-
-/* HP, DEATH SAVES, PASSIVAS */
+/* =========================================
+   OUTROS BLOCOS
+   ========================================= */
 .hp-block { background: linear-gradient(135deg, rgba(150,0,0,0.05), transparent); border-color: rgba(150,0,0,0.2); }
 .hp-row { display: flex; justify-content: center; gap: 10px; align-items: baseline; }
 .hp-row input { width: 70px; border: none !important; background: transparent !important; text-align: center; font-size: 32px; font-weight: 800; color: var(--text-primary); }

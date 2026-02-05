@@ -37,11 +37,15 @@ window.onload = () => {
     if(!currentUser || !currentUser.heroes[heroIdx]) { window.location.href = 'index.html'; return; }
     
     carregarFicha();
+    setupAudio();
     
     document.addEventListener('input', (e) => {
         if(e.target.classList.contains('save-field')) {
             saveData(e.target);
-            if(e.target.id.startsWith('score-') || e.target.id === 'c-prof' || e.target.id.startsWith('train-') || e.target.id.startsWith('other-')) {
+            // Recalcula se mudar atributos, proficiência, treino, outros ou checkbox
+            if(e.target.id.startsWith('score-') || e.target.id === 'c-prof' || 
+               e.target.id.startsWith('train-') || e.target.id.startsWith('other-') || 
+               e.target.id.startsWith('prof-')) {
                 calcStats();
             }
         }
@@ -52,14 +56,40 @@ window.onload = () => {
     });
 };
 
+// =================== AUDIO SYSTEM ===================
+function setupAudio() {
+    document.addEventListener('click', (e) => {
+        if(e.target.tagName === 'BUTTON' || e.target.type === 'checkbox' || 
+           e.target.classList.contains('theme-item') || e.target.classList.contains('satellite') ||
+           e.target.classList.contains('globe-main')) {
+            playClickSound();
+        }
+    });
+}
+function playClickSound() {
+    // Som de "Pop" suave sintético
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.1);
+}
+
 function setTheme(name) {
     document.documentElement.setAttribute('data-theme', name);
     document.body.setAttribute('data-theme', name);
     localStorage.setItem('vasteria_theme', name);
 }
-function toggleTheme() { document.getElementById('theme-panel').classList.toggle('active'); }
+function toggleTheme() { playClickSound(); document.getElementById('theme-panel').classList.toggle('active'); }
 
-// =================== CARREGAMENTO ===================
+// =================== CARREGAMENTO E GERAÇÃO ===================
 function carregarFicha() {
     const h = currentUser.heroes[heroIdx];
     document.getElementById('display-name').innerText = h.nome.toUpperCase();
@@ -83,10 +113,23 @@ function carregarFicha() {
 }
 
 function gerarEstrutura() {
+    // 1. Atributos
     const attrCont = document.getElementById('attr-container'); attrCont.innerHTML = "";
     ATTR.forEach(a => { attrCont.innerHTML += `<div class="attr-row"><span style="font-weight:bold; font-size:14px">${a}</span><input id="score-${a}" class="attr-val save-field" value="10" type="number"><span id="mod-${a}" class="attr-mod">+0</span></div>`; });
 
-    const saveCont = document.getElementById('saves-container'); saveCont.innerHTML = "";
+    // 2. Saves (Gera Header Único + Linhas)
+    const saveCont = document.getElementById('saves-container'); 
+    saveCont.innerHTML = `
+        <div class="skill-header-row">
+            <span></span>
+            <span class="text-left">NOME</span>
+            <span>ATR</span>
+            <span>PROF</span>
+            <span>BÔNUS</span>
+            <span>TREINO</span>
+            <span>OUTRO</span>
+        </div>`;
+    
     ATTR.forEach(a => { 
         saveCont.innerHTML += `
             <div class="skill-row-pro">
@@ -95,13 +138,26 @@ function gerarEstrutura() {
                 </button>
                 <div class="skill-name-pro">Salvaguarda</div>
                 <div class="skill-attr-display">(${a})</div>
+                <input type="checkbox" id="prof-save-${a}" class="prof-check save-field">
                 <div id="total-save-${a}" class="skill-total-display">+0</div>
                 <input type="number" id="train-save-${a}" class="skill-input-line save-field" placeholder="0">
                 <input type="number" id="other-save-${a}" class="skill-input-line save-field" placeholder="0">
             </div>`; 
     });
 
-    const skillCont = document.getElementById('skills-container'); skillCont.innerHTML = "";
+    // 3. Perícias (Gera Header Único + Linhas)
+    const skillCont = document.getElementById('skills-container');
+    skillCont.innerHTML = `
+        <div class="skill-header-row">
+            <span></span>
+            <span class="text-left">NOME</span>
+            <span>ATR</span>
+            <span>PROF</span>
+            <span>BÔNUS</span>
+            <span>TREINO</span>
+            <span>OUTRO</span>
+        </div>`;
+    
     SKILLS_LIST.forEach(s => {
         const idName = s.name.replace(/\s+/g, '-').toLowerCase();
         skillCont.innerHTML += `
@@ -111,6 +167,7 @@ function gerarEstrutura() {
                 </button>
                 <div class="skill-name-pro">${s.name}</div>
                 <div class="skill-attr-display">(${s.attr})</div>
+                <input type="checkbox" id="prof-skill-${idName}" class="prof-check save-field">
                 <div id="total-skill-${idName}" class="skill-total-display">+0</div>
                 <input type="number" id="train-skill-${idName}" class="skill-input-line save-field" placeholder="0">
                 <input type="number" id="other-skill-${idName}" class="skill-input-line save-field" placeholder="0">
@@ -127,9 +184,11 @@ function gerarGrimorio() {
     }
 }
 
-// =================== CÁLCULOS ===================
+// =================== CÁLCULOS MATEMÁTICOS ===================
 function calcStats() {
     let mods = {};
+    const profBonus = parseInt(document.getElementById('c-prof').value) || 2;
+
     ATTR.forEach(a => {
         const val = parseInt(document.getElementById(`score-${a}`).value) || 10;
         const mod = Math.floor((val - 10) / 2);
@@ -138,17 +197,19 @@ function calcStats() {
     });
     
     ATTR.forEach(a => {
+        const isProf = document.getElementById(`prof-save-${a}`).checked;
         const train = parseInt(document.getElementById(`train-save-${a}`).value) || 0;
         const other = parseInt(document.getElementById(`other-save-${a}`).value) || 0;
-        const total = mods[a] + train + other;
+        const total = mods[a] + (isProf ? profBonus : 0) + train + other;
         document.getElementById(`total-save-${a}`).innerText = total >= 0 ? `+${total}` : total;
     });
 
     SKILLS_LIST.forEach(s => {
         const idName = s.name.replace(/\s+/g, '-').toLowerCase();
+        const isProf = document.getElementById(`prof-skill-${idName}`).checked;
         const train = parseInt(document.getElementById(`train-skill-${idName}`).value) || 0;
         const other = parseInt(document.getElementById(`other-skill-${idName}`).value) || 0;
-        const total = mods[s.attr] + train + other;
+        const total = mods[s.attr] + (isProf ? profBonus : 0) + train + other;
         document.getElementById(`total-skill-${idName}`).innerText = total >= 0 ? `+${total}` : total;
         
         if(s.name === 'Percepção') document.getElementById('pas-perc').value = 10 + total;
@@ -170,6 +231,7 @@ function calcSpells() {
 }
 
 function rollSkill(name, elementId) {
+    playClickSound();
     const totalText = document.getElementById(elementId).innerText;
     const bonus = parseInt(totalText);
     const d20 = Math.floor(Math.random() * 20) + 1;
@@ -198,8 +260,9 @@ function saveData(el) {
 }
 
 function voltarParaHome() { window.location.href = 'index.html'; }
-function toggleGlobe() { document.getElementById('globe-trigger').classList.toggle('active'); }
+function toggleGlobe() { playClickSound(); document.getElementById('globe-trigger').classList.toggle('active'); }
 function switchTab(id) {
+    playClickSound();
     document.querySelectorAll('.page').forEach(p => p.style.display='none');
     document.getElementById(id).style.display='block';
     document.getElementById('globe-trigger').classList.remove('active');

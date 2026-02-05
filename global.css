@@ -3,7 +3,8 @@
 :root {
     --font-main: 'Outfit', sans-serif;
     --font-mono: 'Roboto Mono', monospace;
-    --radius: 12px;
+    --radius: 16px;
+    --transition: 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 body { 
@@ -13,144 +14,166 @@ body {
     transition: background 0.8s ease, color 0.5s ease; position: relative; 
 }
 
-/* === INPUTS UNIVERSAIS === */
+/* BACKGROUNDS ANIMADOS GERAIS */
+body::before, body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; transition: opacity 1s, background 1s; z-index: -1;
+}
+
+/* === INPUTS & ELEMENTOS GERAIS === */
 input, textarea, select {
     background-color: var(--bg-input) !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--border) !important;
     font-family: var(--font-main);
-    outline: none; transition: 0.3s;
+    outline: none; transition: var(--transition);
+    border-radius: 6px;
 }
-input:focus, textarea:focus { border-color: var(--accent) !important; box-shadow: 0 0 10px var(--accent-glow); }
+input:focus, textarea:focus, select:focus { 
+    border-color: var(--accent) !important; 
+    box-shadow: 0 0 15px var(--accent-glow); 
+    transform: scale(1.01);
+}
 input::placeholder, textarea::placeholder { color: var(--text-secondary); opacity: 0.6; }
 
-/* ================= TEMAS (COMPLETOS) ================= */
+/* =========================================================
+   TEMAS - MEGA REWORK (ESTÉTICA PREMIUM)
+   ========================================================= */
 
-/* BACKGROUND BASE */
-body::before { content: ""; position: fixed; inset: 0; z-index: -2; transition: opacity 1s; }
-body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; transition: opacity 1s; }
-
-/* 1. CAFÉ & CARAMELO (NOVO - Light/Medium Gourmet) */
+/* 1. ESPRESSO & CARAMEL (O "Especial" Animado) */
 body[data-theme="caramel"] {
-    --bg-app: #f4ecd8; 
-    --bg-panel: rgba(255, 255, 255, 0.9); 
-    --bg-input: rgba(198, 142, 23, 0.1);
-    --accent: #b07d10; 
-    --accent-glow: rgba(198, 142, 23, 0.4);
-    --text-primary: #3e2723; 
-    --text-secondary: #795548;
-    --border: #d7ccc8;
+    --bg-app: #2A1B15; /* Marrom Café Escuro */
+    --bg-panel: rgba(45, 30, 25, 0.85); /* Vidro Escuro Quente */
+    --bg-input: rgba(198, 142, 23, 0.15);
+    --accent: #FFB347; /* Caramelo Dourado Brilhante */
+    --accent-glow: rgba(255, 179, 71, 0.5);
+    --text-primary: #FFF8E1; /* Creme */
+    --text-secondary: #D7CCC8;
+    --border: #8D6E63;
 }
+/* Animação Líquida de Café e Caramelo */
 body[data-theme="caramel"]::before {
-    background: radial-gradient(circle at top, #fff8e1 0%, #efebe9 100%);
+    background: linear-gradient(-45deg, #1a0f0a, #3e2723, #5d4037, #4a2c20);
+    background-size: 400% 400%;
+    animation: liquidCoffee 15s ease infinite;
+    z-index: -2;
 }
 body[data-theme="caramel"]::after {
-    background-image: radial-gradient(circle, rgba(176, 125, 16, 0.1) 1px, transparent 1px);
-    background-size: 30px 30px;
-    animation: floatBubbles 20s linear infinite;
+    background-image: radial-gradient(circle at center, rgba(255, 179, 71, 0.05) 0%, transparent 70%);
+    animation: steamPulse 8s infinite alternate;
 }
-body[data-theme="caramel"] .hero-card-floating,
-body[data-theme="caramel"] .floating-block,
-body[data-theme="caramel"] .login-card-universal,
-body[data-theme="caramel"] .stats-floating-box,
-body[data-theme="caramel"] .block,
-body[data-theme="caramel"] .spell-level-block {
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(62, 39, 35, 0.15);
-    border: 1px solid #fff;
-}
+@keyframes liquidCoffee { 0% {background-position: 0% 50%} 50% {background-position: 100% 50%} 100% {background-position: 0% 50%} }
+@keyframes steamPulse { 0% { opacity: 0.3; transform: scale(1); } 100% { opacity: 0.6; transform: scale(1.1); } }
 
-/* 2. TAVERNA (COFFEE) */
-body[data-theme="coffee"] {
-    --bg-app: #1F1612; --bg-panel: rgba(62, 47, 38, 0.95); --bg-input: rgba(255, 245, 230, 0.1);
-    --accent: #D4A373; --accent-glow: rgba(212, 163, 115, 0.4);
-    --text-primary: #FAEDCD; --text-secondary: #CCD5AE; --border: #8D6E63;
-}
-body[data-theme="coffee"]::before { background: radial-gradient(circle, #3e2f26 20%, #0f0a08 100%); }
-body[data-theme="coffee"]::after { background: url('https://www.transparenttextures.com/patterns/wood-pattern.png'); opacity: 0.15; animation: mistFlow 20s infinite alternate; }
-
-/* 3. MESTRE (MASTER) */
+/* 2. MESTRE (MASTER) - Luxo, Sangue e Ouro */
 body[data-theme="master"] {
-    --bg-app: #1a0505; --bg-panel: rgba(40, 5, 5, 0.9); --bg-input: rgba(0,0,0,0.4);
-    --accent: #ffd700; --accent-glow: rgba(255, 215, 0, 0.3);
-    --text-primary: #fff8e7; --text-secondary: #e6b800; --border: rgba(255, 215, 0, 0.3);
+    --bg-app: #0f0202; 
+    --bg-panel: rgba(30, 5, 5, 0.9);
+    --bg-input: rgba(0,0,0,0.6);
+    --accent: #FFD700; /* Ouro Puro */
+    --accent-glow: rgba(255, 215, 0, 0.4);
+    --text-primary: #FFF5E6;
+    --text-secondary: #C0A080;
+    --border: #5C1515;
 }
-body[data-theme="master"]::before { background: radial-gradient(circle at center, #3d0000 0%, #000 100%); }
-body[data-theme="master"]::after { background-image: radial-gradient(#ffd700 1px, transparent 1px); background-size: 50px 50px; opacity: 0.2; animation: embersRise 5s linear infinite; }
+body[data-theme="master"]::before {
+    background: radial-gradient(circle at 50% 30%, #4a0404 0%, #000 80%);
+}
+body[data-theme="master"]::after {
+    background: url('https://www.transparenttextures.com/patterns/black-scales.png');
+    opacity: 0.3;
+    animation: masterBreathing 6s ease-in-out infinite alternate;
+}
+@keyframes masterBreathing { from { opacity: 0.2; } to { opacity: 0.4; } }
 
-/* 4. MAGO (ARCANE) */
+/* 3. MAGO (ARCANE) - Místico e Fluido */
 body[data-theme="arcane"] {
-    --bg-app: #1e1b4b; --bg-panel: rgba(30, 10, 60, 0.9); --bg-input: rgba(0,0,0,0.3);
-    --accent: #d8b4fe; --accent-glow: rgba(168, 85, 247, 0.5);
-    --text-primary: #f3e8ff; --text-secondary: #a855f7; --border: rgba(168, 85, 247, 0.4);
+    --bg-app: #120926;
+    --bg-panel: rgba(25, 15, 50, 0.8);
+    --bg-input: rgba(139, 92, 246, 0.15);
+    --accent: #D8B4FE;
+    --accent-glow: rgba(167, 139, 250, 0.6);
+    --text-primary: #F3E8FF;
+    --text-secondary: #A78BFA;
+    --border: #5B21B6;
 }
-body[data-theme="arcane"]::before { background: linear-gradient(135deg, #180529 0%, #080214 100%); }
-body[data-theme="arcane"]::after { background: url('https://www.transparenttextures.com/patterns/stardust.png'); opacity: 0.4; animation: rotateSlow 120s linear infinite; }
+body[data-theme="arcane"]::before {
+    background: radial-gradient(circle at 20% 80%, #4c1d95, transparent 50%),
+                radial-gradient(circle at 80% 20%, #2e1065, transparent 50%);
+    background-color: #0f0518;
+    z-index: -2;
+}
+body[data-theme="arcane"]::after {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    animation: runeFloat 20s linear infinite;
+}
+@keyframes runeFloat { from { background-position: 0 0; } to { background-position: 0 600px; } }
 
-/* 5. GUERREIRO (MIGHT) */
-body[data-theme="might"] {
-    --bg-app: #220505; --bg-panel: rgba(50, 10, 10, 0.95); --bg-input: rgba(0,0,0,0.3);
-    --accent: #ef4444; --accent-glow: rgba(239, 68, 68, 0.5);
-    --text-primary: #fee2e2; --text-secondary: #f87171; --border: #7f1d1d;
+/* 4. ESTELAR (STELLAR) - Sci-Fi Profundo e Parallax */
+body[data-theme="stellar"] {
+    --bg-app: #000205;
+    --bg-panel: rgba(5, 10, 20, 0.85); /* Vidro Azulado */
+    --bg-input: rgba(0, 255, 255, 0.1);
+    --accent: #00F3FF; /* Ciano Neon */
+    --accent-glow: rgba(0, 243, 255, 0.7);
+    --text-primary: #E0FFFF;
+    --text-secondary: #5F9EA0;
+    --border: #005F73;
 }
-body[data-theme="might"]::before { background: linear-gradient(to bottom, #2b0505, #000); }
+body[data-theme="stellar"]::before {
+    background: radial-gradient(ellipse at bottom, #0B3D91 0%, #000000 70%);
+    z-index: -2;
+}
+/* Estrelas Animadas Parallax */
+body[data-theme="stellar"]::after {
+    background-image: 
+        radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
+        radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 2px),
+        radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
+    background-size: 550px 550px, 350px 350px, 250px 250px;
+    background-position: 0 0, 40px 60px, 130px 270px;
+    animation: starsParallax 120s linear infinite;
+}
+@keyframes starsParallax { from { background-position: 0 0, 40px 60px, 130px 270px; } to { background-position: 550px 550px, 390px 410px, 380px 520px; } }
+
+/* OUTROS TEMAS (Refinados) */
+body[data-theme="coffee"] { --bg-app: #1F1612; --bg-panel: rgba(62, 47, 38, 0.95); --bg-input: rgba(255, 245, 230, 0.1); --accent: #D4A373; --accent-glow: rgba(212, 163, 115, 0.4); --text-primary: #FAEDCD; --text-secondary: #CCD5AE; --border: #8D6E63; }
+body[data-theme="coffee"]::after { background: url('https://www.transparenttextures.com/patterns/wood-pattern.png'); opacity: 0.15; }
+
+body[data-theme="might"] { --bg-app: #220505; --bg-panel: rgba(50, 10, 10, 0.95); --bg-input: rgba(0,0,0,0.3); --accent: #ef4444; --accent-glow: rgba(239, 68, 68, 0.5); --text-primary: #fee2e2; --text-secondary: #f87171; --border: #7f1d1d; }
 body[data-theme="might"]::after { background: repeating-linear-gradient(45deg, rgba(255,0,0,0.05) 0px, rgba(255,0,0,0.05) 2px, transparent 2px, transparent 10px); }
 
-/* 6. LADINO (STEALTH) */
-body[data-theme="stealth"] {
-    --bg-app: #020617; --bg-panel: rgba(2, 25, 20, 0.9); --bg-input: rgba(0,0,0,0.5);
-    --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.4);
-    --text-primary: #ecfdf5; --text-secondary: #34d399; --border: #064e3b;
-}
-body[data-theme="stealth"]::before { background: #000; }
+body[data-theme="stealth"] { --bg-app: #020617; --bg-panel: rgba(2, 25, 20, 0.9); --bg-input: rgba(0,0,0,0.5); --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.4); --text-primary: #ecfdf5; --text-secondary: #34d399; --border: #064e3b; }
 body[data-theme="stealth"]::after { background: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.1), transparent 60%); animation: pulseGlow 4s infinite alternate; }
 
-/* 7. DRUIDA (WILD) */
-body[data-theme="wild"] {
-    --bg-app: #051a05; --bg-panel: rgba(10, 35, 10, 0.9); --bg-input: rgba(255,255,255,0.05);
-    --accent: #84cc16; --accent-glow: rgba(132, 204, 22, 0.4);
-    --text-primary: #f7fee7; --text-secondary: #bef264; --border: #3f6212;
-}
-body[data-theme="wild"]::before { background: #051005; }
+body[data-theme="wild"] { --bg-app: #051a05; --bg-panel: rgba(10, 35, 10, 0.9); --bg-input: rgba(255,255,255,0.05); --accent: #84cc16; --accent-glow: rgba(132, 204, 22, 0.4); --text-primary: #f7fee7; --text-secondary: #bef264; --border: #3f6212; }
 body[data-theme="wild"]::after { background-image: radial-gradient(rgba(132, 204, 22, 0.3) 1px, transparent 1px); background-size: 80px 80px; opacity: 0.5; animation: floatSpores 10s linear infinite; }
-
-/* 8. CLÁSSICO (GOLD) */
-body[data-theme="classic"] {
-    --bg-app: #111; --bg-panel: rgba(30, 30, 30, 0.95); --bg-input: rgba(255,255,255,0.1);
-    --accent: #eab308; --accent-glow: rgba(234, 179, 8, 0.4);
-    --text-primary: #fefce8; --text-secondary: #fde047; --border: #854d0e;
-}
-body[data-theme="classic"]::before { background: #111; }
-body[data-theme="classic"]::after { background: url('https://www.transparenttextures.com/patterns/gold-scale.png'); opacity: 0.2; }
-
-/* 9. ESTELAR (COSMIC) - Azul e Galáxias */
-body[data-theme="stellar"] {
-    --bg-app: #000000; --bg-panel: rgba(5, 10, 30, 0.85); --bg-input: rgba(0, 150, 255, 0.1);
-    --accent: #00d9ff; --accent-glow: rgba(0, 217, 255, 0.6);
-    --text-primary: #e0faff; --text-secondary: #63b3ed; --border: #005f73;
-}
-body[data-theme="stellar"]::before { background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%); }
-body[data-theme="stellar"]::after {
-    background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px), radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 2px), radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
-    background-size: 550px 550px, 350px 350px, 250px 250px;
-    animation: starsMove 100s linear infinite; opacity: 0.8;
-}
-
-/* ANIMAÇÕES */
-@keyframes mistFlow { 0% { opacity: 0.1; transform: scale(1); } 100% { opacity: 0.2; transform: scale(1.1); } }
-@keyframes embersRise { 0% { transform: translateY(0); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-100px); opacity: 0; } }
-@keyframes rotateSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes pulseGlow { from { opacity: 0.3; } to { opacity: 0.6; } }
 @keyframes floatSpores { 0% { transform: translateY(0) translateX(0); } 100% { transform: translateY(-50px) translateX(20px); } }
-@keyframes starsMove { from { transform: translateY(0); } to { transform: translateY(-550px); } }
-@keyframes floatBubbles { 0% { background-position: 0 0; } 100% { background-position: 0 -100px; } }
 
-/* DOCK DE TEMAS (COMUM) */
-.dock-trigger-large { position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px; border-radius: 50%; background: var(--bg-panel); border: 2px solid var(--accent); font-size: 30px; cursor: pointer; z-index: 9000; transition: 0.3s; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-.dock-trigger-large:hover { transform: scale(1.1) rotate(15deg); }
-.theme-panel { position: fixed; bottom: 100px; left: 30px; width: 240px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 15px; z-index: 8999; display: none; backdrop-filter: blur(10px); }
-.theme-panel.active { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; animation: fadeIn 0.3s; }
-.theme-item { display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; color: var(--text-primary); border: 1px solid transparent; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-.theme-item:hover { border-color: var(--accent); background: var(--bg-input); }
-.color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #fff; }
-@keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+/* =========================================================
+   UI ELEMENTS & DOCK (Interface do Usuário)
+   ========================================================= */
+.dock-trigger-large { 
+    position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px; 
+    border-radius: 50%; background: var(--bg-panel); border: 2px solid var(--accent); 
+    font-size: 30px; cursor: pointer; z-index: 9000; transition: 0.3s; 
+    box-shadow: 0 0 20px rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+}
+.dock-trigger-large:hover { transform: scale(1.1) rotate(15deg); box-shadow: 0 0 30px var(--accent-glow); }
+
+.theme-panel { 
+    position: fixed; bottom: 100px; left: 30px; width: 240px; 
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; 
+    padding: 15px; z-index: 8999; display: none; backdrop-filter: blur(15px); 
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+.theme-panel.active { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; animation: fadeIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+
+.theme-item { 
+    display: flex; align-items: center; gap: 8px; padding: 10px; cursor: pointer; 
+    color: var(--text-primary); border: 1px solid transparent; border-radius: 8px; 
+    font-size: 11px; font-weight: bold; text-transform: uppercase; transition: 0.2s;
+}
+.theme-item:hover { border-color: var(--accent); background: var(--bg-input); transform: translateX(3px); }
+.color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+
+@keyframes fadeIn { from { opacity:0; transform: translateY(20px) scale(0.9); } to { opacity:1; transform: translateY(0) scale(1); } }

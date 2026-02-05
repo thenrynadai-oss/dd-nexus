@@ -64,43 +64,26 @@
                         
                         <div class="block list-block">
                             <label>SALVAGUARDAS</label>
-                            <div class="skill-header-row">
-                                <span></span>
-                                <span class="text-left">NOME</span>
-                                <span>ATR</span>
-                                <span>TOT</span>
-                                <span>TREINO</span>
-                                <span>OUTRO</span>
-                            </div>
                             <div id="saves-container"></div>
                         </div>
 
                         <div class="block list-block">
                             <label>PERÍCIAS</label>
-                            <div class="skill-header-row">
-                                <span></span>
-                                <span class="text-left">NOME</span>
-                                <span>ATR</span>
-                                <span>TOT</span>
-                                <span>TREINO</span>
-                                <span>OUTRO</span>
-                            </div>
                             <div id="skills-container"></div>
                         </div>
                     </div>
 
                     <div class="col-mid">
-                        
                         <div class="combat-grid-row">
-                            <div class="block combat-box">
-                                <label>DEFESA</label>
+                            <div class="combat-box">
+                                <label>DEFESA (CA)</label>
                                 <input id="c-ca" class="save-field big-stat" placeholder="10">
                             </div>
-                            <div class="block combat-box">
+                            <div class="combat-box">
                                 <label>INICIATIVA</label>
                                 <input id="c-ini" class="save-field big-stat" placeholder="+0">
                             </div>
-                            <div class="block combat-box">
+                            <div class="combat-box">
                                 <label>DESLOCAMENTO</label>
                                 <input id="c-speed" class="save-field big-stat" placeholder="9m">
                             </div>
@@ -159,6 +142,7 @@
             </div>
 
             <div id="tab2" class="page" style="display:none;"><div class="block full"><textarea id="b-backstory" class="clean-area save-field" placeholder="História..." style="height:600px"></textarea></div></div>
+            
             <div id="tab3" class="page" style="display:none;">
                 <div class="spellcasting-header">
                     <div class="spell-stat"><label>HABILIDADE</label><select id="spell-ability" class="save-field spell-select" onchange="calcSpells()"><option value="INT">INTELIGÊNCIA</option><option value="SAB">SABEDORIA</option><option value="CAR">CARISMA</option></select></div>
@@ -167,6 +151,7 @@
                 </div>
                 <div class="spells-grid-layout" id="spells-area"></div>
             </div>
+
             <div id="tab4" class="page" style="display:none;"><div class="block full"><textarea id="d-notes" class="clean-area save-field" placeholder="Anotações..." style="height:600px"></textarea></div></div>
         </div>
 
@@ -183,11 +168,11 @@
 
     <button class="dock-trigger-large" onclick="toggleTheme()">🎨</button>
     <div id="theme-panel" class="theme-panel">
-        <div class="theme-item" onclick="setTheme('caramel')"><div class="color-dot" style="background:#C68E17"></div>CAFÉ & CARAMELO</div>
+        <div class="theme-item" onclick="setTheme('caramel')"><div class="color-dot" style="background:#C68E17"></div>ESPRESSO & CARAMEL</div>
         <div class="theme-item" onclick="setTheme('coffee')"><div class="color-dot" style="background:#3e2f26"></div>Taverna</div>
-        <div class="theme-item" onclick="setTheme('master')"><div class="color-dot" style="background:#4a0404"></div>Mestre</div>
-        <div class="theme-item" onclick="setTheme('arcane')"><div class="color-dot" style="background:#3b0764"></div>Mago</div>
-        <div class="theme-item" onclick="setTheme('stellar')"><div class="color-dot" style="background:#00d9ff"></div>Estelar</div>
+        <div class="theme-item" onclick="setTheme('master')"><div class="color-dot" style="background:#4a0404"></div>Mestre Supremo</div>
+        <div class="theme-item" onclick="setTheme('arcane')"><div class="color-dot" style="background:#3b0764"></div>Arcano</div>
+        <div class="theme-item" onclick="setTheme('stellar')"><div class="color-dot" style="background:#00d9ff"></div>Estelar Neon</div>
         <div class="theme-item" onclick="setTheme('might')"><div class="color-dot" style="background:#450a0a"></div>Guerreiro</div>
         <div class="theme-item" onclick="setTheme('stealth')"><div class="color-dot" style="background:#064e3b"></div>Ladino</div>
         <div class="theme-item" onclick="setTheme('wild')"><div class="color-dot" style="background:#1a2e05"></div>Druida</div>
