@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <title>Vasteria Gate | Portal</title>
     <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="theme-picker.css">
     <link rel="stylesheet" href="home.css">
 </head>
-<body data-theme="caramel"> <section id="auth-section" class="screen-full">
+<body data-theme="caramel">
+
+    <section id="auth-section" class="screen-full">
         <div class="login-card-universal">
             <h1 class="brand-title">VASTERIA GATE</h1>
             <p class="brand-subtitle">PORTAL DE ACESSO</p>
@@ -39,7 +42,6 @@
                 </div>
                 <button onclick="logout()" class="btn-ghost">SAIR</button>
             </header>
-
             <nav class="hub-nav">
                 <button class="nav-btn active">MEUS PERSONAGENS</button>
                 <button class="nav-btn disabled" title="Em Breve">UNIVERSO RPG <span class="badge">Em Breve</span></button>
@@ -49,10 +51,8 @@
                 <button class="nav-btn disabled">AJUDA</button>
                 <button class="nav-btn disabled">PLAYER AREA</button>
             </nav>
-
             <div class="hub-content">
-                <div id="hero-list" class="hero-grid">
-                    </div>
+                <div id="hero-list" class="hero-grid"></div>
             </div>
         </div>
     </section>
@@ -74,17 +74,114 @@
         </div>
     </div>
 
+    <!-- BOTÃO DO SELETOR -->
     <button class="dock-trigger-large" onclick="toggleTheme()">🎨</button>
-    <div id="theme-panel" class="theme-panel">
-        <div class="theme-item" onclick="setTheme('caramel')"><div class="color-dot" style="background:#C68E17"></div>CAFÉ & CARAMELO</div>
-        <div class="theme-item" onclick="setTheme('coffee')"><div class="color-dot" style="background:#3e2f26"></div>Taverna</div>
-        <div class="theme-item" onclick="setTheme('master')"><div class="color-dot" style="background:#4a0404"></div>Mestre</div>
-        <div class="theme-item" onclick="setTheme('arcane')"><div class="color-dot" style="background:#3b0764"></div>Mago</div>
-        <div class="theme-item" onclick="setTheme('might')"><div class="color-dot" style="background:#450a0a"></div>Guerreiro</div>
-        <div class="theme-item" onclick="setTheme('stealth')"><div class="color-dot" style="background:#064e3b"></div>Ladino</div>
-        <div class="theme-item" onclick="setTheme('wild')"><div class="color-dot" style="background:#1a2e05"></div>Druida</div>
-        <div class="theme-item" onclick="setTheme('stellar')"><div class="color-dot" style="background:#00d9ff; box-shadow:0 0 5px #00d9ff"></div>ESTELAR</div>
-        <div class="theme-item" onclick="setTheme('classic')"><div class="color-dot" style="background:#000"></div>Clássico</div>
+
+    <!-- MODAL DO SELETOR -->
+    <div id="theme-modal" class="theme-modal" onclick="closeThemeModal(event)">
+        <div id="theme-panel" class="theme-panel" onclick="event.stopPropagation()">
+            <div class="theme-panel-header">
+                <button class="theme-close-btn" onclick="toggleTheme()" aria-label="Fechar temas">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                </button>
+                <div class="theme-panel-title">
+                    <h3>SELETOR DE TEMAS</h3>
+                    <p>Escolha o estilo visual do Vasteria Gate</p>
+                </div>
+            </div>
+
+            <div class="theme-grid">
+                <div class="theme-card" data-theme="caramel" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-caramel"><div class="preview-label">CAFÉ & CARAMEL</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="coffee" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-coffee"><div class="preview-label">TAVERNA</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="master" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-master"><div class="preview-label">MESTRE</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="arcane" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-arcane"><div class="preview-label">MAGO (ARCANO)</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="stellar" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-stellar"><div class="preview-label">ESTELAR</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="might" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-might"><div class="preview-label">GUERREIRO</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="stealth" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-stealth"><div class="preview-label">LADINO</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="wild" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-wild"><div class="preview-label">DRUIDA</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="classic" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-classic"><div class="preview-label">CLÁSSICO</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <!-- 7 novos -->
+                <div class="theme-card" data-theme="barbarian" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-barbarian"><div class="preview-label">BÁRBARO</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="cleric" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-cleric"><div class="preview-label">CLÉRIGO</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="paladin" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-paladin"><div class="preview-label">PALADINO</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="ranger" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-ranger"><div class="preview-label">PATRULHEIRO</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="warlock" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-warlock"><div class="preview-label">BRUXO</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="monk" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-monk"><div class="preview-label">MONGE</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <div class="theme-card" data-theme="bard" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-bard"><div class="preview-label">BARDO</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+
+                <!-- extra -->
+                <div class="theme-card" data-theme="aura-dawn" onclick="pickThemeCard(this)">
+                    <div class="theme-preview preview-aura-dawn"><div class="preview-label">AURA DO AMANHECER</div></div>
+                    <div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="home.js"></script>
