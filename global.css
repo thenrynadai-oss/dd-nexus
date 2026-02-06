@@ -39,32 +39,249 @@ input::placeholder, textarea::placeholder { color: var(--text-secondary); opacit
    TEMAS - MEGA REWORK (ESTÉTICA PREMIUM)
    ========================================================= */
 
-/* 1. ESPRESSO & CARAMEL (O "Especial" Animado) */
+/* 1. CAFÉ & CARAMEL (REWORK PRO - CAFETERIA LOW POLY + BOTÕES ANIMADOS) */
 body[data-theme="caramel"] {
-    --bg-app: #2A1B15; /* Marrom Café Escuro */
-    --bg-panel: rgba(45, 30, 25, 0.85); /* Vidro Escuro Quente */
-    --bg-input: rgba(198, 142, 23, 0.15);
-    --accent: #FFB347; /* Caramelo Dourado Brilhante */
-    --accent-glow: rgba(255, 179, 71, 0.5);
-    --text-primary: #FFF8E1; /* Creme */
-    --text-secondary: #D7CCC8;
-    --border: #8D6E63;
-}
-/* Animação Líquida de Café e Caramelo */
-body[data-theme="caramel"]::before {
-    background: linear-gradient(-45deg, #1a0f0a, #3e2723, #5d4037, #4a2c20);
-    background-size: 400% 400%;
-    animation: liquidCoffee 15s ease infinite;
-    z-index: -2;
-}
-body[data-theme="caramel"]::after {
-    background-image: radial-gradient(circle at center, rgba(255, 179, 71, 0.05) 0%, transparent 70%);
-    animation: steamPulse 8s infinite alternate;
-}
-@keyframes liquidCoffee { 0% {background-position: 0% 50%} 50% {background-position: 100% 50%} 100% {background-position: 0% 50%} }
-@keyframes steamPulse { 0% { opacity: 0.3; transform: scale(1); } 100% { opacity: 0.6; transform: scale(1.1); } }
+    /* Base premium: madeira escura + caramel glow */
+    --bg-app: #120D0B;
+    --bg-panel: rgba(20, 14, 12, 0.74);
+    --bg-input: rgba(255, 205, 140, 0.10);
 
-/* 2. MESTRE (MASTER) - Luxo, Sangue e Ouro */
+    --accent: #FFC76A;              /* Caramelo dourado mais “pro” */
+    --accent-glow: rgba(255, 199, 106, 0.45);
+
+    --text-primary: #FFF3E2;        /* Creme mais limpo */
+    --text-secondary: #D6C1AB;      /* Café com leite */
+    --border: rgba(255, 220, 175, 0.18);
+
+    /* Extras do tema (apenas caramel) */
+    --caramel-ink: rgba(10, 8, 7, 0.65);
+    --caramel-glass: rgba(255, 240, 220, 0.06);
+    --caramel-highlight: rgba(255, 255, 255, 0.10);
+    --caramel-shadow: rgba(0, 0, 0, 0.55);
+}
+
+/* Fundo “cafeteria low poly” (SVG desenhado) + movimento suave */
+body[data-theme="caramel"]::before {
+    z-index: -2;
+
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%232B1D17'/%3E%3Cstop offset='1' stop-color='%23110B09'/%3E%3C/linearGradient%3E%3ClinearGradient id='g2' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231A120F'/%3E%3Cstop offset='1' stop-color='%230B0706'/%3E%3C/linearGradient%3E%3ClinearGradient id='glass' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%231E6A7A' stop-opacity='.20'/%3E%3Cstop offset='1' stop-color='%2300B7C7' stop-opacity='.10'/%3E%3C/linearGradient%3E%3ClinearGradient id='warm' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23FFC76A' stop-opacity='.18'/%3E%3Cstop offset='1' stop-color='%23FF7A3D' stop-opacity='.06'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1600' height='900' fill='url(%23g1)'/%3E%3Cpolygon points='0,560 1600,460 1600,900 0,900' fill='url(%23g2)'/%3E%3Cpolygon points='120,120 710,95 770,385 95,430' fill='url(%23glass)'/%3E%3Cpolygon points='95,430 770,385 790,430 110,480' fill='%230B2230' fill-opacity='.30'/%3E%3Cpolygon points='1040,60 1100,60 1115,150 1025,150' fill='%23201512'/%3E%3Cpolygon points='1050,150 1090,150 1120,230 1020,230' fill='%23FFC76A' fill-opacity='.16'/%3E%3Cpolygon points='1180,70 1240,70 1250,150 1170,150' fill='%231B120F'/%3E%3Cpolygon points='1188,150 1232,150 1260,240 1160,240' fill='%23FF9B55' fill-opacity='.12'/%3E%3Cpolygon points='840,420 1600,360 1600,640 840,720' fill='%231B1310'/%3E%3Cpolygon points='840,420 1170,398 1178,492 840,520' fill='%23261A15'/%3E%3Cpolygon points='1170,398 1600,360 1600,448 1178,492' fill='%23160F0C'/%3E%3Cpolygon points='840,520 1178,492 1200,680 860,710' fill='%23110C0A'/%3E%3Cpolygon points='1178,492 1600,448 1600,620 1200,680' fill='%230D0807'/%3E%3Cpolygon points='210,640 460,612 520,740 250,790' fill='%23150F0D'/%3E%3Cpolygon points='240,700 420,678 450,750 260,768' fill='%23211612'/%3E%3Cpolygon points='160,690 230,680 240,780 155,790' fill='%230F0A08'/%3E%3Cpolygon points='470,640 540,632 560,740 485,748' fill='%230F0A08'/%3E%3Cpolygon points='980,360 1120,340 1140,395 995,420' fill='%23211512'/%3E%3Cpolygon points='1005,330 1110,310 1125,340 995,360' fill='%23FFB86B' fill-opacity='.10'/%3E%3Cpolygon points='1280,250 1500,230 1510,300 1290,320' fill='%23140E0C'/%3E%3Cpolygon points='1290,320 1510,300 1520,350 1300,372' fill='url(%23warm)'/%3E%3Cpolygon points='0,0 1600,0 1600,260 0,340' fill='url(%23warm)'/%3E%3C/svg%3E");
+
+    background-size: cover;
+    background-position: center;
+    animation: cafeParallaxFloat 26s ease-in-out infinite alternate;
+    filter: saturate(1.05) contrast(1.07);
+    transform-origin: center;
+}
+
+/* Overlay: vapor + poeira dourada + “liquid glow” */
+body[data-theme="caramel"]::after {
+    z-index: -1;
+    opacity: 0.95;
+
+    background-image:
+        linear-gradient(-45deg, rgba(20, 12, 10, 0.55), rgba(255, 198, 106, 0.14), rgba(255, 122, 61, 0.10), rgba(10, 8, 7, 0.55)),
+        radial-gradient(circle at 25% 25%, rgba(255, 235, 210, 0.08) 0%, transparent 55%),
+        radial-gradient(circle at 70% 35%, rgba(255, 199, 106, 0.07) 0%, transparent 60%),
+        radial-gradient(circle at 45% 80%, rgba(255, 255, 255, 0.04) 0%, transparent 55%),
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0px, rgba(255, 255, 255, 0.025) 2px, transparent 2px, transparent 10px);
+
+    background-size:
+        400% 400%,
+        1200px 1200px,
+        900px 900px,
+        700px 700px,
+        100% 100%;
+
+    background-position:
+        0% 50%,
+        0 0,
+        40px 60px,
+        130px 270px,
+        0 0;
+
+    animation: liquidCoffee 16s ease infinite, cafeSteamPulse 9s ease-in-out infinite alternate;
+    mix-blend-mode: soft-light;
+}
+
+/* Mantido */
+@keyframes liquidCoffee {
+    0% { background-position: 0% 50%, 0 0, 40px 60px, 130px 270px, 0 0; }
+    50% { background-position: 100% 50%, 120px 80px, 260px 190px, 310px 410px, 0 0; }
+    100% { background-position: 0% 50%, 0 0, 40px 60px, 130px 270px, 0 0; }
+}
+@keyframes steamPulse {
+    0% { opacity: 0.3; transform: scale(1); }
+    100% { opacity: 0.6; transform: scale(1.1); }
+}
+
+@keyframes cafeParallaxFloat {
+    0%   { transform: translate3d(0, 0, 0) scale(1.03); }
+    50%  { transform: translate3d(-1.2%, -0.8%, 0) scale(1.05); }
+    100% { transform: translate3d(1.2%, 0.8%, 0) scale(1.03); }
+}
+@keyframes cafeSteamPulse {
+    0%   { opacity: 0.75; filter: blur(0px) saturate(1.0); }
+    100% { opacity: 0.98; filter: blur(1.2px) saturate(1.05); }
+}
+
+/* =========================================================
+   BOTÕES: ANIMAÇÕES (APENAS CARAMEL) - SEM QUEBRAR DOCK/GLOBO
+   ========================================================= */
+
+/* ✅ Botões normais (EXCLUI o dock de temas) */
+body[data-theme="caramel"] button:not(.dock-trigger-large),
+body[data-theme="caramel"] .btn-primary,
+body[data-theme="caramel"] .btn-ghost,
+body[data-theme="caramel"] .nav-btn,
+body[data-theme="caramel"] .theme-item,
+body[data-theme="caramel"] .skill-icon-btn,
+body[data-theme="caramel"] .btn-back-pro {
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+
+/* ✅ Sheen só em botões normais (dock/globo/satélites ficam iguais aos outros temas) */
+body[data-theme="caramel"] button:not(.dock-trigger-large)::before,
+body[data-theme="caramel"] .btn-primary::before,
+body[data-theme="caramel"] .btn-ghost::before,
+body[data-theme="caramel"] .nav-btn::before,
+body[data-theme="caramel"] .theme-item::before,
+body[data-theme="caramel"] .skill-icon-btn::before,
+body[data-theme="caramel"] .btn-back-pro::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.08) 35%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0.08) 65%, transparent 100%);
+    transform: translateX(-140%) skewX(-25deg);
+    opacity: 0;
+    border-radius: inherit;
+}
+
+body[data-theme="caramel"] button:not(.dock-trigger-large):hover::before,
+body[data-theme="caramel"] .btn-primary:hover::before,
+body[data-theme="caramel"] .btn-ghost:hover::before,
+body[data-theme="caramel"] .nav-btn:hover::before,
+body[data-theme="caramel"] .theme-item:hover::before,
+body[data-theme="caramel"] .skill-icon-btn:hover::before,
+body[data-theme="caramel"] .btn-back-pro:hover::before {
+    opacity: 1;
+    animation: caramelSheen 0.9s ease forwards;
+}
+
+@keyframes caramelSheen {
+    from { transform: translateX(-140%) skewX(-25deg); }
+    to   { transform: translateX(140%) skewX(-25deg); }
+}
+
+/* Hover/Active só nos botões normais (dock não “sobe”, globo não quebra) */
+body[data-theme="caramel"] button:not(.dock-trigger-large):hover,
+body[data-theme="caramel"] .btn-primary:hover,
+body[data-theme="caramel"] .btn-ghost:hover,
+body[data-theme="caramel"] .nav-btn:hover:not(.disabled),
+body[data-theme="caramel"] .theme-item:hover,
+body[data-theme="caramel"] .skill-icon-btn:hover,
+body[data-theme="caramel"] .btn-back-pro:hover {
+    transform: translateY(-2px) scale(1.01);
+    filter: brightness(1.05);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.35), 0 0 22px rgba(255, 199, 106, 0.22);
+    border-color: rgba(255, 199, 106, 0.35) !important;
+}
+
+body[data-theme="caramel"] button:not(.dock-trigger-large):active,
+body[data-theme="caramel"] .btn-primary:active,
+body[data-theme="caramel"] .btn-ghost:active,
+body[data-theme="caramel"] .nav-btn:active,
+body[data-theme="caramel"] .theme-item:active,
+body[data-theme="caramel"] .skill-icon-btn:active,
+body[data-theme="caramel"] .btn-back-pro:active {
+    transform: translateY(0px) scale(0.985);
+    filter: brightness(0.98);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 16px rgba(255, 199, 106, 0.18);
+}
+
+/* ✅ FIX CRÍTICO: garantir que DOCK e GLOBO ficam exatamente como nos outros temas */
+body[data-theme="caramel"] .dock-trigger-large {
+    position: fixed !important; /* impede virar relative */
+    /* mantém visual caramel sem alterar comportamento */
+    background: rgba(255, 240, 220, 0.06) !important;
+    border: 2px solid rgba(255, 199, 106, 0.8) !important;
+    overflow: visible !important;
+    transform: none; /* deixa o hover padrão global agir */
+    animation: none !important;
+}
+
+body[data-theme="caramel"] .globe-main {
+    position: relative !important; /* precisa ser referência dos satélites */
+    overflow: visible !important;  /* satélites não podem ser cortados */
+    animation: none !important;    /* igual outros temas */
+}
+
+body[data-theme="caramel"] .satellite {
+    position: absolute !important; /* VOLTA AO PADRÃO do sheet.css */
+    animation: none !important;
+}
+
+/* Remove reflexo (sheen) do globo/satélites para ficar igual outros temas */
+body[data-theme="caramel"] .globe-main::before,
+body[data-theme="caramel"] .satellite::before {
+    content: none !important;
+}
+
+/* Primary button upgrade no caramel */
+body[data-theme="caramel"] .btn-primary {
+    background: linear-gradient(135deg, rgba(255, 199, 106, 1), rgba(255, 138, 75, 0.95)) !important;
+    color: #110B09 !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.45), 0 0 22px rgba(255, 199, 106, 0.25);
+    text-shadow: 0 1px 0 rgba(255,255,255,0.25);
+}
+
+/* Ghost button mais “premium” no caramel */
+body[data-theme="caramel"] .btn-ghost {
+    background: rgba(255, 240, 220, 0.05) !important;
+    border: 1px solid rgba(255, 220, 175, 0.20) !important;
+    color: var(--text-secondary) !important;
+}
+body[data-theme="caramel"] .btn-ghost:hover {
+    color: var(--accent) !important;
+    background: rgba(255, 199, 106, 0.08) !important;
+}
+
+/* Nav buttons (Hub) no caramel */
+body[data-theme="caramel"] .nav-btn {
+    background: rgba(255, 240, 220, 0.04) !important;
+    border: 1px solid rgba(255, 220, 175, 0.16) !important;
+}
+body[data-theme="caramel"] .nav-btn.active,
+body[data-theme="caramel"] .nav-btn:hover:not(.disabled) {
+    background: linear-gradient(135deg, rgba(255,199,106,1), rgba(255,138,75,0.95)) !important;
+    color: #110B09 !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Refinos de glass no caramel */
+body[data-theme="caramel"] .login-card-universal,
+body[data-theme="caramel"] .hub-user-header,
+body[data-theme="caramel"] .hero-card,
+body[data-theme="caramel"] .theme-panel,
+body[data-theme="caramel"] .block,
+body[data-theme="caramel"] .combat-box,
+body[data-theme="caramel"] .stats-floating-box,
+body[data-theme="caramel"] .hero-card-floating,
+body[data-theme="caramel"] .roll-card {
+    background: linear-gradient(180deg, rgba(255, 240, 220, 0.06), rgba(0,0,0,0.10)) , var(--bg-panel) !important;
+    border: 1px solid rgba(255, 220, 175, 0.18) !important;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.45);
+    backdrop-filter: blur(16px) saturate(1.12);
+}
+
+/* =========================================================
+   2. MESTRE (MASTER) - Luxo, Sangue e Ouro
+   ========================================================= */
 body[data-theme="master"] {
     --bg-app: #0f0202; 
     --bg-panel: rgba(30, 5, 5, 0.9);
@@ -85,7 +302,9 @@ body[data-theme="master"]::after {
 }
 @keyframes masterBreathing { from { opacity: 0.2; } to { opacity: 0.4; } }
 
-/* 3. MAGO (ARCANE) - Místico e Fluido */
+/* =========================================================
+   3. MAGO (ARCANE) - Místico e Fluido
+   ========================================================= */
 body[data-theme="arcane"] {
     --bg-app: #120926;
     --bg-panel: rgba(25, 15, 50, 0.8);
@@ -108,12 +327,14 @@ body[data-theme="arcane"]::after {
 }
 @keyframes runeFloat { from { background-position: 0 0; } to { background-position: 0 600px; } }
 
-/* 4. ESTELAR (STELLAR) - Sci-Fi Profundo e Parallax */
+/* =========================================================
+   4. ESTELAR (STELLAR) - Sci-Fi Profundo e Parallax
+   ========================================================= */
 body[data-theme="stellar"] {
     --bg-app: #000205;
-    --bg-panel: rgba(5, 10, 20, 0.85); /* Vidro Azulado */
+    --bg-panel: rgba(5, 10, 20, 0.85);
     --bg-input: rgba(0, 255, 255, 0.1);
-    --accent: #00F3FF; /* Ciano Neon */
+    --accent: #00F3FF;
     --accent-glow: rgba(0, 243, 255, 0.7);
     --text-primary: #E0FFFF;
     --text-secondary: #5F9EA0;
@@ -123,7 +344,6 @@ body[data-theme="stellar"]::before {
     background: radial-gradient(ellipse at bottom, #0B3D91 0%, #000000 70%);
     z-index: -2;
 }
-/* Estrelas Animadas Parallax */
 body[data-theme="stellar"]::after {
     background-image: 
         radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
@@ -149,9 +369,7 @@ body[data-theme="wild"] { --bg-app: #051a05; --bg-panel: rgba(10, 35, 10, 0.9); 
 body[data-theme="wild"]::after { background-image: radial-gradient(rgba(132, 204, 22, 0.3) 1px, transparent 1px); background-size: 80px 80px; opacity: 0.5; animation: floatSpores 10s linear infinite; }
 @keyframes floatSpores { 0% { transform: translateY(0) translateX(0); } 100% { transform: translateY(-50px) translateX(20px); } }
 
-/* =========================================================
-   UI ELEMENTS & DOCK (Interface do Usuário)
-   ========================================================= */
+/* UI ELEMENTS */
 .dock-trigger-large { 
     position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px; 
     border-radius: 50%; background: var(--bg-panel); border: 2px solid var(--accent); 
@@ -175,5 +393,4 @@ body[data-theme="wild"]::after { background-image: radial-gradient(rgba(132, 204
 }
 .theme-item:hover { border-color: var(--accent); background: var(--bg-input); transform: translateX(3px); }
 .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-
 @keyframes fadeIn { from { opacity:0; transform: translateY(20px) scale(0.9); } to { opacity:1; transform: translateY(0) scale(1); } }
