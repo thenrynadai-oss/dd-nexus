@@ -2,15 +2,19 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vasteria Gate | Ficha</title>
     <link rel="stylesheet" href="global.css">
-    <link rel="stylesheet" href="theme-picker.css">
     <link rel="stylesheet" href="sheet.css">
 </head>
 <body data-theme="caramel">
 
+    <!-- Canvas de fundo animado (LOW POLY / Minimal) -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Modal de rolagem rápida -->
     <div id="quickroll-modal" class="roll-overlay" style="display:none;" onclick="this.style.display='none'">
-        <div class="roll-card">
+        <div class="roll-card" onclick="event.stopPropagation()">
             <div class="d20-anim">
                 <svg viewBox="0 0 100 100" class="d20-svg">
                     <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="transparent" stroke="currentColor" stroke-width="2"/>
@@ -23,34 +27,62 @@
     </div>
 
     <section id="sheet-section">
-        
+
+        <!-- HEADER -->
         <header class="sheet-header-floating">
-            <button onclick="voltarParaHome()" class="btn-back-pro">
+            <button onclick="voltarParaHome()" class="btn-back-pro" title="Voltar ao HUB">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="19" y1="12" x2="5" y2="12"></line>
                     <polyline points="12 19 5 12 12 5"></polyline>
                 </svg>
             </button>
+
             <div class="hero-card-floating">
-                <div class="hero-img-box" id="sheet-avatar"></div>
+                <div class="hero-img-box" id="sheet-avatar" aria-label="Avatar do personagem"></div>
                 <div class="hero-text-box">
                     <div class="top-row-info">
-                        <div class="info-group big"><label>PERSONAGEM</label><h1 id="display-name">---</h1></div>
-                        <div class="info-group"><label>JOGADOR</label><p id="display-player">---</p></div>
-                        <div class="info-group"><label>CAMPANHA</label><input id="c-campaign" class="input-header save-field" placeholder="..."></div>
+                        <div class="info-group big">
+                            <label>PERSONAGEM</label>
+                            <h1 id="display-name">---</h1>
+                        </div>
+                        <div class="info-group">
+                            <label>JOGADOR</label>
+                            <p id="display-player">---</p>
+                        </div>
+                        <div class="info-group">
+                            <label>CAMPANHA</label>
+                            <input id="c-campaign" class="input-header save-field" placeholder="...">
+                        </div>
                     </div>
                     <div class="bottom-row-info">
-                        <div class="info-group"><label>ANTECEDENTE</label><input id="c-bg" class="input-header small save-field" placeholder="..."></div>
-                        <div class="info-group"><label>TENDÊNCIA</label><input id="c-align" class="input-header small save-field" placeholder="..."></div>
-                        <div class="info-group"><label>XP</label><input id="c-xp" class="input-header small save-field" placeholder="0"></div>
+                        <div class="info-group">
+                            <label>ANTECEDENTE</label>
+                            <input id="c-bg" class="input-header small save-field" placeholder="...">
+                        </div>
+                        <div class="info-group">
+                            <label>TENDÊNCIA</label>
+                            <input id="c-align" class="input-header small save-field" placeholder="...">
+                        </div>
+                        <div class="info-group">
+                            <label>XP</label>
+                            <input id="c-xp" class="input-header small save-field" placeholder="0">
+                        </div>
                     </div>
                 </div>
             </div>
         </header>
 
+        <!-- TABS (NOVA BARRA SUPERIOR) -->
+        <nav class="sheet-tabs-bar" id="sheet-tabs">
+            <button class="tab-btn active" data-tab="tab1" type="button">⚔️ Ficha</button>
+            <button class="tab-btn" data-tab="tab2" type="button">📜 História</button>
+            <button class="tab-btn" data-tab="tab3" type="button">✨ Magias</button>
+            <button class="tab-btn" data-tab="tab4" type="button">📓 Notas</button>
+        </nav>
+
+        <!-- CONTEÚDO -->
         <div class="sheet-body-container">
             <div id="tab1" class="page active">
-                
                 <div class="stats-floating-box">
                     <div class="stat-cell"><label>CLASSE</label><input id="c-class" class="clean-input save-field" placeholder="Classe"></div>
                     <div class="stat-cell border-left"><label>RAÇA</label><input id="c-race" class="clean-input save-field" placeholder="Raça"></div>
@@ -65,7 +97,7 @@
                     <div class="col-left">
                         <div id="attr-container"></div>
                         <div class="block mini highlight"><label>BÔNUS PROF.</label><input id="c-prof" class="clean-input center save-field" value="+2"></div>
-                        
+
                         <div class="block list-block">
                             <label>SALVAGUARDAS</label>
                             <div id="saves-container"></div>
@@ -91,8 +123,22 @@
                             </div>
                             <div class="hp-temp-row"><label>Temp:</label><input id="c-hp-temp" class="save-field"></div>
                             <div class="death-saves-container">
-                                <div class="ds-row"><span>SUCESSO</span><div class="ds-checks"><input type="checkbox" id="ds-s1" class="save-field"><input type="checkbox" id="ds-s2" class="save-field"><input type="checkbox" id="ds-s3" class="save-field"></div></div>
-                                <div class="ds-row"><span>FALHA</span><div class="ds-checks"><input type="checkbox" id="ds-f1" class="save-field"><input type="checkbox" id="ds-f2" class="save-field"><input type="checkbox" id="ds-f3" class="save-field"></div></div>
+                                <div class="ds-row">
+                                    <span>SUCESSO</span>
+                                    <div class="ds-checks">
+                                        <input type="checkbox" id="ds-s1" class="save-field">
+                                        <input type="checkbox" id="ds-s2" class="save-field">
+                                        <input type="checkbox" id="ds-s3" class="save-field">
+                                    </div>
+                                </div>
+                                <div class="ds-row">
+                                    <span>FALHA</span>
+                                    <div class="ds-checks">
+                                        <input type="checkbox" id="ds-f1" class="save-field">
+                                        <input type="checkbox" id="ds-f2" class="save-field">
+                                        <input type="checkbox" id="ds-f3" class="save-field">
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -123,7 +169,7 @@
                         <div class="block"><label>IDEAIS</label><textarea id="c-ideals" class="clean-area small save-field"></textarea></div>
                         <div class="block"><label>VÍNCULOS</label><textarea id="c-bonds" class="clean-area small save-field"></textarea></div>
                         <div class="block"><label>DEFEITOS</label><textarea id="c-flaws" class="clean-area small save-field"></textarea></div>
-                        
+
                         <div class="block">
                             <label>PASSIVAS (SABEDORIA)</label>
                             <div class="passive-row"><span>Percepção Passiva</span><input id="pas-perc" class="clean-input save-field" readonly></div>
@@ -134,74 +180,42 @@
                 </div>
             </div>
 
-            <div id="tab2" class="page" style="display:none;"><div class="block full"><textarea id="b-backstory" class="clean-area save-field" placeholder="História..." style="height:600px"></textarea></div></div>
-            
+            <div id="tab2" class="page" style="display:none;">
+                <div class="block full">
+                    <textarea id="b-backstory" class="clean-area save-field" placeholder="História..." style="height:600px"></textarea>
+                </div>
+            </div>
+
             <div id="tab3" class="page" style="display:none;">
                 <div class="spellcasting-header">
-                    <div class="spell-stat"><label>HABILIDADE</label><select id="spell-ability" class="save-field spell-select" onchange="calcSpells()"><option value="INT">INTELIGÊNCIA</option><option value="SAB">SABEDORIA</option><option value="CAR">CARISMA</option></select></div>
+                    <div class="spell-stat">
+                        <label>HABILIDADE</label>
+                        <select id="spell-ability" class="save-field spell-select" onchange="calcSpells()">
+                            <option value="INT">INTELIGÊNCIA</option>
+                            <option value="SAB">SABEDORIA</option>
+                            <option value="CAR">CARISMA</option>
+                        </select>
+                    </div>
                     <div class="spell-stat"><label>CD MAGIA</label><div id="spell-dc" class="spell-val-display">10</div></div>
                     <div class="spell-stat"><label>BÔNUS ATAQUE</label><div id="spell-atk" class="spell-val-display">+2</div></div>
                 </div>
                 <div class="spells-grid-layout" id="spells-area"></div>
             </div>
 
-            <div id="tab4" class="page" style="display:none;"><div class="block full"><textarea id="d-notes" class="clean-area save-field" placeholder="Anotações..." style="height:600px"></textarea></div></div>
-        </div>
-
-        <div class="globe-fixed">
-            <div class="globe-main" id="globe-trigger" onclick="toggleGlobe()">
-                🌍
-                <div class="satellite s1" onclick="switchTab('tab1')">⚔️</div>
-                <div class="satellite s2" onclick="switchTab('tab2')">📜</div>
-                <div class="satellite s3" onclick="switchTab('tab3')">✨</div>
-                <div class="satellite s4" onclick="switchTab('tab4')">📓</div>
+            <div id="tab4" class="page" style="display:none;">
+                <div class="block full">
+                    <textarea id="d-notes" class="clean-area save-field" placeholder="Anotações..." style="height:600px"></textarea>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- BOTÃO DO SELETOR -->
-    <button class="dock-trigger-large" onclick="toggleTheme()">🎨</button>
+    <!-- Botão ÚNICO de temas (o modal é gerado em themes.js) -->
+    <button class="dock-trigger-large open-themes" data-action="open-themes" title="Temas">🎨</button>
 
-    <!-- MODAL DO SELETOR -->
-    <div id="theme-modal" class="theme-modal" onclick="closeThemeModal(event)">
-        <div id="theme-panel" class="theme-panel" onclick="event.stopPropagation()">
-            <div class="theme-panel-header">
-                <button class="theme-close-btn" onclick="toggleTheme()" aria-label="Fechar temas">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
-                    </svg>
-                </button>
-                <div class="theme-panel-title">
-                    <h3>SELETOR DE TEMAS</h3>
-                    <p>Escolha o estilo visual do Vasteria Gate</p>
-                </div>
-            </div>
-
-            <div class="theme-grid">
-                <div class="theme-card" data-theme="caramel" onclick="pickThemeCard(this)"><div class="theme-preview preview-caramel"><div class="preview-label">CAFÉ & CARAMEL</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="coffee" onclick="pickThemeCard(this)"><div class="theme-preview preview-coffee"><div class="preview-label">TAVERNA</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="master" onclick="pickThemeCard(this)"><div class="theme-preview preview-master"><div class="preview-label">MESTRE</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="arcane" onclick="pickThemeCard(this)"><div class="theme-preview preview-arcane"><div class="preview-label">MAGO (ARCANO)</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="stellar" onclick="pickThemeCard(this)"><div class="theme-preview preview-stellar"><div class="preview-label">ESTELAR</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="might" onclick="pickThemeCard(this)"><div class="theme-preview preview-might"><div class="preview-label">GUERREIRO</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="stealth" onclick="pickThemeCard(this)"><div class="theme-preview preview-stealth"><div class="preview-label">LADINO</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="wild" onclick="pickThemeCard(this)"><div class="theme-preview preview-wild"><div class="preview-label">DRUIDA</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="classic" onclick="pickThemeCard(this)"><div class="theme-preview preview-classic"><div class="preview-label">CLÁSSICO</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-
-                <div class="theme-card" data-theme="barbarian" onclick="pickThemeCard(this)"><div class="theme-preview preview-barbarian"><div class="preview-label">BÁRBARO</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="cleric" onclick="pickThemeCard(this)"><div class="theme-preview preview-cleric"><div class="preview-label">CLÉRIGO</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="paladin" onclick="pickThemeCard(this)"><div class="theme-preview preview-paladin"><div class="preview-label">PALADINO</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="ranger" onclick="pickThemeCard(this)"><div class="theme-preview preview-ranger"><div class="preview-label">PATRULHEIRO</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="warlock" onclick="pickThemeCard(this)"><div class="theme-preview preview-warlock"><div class="preview-label">BRUXO</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="monk" onclick="pickThemeCard(this)"><div class="theme-preview preview-monk"><div class="preview-label">MONGE</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-                <div class="theme-card" data-theme="bard" onclick="pickThemeCard(this)"><div class="theme-preview preview-bard"><div class="preview-label">BARDO</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-
-                <div class="theme-card" data-theme="aura-dawn" onclick="pickThemeCard(this)"><div class="theme-preview preview-aura-dawn"><div class="preview-label">AURA DO AMANHECER</div></div><div class="theme-actions"><button class="theme-apply-btn" onclick="applyThemeFromCard(event,this)">Selecionar tema</button></div></div>
-            </div>
-        </div>
-    </div>
-
+    <script src="themes.js"></script>
+    <script src="bg.js"></script>
+    <script src="auth.js"></script>
     <script src="sheet.js"></script>
 </body>
 </html>

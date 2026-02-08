@@ -1,326 +1,301 @@
-let users = JSON.parse(localStorage.getItem('nexus_db')) || [];
-let currentUser = null;
-let tempImg = null;
+/* =========================================================
+   VASTERIA GATE — HUB
+   Depende de: auth.js, themes.js, bg.js
+   ========================================================= */
 
-const THEME_CATALOG = [
-    { id: "caramel", label: "CAFÉ & CARAMELO", p: { bgApp:"#2A1B15", bgPanel:"#2d1e19", accent:"#FFB347", glow:"rgba(255,179,71,0.55)" } },
-    { id: "coffee", label: "TAVERNA", p: { bgApp:"#1F1612", bgPanel:"#3e2f26", accent:"#D4A373", glow:"rgba(212,163,115,0.45)" } },
-    { id: "master", label: "MESTRE", p: { bgApp:"#0f0202", bgPanel:"#1e0505", accent:"#FFD700", glow:"rgba(255,215,0,0.40)" } },
-    { id: "arcane", label: "ARCANO", p: { bgApp:"#120926", bgPanel:"#190f32", accent:"#D8B4FE", glow:"rgba(167,139,250,0.65)" } },
-    { id: "stellar", label: "ESTELAR", p: { bgApp:"#000205", bgPanel:"#050a14", accent:"#00F3FF", glow:"rgba(0,243,255,0.70)" } },
-    { id: "might", label: "GUERREIRO", p: { bgApp:"#220505", bgPanel:"#320a0a", accent:"#ef4444", glow:"rgba(239,68,68,0.55)" } },
-    { id: "stealth", label: "LADINO", p: { bgApp:"#020617", bgPanel:"#021914", accent:"#10b981", glow:"rgba(16,185,129,0.45)" } },
-    { id: "wild", label: "DRUIDA", p: { bgApp:"#051a05", bgPanel:"#0a230a", accent:"#84cc16", glow:"rgba(132,204,22,0.45)" } },
-    { id: "classic", label: "CLÁSSICO", p: { bgApp:"#0b0b0f", bgPanel:"#0f0f14", accent:"#ffffff", glow:"rgba(255,255,255,0.22)" } },
-    { id: "aura-amanhecer", label: "AURA DO AMANHECER", p: { bgApp:"#000205", bgPanel:"#0a0c19", accent:"#3B82F6", glow:"rgba(59,130,246,0.65)" } },
-];
+(() => {
+  "use strict";
 
-let _dockWasDisabled = false;
+  // Require session
+  window.addEventListener("load", () => {
+    if(!window.Auth.requireSession({ redirectTo:"index.html" })) return;
+    if(window.Theme && Theme.applySavedTheme) Theme.applySavedTheme();
+    if(window.BG && BG.mount) BG.mount();
 
-window.onload = () => {
-    applyTheme();
-    const session = localStorage.getItem('nexus_session');
-    if(session) {
-        currentUser = users.find(u => u.email === session);
-        if(currentUser) showProfile();
-    }
-    ensureThemeModal();
-};
+    boot();
+  });
 
-/* =========================
-   AUDIO UI
-   ========================= */
-function playUiClick() {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = 'sine';
-    o.frequency.setValueAtTime(740, audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(330, audioCtx.currentTime + 0.08);
-    g.gain.setValueAtTime(0.045, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.09);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime + 0.10);
-}
-function playUiSelect() {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = 'triangle';
-    o.frequency.setValueAtTime(520, audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(820, audioCtx.currentTime + 0.09);
-    g.gain.setValueAtTime(0.06, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime + 0.13);
-}
+  const elUserImg = document.getElementById("current-user-img");
+  const elUserNick = document.getElementById("current-user-nick");
+  const elUserName = document.getElementById("current-user-name");
+  const heroList = document.getElementById("hero-list");
 
-/* =========================
-   THEME MODAL
-   ========================= */
-function ensureThemeModal() {
-    let modal = document.getElementById('theme-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'theme-modal';
-        document.body.appendChild(modal);
-    }
+  const btnLogout = document.getElementById("btn-logout");
+  const btnCreateHero = document.getElementById("btn-create-hero");
+  const btnEditProfile = document.getElementById("btn-edit-profile");
 
-    modal.innerHTML = `
-        <div class="theme-modal-window" role="dialog" aria-modal="true">
-            <div class="theme-modal-header">
-                <button class="theme-modal-back" type="button" onclick="closeThemeModal()">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
-                    </svg>
-                </button>
-                <div class="theme-modal-title">
-                    <h2>SELETOR DE TEMAS</h2>
-                    <p>Escolha o estilo visual do Vasteria Gate</p>
-                </div>
-            </div>
-            <div class="theme-modal-body">
-                <div id="theme-grid" class="theme-modal-grid"></div>
-            </div>
-        </div>
-    `;
+  // Create modal
+  const modalCreate = document.getElementById("modal-create");
+  const btnCloseCreate = document.getElementById("btn-close-create");
+  const btnCreateCancel = document.getElementById("btn-create-cancel");
+  const btnCreateConfirm = document.getElementById("btn-create-confirm");
+  const newName = document.getElementById("new-name");
+  const newPlayer = document.getElementById("new-player");
+  const newCampaign = document.getElementById("new-campaign");
+  const charFile = document.getElementById("char-file");
+  const charPhotoBtn = document.getElementById("char-photo-btn");
+  const charPreview = document.getElementById("char-preview");
 
-    // ✅ CORREÇÃO: só fecha se clicar FORA da janela (não fecha ao clicar em temas)
-    modal.onclick = (e) => {
-        if (!e.target.closest('.theme-modal-window')) closeThemeModal();
-    };
+  // Profile modal
+  const modalProfile = document.getElementById("modal-profile");
+  const btnCloseProfile = document.getElementById("btn-close-profile");
+  const btnProfileCancel = document.getElementById("btn-profile-cancel");
+  const btnProfileSave = document.getElementById("btn-profile-save");
+  const profileName = document.getElementById("profile-name");
+  const profileNick = document.getElementById("profile-nick");
+  const profileFile = document.getElementById("profile-file");
+  const profilePhotoBtn = document.getElementById("profile-photo-btn");
+  const profilePreview = document.getElementById("profile-preview");
 
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeThemeModal();
-    });
+  let tempCharImg = null;
+  let tempProfileImg = null;
 
-    renderThemeGrid();
-}
+  function initials(s){
+    const t = (s||"").trim();
+    if(!t) return "VG";
+    return t.slice(0,2).toUpperCase();
+  }
 
-function renderThemeGrid() {
-    const grid = document.getElementById('theme-grid');
-    if (!grid) return;
-
-    const current = normalizeThemeId(localStorage.getItem('vasteria_theme') || 'coffee');
-
-    grid.innerHTML = THEME_CATALOG.map(t => `
-        <div class="theme-card ${normalizeThemeId(t.id) === current ? 'is-current' : ''}"
-             data-theme="${t.id}"
-             style="--p-bg-app:${t.p.bgApp}; --p-bg-panel:${t.p.bgPanel}; --p-accent:${t.p.accent}; --p-accent-glow:${t.p.glow};">
-            <div class="theme-preview">
-                <div class="mini-topbar"></div>
-                <div class="mini-card">
-                    <div class="mini-avatar"></div>
-                    <div class="mini-lines">
-                        <span style="width: 92%"></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                    <div class="mini-btns">
-                        <div class="mini-btn primary"></div>
-                        <div class="mini-btn"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="theme-card-footer">
-                <div class="theme-name">${t.label}</div>
-                <button class="theme-select-btn" type="button">Selecionar tema</button>
-            </div>
-        </div>
-    `).join('');
-
-    grid.querySelectorAll('.theme-card').forEach(card => {
-        const btn = card.querySelector('.theme-select-btn');
-
-        // ✅ clique no card = só foco (mostra botão), NÃO seleciona e NÃO fecha
-        card.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            playUiClick();
-            grid.querySelectorAll('.theme-card').forEach(c => c.classList.remove('is-focused'));
-            card.classList.add('is-focused');
-        });
-
-        // ✅ clique no botão = seleciona tema
-        btn.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            const id = card.getAttribute('data-theme');
-            if (!id) return;
-
-            playUiSelect();
-            setTheme(id);
-
-            // atualiza "ATIVO"
-            grid.querySelectorAll('.theme-card').forEach(c => c.classList.remove('is-current'));
-            card.classList.add('is-current');
-        });
-    });
-}
-
-function normalizeThemeId(x) {
-    return String(x || '').trim().toLowerCase().replace(/\s+/g,'-').replace(/_/g,'-');
-}
-
-function disableDockWhileModalOpen(disable) {
-    const dock = document.querySelector('.dock-trigger-large');
-    if (!dock) return;
-    if (disable) {
-        if (!_dockWasDisabled) {
-            dock.dataset.prevPointer = dock.style.pointerEvents || '';
-            dock.style.pointerEvents = 'none';
-            dock.style.opacity = '0.45';
-            _dockWasDisabled = true;
-        }
+  function setAvatar(div, img, fallbackText){
+    if(img){
+      div.style.backgroundImage = `url(${img})`;
+      div.textContent = "";
     } else {
-        dock.style.pointerEvents = dock.dataset.prevPointer || '';
-        dock.style.opacity = '';
-        _dockWasDisabled = false;
+      div.style.backgroundImage = "";
+      div.textContent = fallbackText;
     }
-}
+  }
 
-function openThemeModal() {
-    ensureThemeModal();
-    const modal = document.getElementById('theme-modal');
-    if (!modal) return;
-
-    document.getElementById('theme-panel')?.classList.remove('active');
-
-    modal.classList.add('active');
-    disableDockWhileModalOpen(true);
-
-    document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('is-focused'));
-}
-function closeThemeModal() {
-    const modal = document.getElementById('theme-modal');
-    if (modal) modal.classList.remove('active');
-    disableDockWhileModalOpen(false);
-}
-
-/* API do botão 🎨 */
-function toggleTheme() {
-    const modal = document.getElementById('theme-modal');
-    if (!modal || !modal.classList.contains('active')) openThemeModal();
-    else closeThemeModal();
-}
-
-/* setTheme */
-function setTheme(name) {
-    document.documentElement.setAttribute('data-theme', name);
-    document.body.setAttribute('data-theme', name);
-    localStorage.setItem('vasteria_theme', name);
-}
-
-/* =========================
-   AUTH / HUB
-   ========================= */
-function toggleAuth() {
-    const l = document.getElementById('login-box');
-    const r = document.getElementById('register-box');
-    l.style.display = l.style.display === 'none' ? 'block' : 'none';
-    r.style.display = r.style.display === 'none' ? 'block' : 'none';
-}
-
-function previewUser(e) {
-    const file = e.target.files[0];
-    if(file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => { 
-            tempImg = ev.target.result; 
-            document.getElementById('user-preview').style.backgroundImage = `url(${tempImg})`; 
-            document.getElementById('user-preview').innerHTML = ''; 
-        }
-        reader.readAsDataURL(file);
-    }
-}
-
-function realizarCadastro() {
-    const nick = document.getElementById('reg-nick').value;
-    const email = document.getElementById('reg-email').value;
-    const pass = document.getElementById('reg-pass').value;
-    if(!nick || !email || !pass) return alert("Preencha tudo.");
-    
-    const newUser = { apelido: nick, email, pass, heroes: [], userImg: tempImg };
-    users.push(newUser); localStorage.setItem('nexus_db', JSON.stringify(users));
-    currentUser = newUser; localStorage.setItem('nexus_session', email);
-    showProfile();
-}
-
-function realizarLogin() {
-    const login = document.getElementById('login-input').value;
-    const pass = document.getElementById('login-pass').value;
-    const user = users.find(u => (u.email === login || u.apelido === login) && u.pass === pass);
-    if(user) { currentUser = user; localStorage.setItem('nexus_session', user.email); showProfile(); } 
-    else alert("Dados incorretos.");
-}
-
-function logout() { localStorage.removeItem('nexus_session'); location.reload(); }
-
-function showProfile() {
-    document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('profile-section').style.display = 'block';
-    document.getElementById('current-user-nick').innerText = currentUser.apelido.toUpperCase();
-    if(currentUser.userImg) document.getElementById('current-user-img').style.backgroundImage = `url(${currentUser.userImg})`;
+  function boot(){
+    renderHeader();
     renderHeroes();
-}
+    bindEvents();
+  }
 
-function renderHeroes() {
-    const list = document.getElementById('hero-list');
-    list.innerHTML = "";
-    if(!currentUser.heroes) currentUser.heroes = [];
-    
-    currentUser.heroes.forEach((h, idx) => {
-        const bg = h.img ? `url(${h.img})` : 'linear-gradient(45deg, #333, #444)';
-        list.innerHTML += `
-            <div class="hero-card" onclick="abrirFicha(${idx})">
-                <div class="hero-card-img" style="background-image: ${bg}"></div>
-                <div class="hero-card-info">
-                    <h4>${h.nome}</h4>
-                    <p>${h.campaign || 'Aventureiro Solitário'}</p>
-                    <p style="font-size:10px; margin-top:10px; opacity:0.6">Nível ${h.dados && h.dados['c-level'] ? h.dados['c-level'] : '1'}</p>
-                </div>
-            </div>
-        `;
+  function renderHeader(){
+    const u = Auth.getCurrentUser();
+    if(!u) return;
+
+    elUserNick.textContent = (u.apelido || "AGENTE").toUpperCase();
+    elUserName.textContent = u.nome || "—";
+
+    setAvatar(elUserImg, u.profileImg, initials(u.apelido));
+  }
+
+  function heroLevel(hero){
+    const v = hero?.dados?.["c-level"];
+    const n = parseInt(v, 10);
+    if(Number.isFinite(n)) return n;
+    return v || 1;
+  }
+
+  function heroCampaign(hero){
+    return hero?.campaign || hero?.dados?.["c-campaign"] || "—";
+  }
+
+  function renderHeroes(){
+    const u = Auth.getCurrentUser();
+    const heroes = u?.heroes || [];
+    heroList.innerHTML = "";
+
+    if(!heroes.length){
+      heroList.innerHTML = `
+        <div class="panel-skin" style="padding:18px;border-radius:22px;text-align:center;color:rgba(255,255,255,0.75);">
+          Você ainda não tem personagens.<br/>Clique em <b>+ PERSONAGEM</b> para criar o primeiro.
+        </div>
+      `;
+      return;
+    }
+
+    heroes.forEach((h, idx) => {
+      const card = document.createElement("div");
+      card.className = "hero-card";
+
+      const img = document.createElement("div");
+      img.className = "hero-img";
+      if(h.img) img.style.backgroundImage = `url(${h.img})`;
+      else img.style.backgroundImage = "linear-gradient(135deg, rgba(0,170,255,0.25), rgba(0,0,0,0.15))";
+
+      const body = document.createElement("div");
+      body.className = "hero-body";
+
+      const top = document.createElement("div");
+      top.className = "hero-title-row";
+
+      const titleWrap = document.createElement("div");
+      const nm = (h.nome || h.dados?.["c-name"] || "SEM NOME").toString();
+      titleWrap.innerHTML = `<h4>${nm}</h4><p>${heroCampaign(h)} • Nível ${heroLevel(h)}</p>`;
+
+      const actions = document.createElement("div");
+      actions.className = "hero-actions";
+
+      const openBtn = document.createElement("button");
+      openBtn.textContent = "ABRIR";
+      openBtn.addEventListener("click", () => {
+        Auth.setCurrentHeroIndex(idx);
+        window.location.href = "ficha.html";
+      });
+
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "REMOVER";
+      delBtn.classList.add("danger");
+      delBtn.addEventListener("click", () => {
+        if(!confirm(`Remover o personagem "${nm}"?`)) return;
+        Auth.deleteHero(idx);
+        renderHeroes();
+      });
+
+      actions.appendChild(openBtn);
+      actions.appendChild(delBtn);
+
+      top.appendChild(titleWrap);
+      top.appendChild(actions);
+
+      const meta = document.createElement("div");
+      meta.className = "hero-meta-row";
+      const p1 = document.createElement("div");
+      p1.className = "hero-pill";
+      p1.textContent = `Jogador: ${h.player || h.dados?.["c-player"] || "—"}`;
+      const p2 = document.createElement("div");
+      p2.className = "hero-pill";
+      p2.textContent = `Campanha: ${heroCampaign(h)}`;
+      meta.appendChild(p1);
+      meta.appendChild(p2);
+
+      body.appendChild(top);
+      body.appendChild(meta);
+
+      card.appendChild(img);
+      card.appendChild(body);
+
+      heroList.appendChild(card);
+    });
+  }
+
+  // -----------------------------
+  // Modals
+  // -----------------------------
+  function openModal(modal){
+    modal.style.display = "flex";
+  }
+  function closeModal(modal){
+    modal.style.display = "none";
+  }
+
+  function resetCreateModal(){
+    tempCharImg = null;
+    charPreview.style.backgroundImage = "";
+    charPreview.innerHTML = "<span>+ FOTO</span>";
+    newName.value = "";
+    newPlayer.value = "";
+    newCampaign.value = "";
+    charFile.value = "";
+  }
+
+  // -----------------------------
+  // Events
+  // -----------------------------
+  function bindEvents(){
+    btnLogout.addEventListener("click", () => {
+      Auth.logout();
+      window.location.href = "index.html";
     });
 
-    list.innerHTML += `
-        <div class="hero-card create-card-slot" onclick="abrirModalCriacao()">
-            <div class="plus-icon">+</div>
-            <span style="font-family:'Cinzel'; font-weight:bold">CRIAR NOVO<br>PERSONAGEM</span>
-        </div>
-    `;
-}
+    // Create hero modal
+    btnCreateHero.addEventListener("click", () => {
+      resetCreateModal();
+      openModal(modalCreate);
+      newName.focus();
+    });
+    btnCloseCreate.addEventListener("click", () => closeModal(modalCreate));
+    btnCreateCancel.addEventListener("click", () => closeModal(modalCreate));
+    modalCreate.addEventListener("click", (e) => { if(e.target === modalCreate) closeModal(modalCreate); });
 
-function abrirFicha(idx) { localStorage.setItem('nexus_current_hero_idx', idx); window.location.href = 'ficha.html'; }
-function abrirModalCriacao() { document.getElementById('modal-create').style.display = 'flex'; }
-function fecharModal() { document.getElementById('modal-create').style.display = 'none'; }
+    charPhotoBtn.addEventListener("click", () => charFile.click());
+    charFile.addEventListener("change", () => {
+      const file = charFile.files && charFile.files[0];
+      if(!file) return;
+      const r = new FileReader();
+      r.onload = (ev) => {
+        tempCharImg = ev.target.result;
+        charPreview.style.backgroundImage = `url(${tempCharImg})`;
+        charPreview.innerHTML = "";
+      };
+      r.readAsDataURL(file);
+    });
 
-function previewChar(e) { 
-    const file = e.target.files[0];
-    if(file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => { 
-            tempImg = ev.target.result; 
-            document.getElementById('char-preview').style.backgroundImage = `url(${tempImg})`; 
-            document.getElementById('char-preview').innerHTML = ''; 
-        }
-        reader.readAsDataURL(file);
-    }
-}
+    btnCreateConfirm.addEventListener("click", () => {
+      const nm = newName.value.trim() || "Novo Herói";
+      const pl = newPlayer.value.trim();
+      const cp = newCampaign.value.trim();
 
-function criarPersonagem() {
-    const nome = document.getElementById('new-name').value;
-    const player = document.getElementById('new-player').value;
-    const camp = document.getElementById('new-campaign').value;
-    if(!nome) return alert("Nome obrigatório");
-    
-    const newHero = {
-        nome, player, campaign: camp, img: tempImg,
-        dados: { "c-name": nome, "c-player": player, "c-campaign": camp, "c-level": "1", "c-prof": "+2" }
-    };
-    
-    currentUser.heroes.push(newHero);
-    localStorage.setItem('nexus_db', JSON.stringify(users));
-    fecharModal(); renderHeroes(); tempImg = null;
-}
+      const hero = Auth.createDefaultHero(nm);
+      hero.nome = nm;
+      hero.player = pl;
+      hero.campaign = cp;
+      hero.img = tempCharImg;
 
-function applyTheme() { const t = localStorage.getItem('vasteria_theme') || 'coffee'; setTheme(t); }
+      hero.dados["c-name"] = nm;
+      hero.dados["c-player"] = pl;
+      hero.dados["c-campaign"] = cp;
+
+      Auth.addHero(hero);
+      closeModal(modalCreate);
+      renderHeroes();
+    });
+
+    // Profile modal
+    btnEditProfile.addEventListener("click", () => {
+      const u = Auth.getCurrentUser();
+      if(!u) return;
+
+      tempProfileImg = u.profileImg || null;
+      profileName.value = u.nome || "";
+      profileNick.value = u.apelido || "";
+
+      if(tempProfileImg){
+        profilePreview.style.backgroundImage = `url(${tempProfileImg})`;
+        profilePreview.innerHTML = "";
+      } else {
+        profilePreview.style.backgroundImage = "";
+        profilePreview.innerHTML = "<span>+ FOTO</span>";
+      }
+
+      openModal(modalProfile);
+    });
+
+    btnCloseProfile.addEventListener("click", () => closeModal(modalProfile));
+    btnProfileCancel.addEventListener("click", () => closeModal(modalProfile));
+    modalProfile.addEventListener("click", (e) => { if(e.target === modalProfile) closeModal(modalProfile); });
+
+    profilePhotoBtn.addEventListener("click", () => profileFile.click());
+    profileFile.addEventListener("change", () => {
+      const file = profileFile.files && profileFile.files[0];
+      if(!file) return;
+      const r = new FileReader();
+      r.onload = (ev) => {
+        tempProfileImg = ev.target.result;
+        profilePreview.style.backgroundImage = `url(${tempProfileImg})`;
+        profilePreview.innerHTML = "";
+      };
+      r.readAsDataURL(file);
+    });
+
+    btnProfileSave.addEventListener("click", () => {
+      const patch = {
+        nome: profileName.value.trim(),
+        apelido: profileNick.value.trim(),
+        profileImg: tempProfileImg
+      };
+      const res = Auth.updateCurrentUser(patch);
+      if(!res.ok){
+        alert(res.msg || "Não foi possível salvar.");
+        return;
+      }
+      closeModal(modalProfile);
+      renderHeader();
+      renderHeroes();
+    });
+  }
+
+})();
