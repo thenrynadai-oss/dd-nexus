@@ -38,7 +38,7 @@
             </button>
 
             <div class="hero-card-floating">
-                <button class="hero-edit-btn" title="Editar Personagem" onclick="openHeroEditModal(event)">✏️</button>
+                <button id="edit-hero-btn" class="vg-btn vg-icon-btn hero-edit-btn" title="Editar perfil do personagem">✎</button>
                 <div class="hero-img-box" id="sheet-avatar" aria-label="Avatar do personagem"></div>
                 <div class="hero-text-box">
                     <div class="top-row-info">
@@ -127,17 +127,17 @@
                                 <div class="ds-row">
                                     <span>SUCESSO</span>
                                     <div class="ds-checks">
-                                        <input type="checkbox" id="ds-s1" class="save-field">
-                                        <input type="checkbox" id="ds-s2" class="save-field">
-                                        <input type="checkbox" id="ds-s3" class="save-field">
+                                        <input type="checkbox" id="ds-s1" class="save-field vg-check">
+                                        <input type="checkbox" id="ds-s2" class="save-field vg-check">
+                                        <input type="checkbox" id="ds-s3" class="save-field vg-check">
                                     </div>
                                 </div>
                                 <div class="ds-row">
                                     <span>FALHA</span>
                                     <div class="ds-checks">
-                                        <input type="checkbox" id="ds-f1" class="save-field">
-                                        <input type="checkbox" id="ds-f2" class="save-field">
-                                        <input type="checkbox" id="ds-f3" class="save-field">
+                                        <input type="checkbox" id="ds-f1" class="save-field vg-check">
+                                        <input type="checkbox" id="ds-f2" class="save-field vg-check">
+                                        <input type="checkbox" id="ds-f3" class="save-field vg-check">
                                     </div>
                                 </div>
                             </div>
@@ -217,43 +217,45 @@
     <script src="themes.js"></script>
     <script src="bg.js"></script>
     <script src="auth.js"></script>
-    
-    <!-- Modal: editar personagem (nome/jogador/foto) -->
-    <div id="hero-edit-modal" class="roll-overlay" style="display:none;" onclick="closeHeroEditModal()">
-        <div class="edit-hero-card" onclick="event.stopPropagation()">
-            <div class="edit-hero-head">
-                <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
-                    <div style="font-family:'Cinzel'; font-weight:900; color:var(--accent); letter-spacing:1px;">EDITAR PERSONAGEM</div>
-                    <div style="font-size:12px; color:rgba(255,255,255,0.65)">Atualize nome, jogador e foto do personagem.</div>
-                </div>
-                <button class="btn-ghost" style="padding:10px 12px;" onclick="closeHeroEditModal()">FECHAR</button>
-            </div>
+    <script src="sheet.js"></script>
 
-            <div class="edit-hero-body">
-                <div class="edit-hero-img-col">
-                    <div class="edit-hero-img" id="edit-hero-img-preview" onclick="document.getElementById('edit-hero-img-file').click()">
-                        <span style="font-size:11px;opacity:0.8">CLIQUE PARA TROCAR</span>
-                    </div>
-                    <div class="edit-hero-upload"><button class="btn-ghost" style="width:100%; padding:10px 12px;" onclick="document.getElementById('edit-hero-img-file').click()">TROCAR FOTO</button></div>
-                    <input type="file" id="edit-hero-img-file" hidden accept="image/*" onchange="previewHeroEditImage(event)">
-                </div>
-
-                <div class="edit-hero-fields">
-                    <label>NOME DO PERSONAGEM</label>
-                    <input id="edit-hero-name" class="save-field" placeholder="Nome do Personagem">
-
-                    <label>NOME DO JOGADOR</label>
-                    <input id="edit-hero-player" class="save-field" placeholder="Nome do Jogador">
-
-                    <div class="edit-hero-actions">
-                        <button class="btn-primary" onclick="applyHeroEdits()">SALVAR</button>
-                        <button class="btn-ghost" onclick="closeHeroEditModal()">CANCELAR</button>
-                    </div>
-                </div>
-            </div>
+    <!-- Modal: editar perfil do personagem -->
+    <div id="hero-edit-modal" class="vg-modal">
+      <div class="vg-modal-panel vg-glass">
+        <div class="vg-modal-head">
+          <div class="vg-modal-title">Editar personagem</div>
+          <button id="hero-edit-close" class="vg-btn vg-icon-btn" title="Fechar">✕</button>
         </div>
+
+        <div class="vg-modal-body">
+          <div class="vg-field">
+            <label>Nome do personagem</label>
+            <input id="hero-edit-name" class="save-field" placeholder="Ex: Alaric...">
+          </div>
+          <div class="vg-field">
+            <label>Nome do jogador</label>
+            <input id="hero-edit-player" class="save-field" placeholder="Ex: Dani...">
+          </div>
+
+          <div class="vg-field">
+            <label>Foto do personagem</label>
+            <div class="vg-upload-row">
+              <div class="vg-avatar-preview" id="hero-edit-preview"></div>
+              <div class="vg-upload-actions">
+                <input id="hero-edit-file" type="file" accept="image/*" style="display:none;">
+                <button id="hero-edit-pick" class="vg-btn">Escolher foto</button>
+                <button id="hero-edit-clear" class="vg-btn">Remover foto</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="vg-modal-actions">
+            <button id="hero-edit-cancel" class="vg-btn">Cancelar</button>
+            <button id="hero-edit-save" class="vg-btn" style="background:linear-gradient(180deg, rgba(90,170,255,0.35), rgba(0,0,0,0.12)); border-color: rgba(90,170,255,0.35);">Salvar</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-<script src="sheet.js"></script>
 </body>
 </html>

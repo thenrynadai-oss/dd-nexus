@@ -13,7 +13,6 @@
 
   --radius:16px;
   --transition:0.4s cubic-bezier(0.25,0.8,0.25,1);
-    --bgfx-base-opacity: 1; /* controla opacidade do gradiente base (libera o canvas low poly) */
 
   /* Base UI tokens (podem ser sobrescritos por tema) */
   --bg-app:#0b0f16;
@@ -78,6 +77,144 @@ body{
   pointer-events:none;
 }
 
+
+#bg-wallpaper{
+  position:fixed;
+  inset:0;
+  z-index:-4;
+  pointer-events:none;
+  overflow:hidden;
+}
+#bg-wallpaper .wp{
+  position:absolute;
+  inset:-5vmax;
+  width:110%;
+  height:110%;
+  opacity:1;
+  filter:saturate(1.05) contrast(1.02);
+  transform:translate3d(0,0,0);
+}
+#bg-wallpaper .wp svg{
+  width:100%;
+  height:100%;
+  display:block;
+}
+#bg-wallpaper .wp [data-depth]{
+  transform: translate3d(calc(var(--parx, 0px) * var(--d, 0.2)), calc(var(--pary, 0px) * var(--d, 0.2)), 0);
+  transform-origin:center;
+}
+@keyframes npcWalk { 
+  0%{ transform: translateX(-120%) translateY(0); opacity:0; } 
+  6%{opacity:1;}
+  94%{opacity:1;}
+  100%{ transform: translateX(120%) translateY(0); opacity:0;}
+}
+@keyframes steamRise {
+  0%{ transform: translateY(0) scale(1); opacity:0.0;}
+  10%{opacity:0.35;}
+  70%{opacity:0.22;}
+  100%{ transform: translateY(-40px) scale(1.18); opacity:0;}
+}
+@keyframes flameFlicker {
+  0%,100%{ transform: scaleY(1) skewX(0deg); filter:brightness(1);}
+  45%{ transform: scaleY(1.08) skewX(-2deg); filter:brightness(1.12);}
+  70%{ transform: scaleY(0.95) skewX(2deg); filter:brightness(0.95);}
+}
+@keyframes auraDrift {
+  0%{ transform: translateX(-2%) translateY(0); opacity:0.55;}
+  50%{ transform: translateX(2%) translateY(-1%); opacity:0.7;}
+  100%{ transform: translateX(-2%) translateY(0); opacity:0.55;}
+}
+@keyframes tentacleSway {
+  0%{ transform: rotate(-1.5deg) translateY(0); }
+  50%{ transform: rotate(1.5deg) translateY(2px); }
+  100%{ transform: rotate(-1.5deg) translateY(0); }
+}
+
+/* Permite que o wallpaper lowpoly apareça forte por trás */
+body::before{ opacity: var(--bgfx-base-opacity, 1); }
+body::after{ opacity: var(--bgfx-fx-opacity, 0.35); }
+
+/* =========================
+   GLASS UI (universal)
+   ========================= */
+:root{
+  --glass-blur: 14px;
+  --glass-border: rgba(255,255,255,0.14);
+  --glass-shadow: 0 18px 50px rgba(0,0,0,0.55);
+}
+.vg-glass{
+  background: var(--bg-panel);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--glass-shadow);
+}
+.vg-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.12));
+  color: var(--text-primary);
+  cursor:pointer;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, filter .18s ease;
+  backdrop-filter: blur(var(--glass-blur));
+}
+.vg-btn:hover{
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.24);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.06), 0 0 24px var(--accent-glow);
+}
+.vg-btn:active{
+  transform: translateY(0px) scale(0.98);
+  filter: brightness(0.98);
+}
+.vg-icon-btn{
+  width: 36px; height: 36px;
+  padding:0;
+  border-radius: 12px;
+  font-size: 16px;
+}
+.vg-badge{
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.25);
+  color: var(--text-secondary);
+}
+
+/* Checkboxes glass (para qualquer checkbox que não seja prof-check) */
+.vg-check{
+  appearance:none;
+  -webkit-appearance:none;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.25);
+  display:inline-grid;
+  place-items:center;
+  cursor:pointer;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.vg-check:hover{ transform: scale(1.05); border-color: rgba(255,255,255,0.30); }
+.vg-check:checked{
+  background: var(--accent);
+  border-color: rgba(255,255,255,0.35);
+  box-shadow: 0 0 14px var(--accent-glow);
+}
+.vg-check:checked::after{
+  content:"✔";
+  color: var(--bg-app);
+  font-weight: 900;
+  font-size: 12px;
+  transform: translateY(-1px);
+}
+
 /* BACKGROUNDS ANIMADOS GERAIS (antigos) */
 body::before, body::after{
   content:"";
@@ -94,7 +231,7 @@ body::before{
     radial-gradient(1100px 700px at 20% 10%, color-mix(in oklab, var(--bg-2) 60%, transparent), transparent 65%),
     radial-gradient(900px 700px at 85% 75%, color-mix(in oklab, var(--bg-3) 60%, transparent), transparent 65%),
     linear-gradient(180deg, var(--bg-1), var(--bg-app));
-  opacity:var(--bgfx-base-opacity, 1);
+  opacity:1;
 }
 
 /* Textura/overlay — pode virar tentáculos, poeira, etc por tema */
@@ -481,78 +618,6 @@ input::placeholder, textarea::placeholder{ color:var(--text-secondary); opacity:
   color:rgba(255,255,255,0.7);
 }
 
-
-/* =========================================================
-   THEME MODAL — ÁUDIO AMBIENTE (toggle dentro do seletor)
-   ========================================================= */
-.theme-audio-row{
-  width:100%;
-  margin:12px 0 10px 0;
-  padding:12px 12px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,0.12);
-  background:rgba(0,0,0,0.25);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  backdrop-filter: blur(12px);
-}
-.theme-audio-left{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  min-width:0;
-}
-.theme-audio-dot{
-  width:10px;
-  height:10px;
-  border-radius:50%;
-  background:var(--ui-blue);
-  box-shadow:0 0 12px var(--ui-blue-glow);
-  flex:0 0 auto;
-}
-.theme-audio-text{
-  display:flex;
-  flex-direction:column;
-  gap:2px;
-  min-width:0;
-}
-.theme-audio-text strong{
-  font-size:12px;
-  letter-spacing:0.8px;
-  text-transform:uppercase;
-  color:rgba(255,255,255,0.92);
-}
-.theme-audio-text span{
-  font-size:11px;
-  color:rgba(255,255,255,0.65);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.theme-audio-toggle{
-  border:none;
-  cursor:pointer;
-  border-radius:14px;
-  padding:10px 12px;
-  font-weight:900;
-  letter-spacing:0.6px;
-  text-transform:uppercase;
-  color:white;
-  background:var(--ui-blue);
-  box-shadow:0 0 16px var(--ui-blue-glow);
-  transition:0.2s;
-  flex:0 0 auto;
-}
-.theme-audio-toggle:hover{ filter:brightness(1.08); transform:translateY(-1px); }
-.theme-audio-toggle.muted{
-  background:rgba(255,255,255,0.10);
-  box-shadow:none;
-  border:1px solid rgba(255,255,255,0.18);
-  color:rgba(255,255,255,0.78);
-}
-
 .theme-preview-pane .apply-btn{
   width:100%;
   padding:12px 14px;
@@ -606,6 +671,7 @@ input::placeholder, textarea::placeholder{ color:var(--text-secondary); opacity:
 
 /* 1. CAFÉ & CARAMELO — LOW POLY CAFETERIA (especial) */
 body[data-theme="caramel"]{
+  --bgfx-base-opacity:0.35; --bgfx-fx-opacity:0.12;
   --bg-app:#2A1B15;
   --bg-1:#1a0f0a;
   --bg-2:#3e2723;
@@ -635,7 +701,7 @@ body[data-theme="caramel"]::before{
   animation: liquidCoffee 15s ease infinite;
   z-index:-2;
 
-  opacity: var(--bgfx-base-opacity, 0.55);
+  opacity: var(--bgfx-base-opacity, 0.35);
 }
 body[data-theme="caramel"]::after{
   background:
@@ -857,6 +923,7 @@ body[data-theme="wild"]::after{
 
 /* 9. AURA DO AMANHECER — ESTRELAS & GALÁXIAS */
 body[data-theme="aura"]{
+  --bgfx-base-opacity:0.22; --bgfx-fx-opacity:0.10;
   --bg-app:#0a1020;
   --bg-1:#070b16;
   --bg-2:#24104a;
@@ -880,7 +947,7 @@ body[data-theme="aura"]::before{
     radial-gradient(circle at 70% 65%, rgba(160,120,255,0.22), transparent 60%),
     radial-gradient(ellipse at bottom, #1b1b52 0%, #03020a 70%);
 
-  opacity: var(--bgfx-base-opacity, 0.25);
+  opacity: var(--bgfx-base-opacity, 0.22);
 }
 body[data-theme="aura"]::after{
   background-image:
@@ -895,8 +962,8 @@ body[data-theme="aura"]::after{
 
 /* 10. CTHULHU — ABISMO VERDE (low poly + tentáculos overlay) */
 body[data-theme="cthulhu"]{
+  --bgfx-base-opacity:0.18; --bgfx-fx-opacity:0.08;
   --bg-app:#00140f;
-  --bgfx-base-opacity:0.18;
   --bg-1:#00140f;
   --bg-2:#062a24;
   --bg-3:#083b2e;
@@ -994,8 +1061,8 @@ body[data-theme="ranger"]{
 
 /* LOW POLY: BONFIRE (Dark Souls vibe) */
 body[data-theme="bonfire"]{
-  --bg-app:#060408;
-  --bgfx-base-opacity:0.28; --bg-1:#060408; --bg-2:#160a12; --bg-3:#2b0f10;
+  --bgfx-base-opacity:0.20; --bgfx-fx-opacity:0.10;
+  --bg-app:#060408; --bg-1:#060408; --bg-2:#160a12; --bg-3:#2b0f10;
   --skin-panel-bg:rgba(10,8,14,0.82); --bg-panel:var(--skin-panel-bg);
   --bg-input:rgba(255,120,20,0.08);
   --accent:#ff7a18; --accent-glow:rgba(255,122,24,0.55);
@@ -1006,8 +1073,8 @@ body[data-theme="bonfire"]{
 
 /* LOW POLY: VIKING */
 body[data-theme="viking"]{
-  --bg-app:#05111a;
-  --bgfx-base-opacity:0.24; --bg-1:#05111a; --bg-2:#0b1e2b; --bg-3:#123a4d;
+  --bgfx-base-opacity:0.22; --bgfx-fx-opacity:0.10;
+  --bg-app:#05111a; --bg-1:#05111a; --bg-2:#0b1e2b; --bg-3:#123a4d;
   --skin-panel-bg:rgba(5,17,26,0.82); --bg-panel:var(--skin-panel-bg);
   --bg-input:rgba(120,255,240,0.06);
   --accent:#22d3ee; --accent-glow:rgba(34,211,238,0.55);
@@ -1017,8 +1084,8 @@ body[data-theme="viking"]{
 
 /* LOW POLY: PIRATA */
 body[data-theme="pirate"]{
-  --bg-app:#071018;
-  --bgfx-base-opacity:0.24; --bg-1:#071018; --bg-2:#0a1f2e; --bg-3:#0b3d91;
+  --bgfx-base-opacity:0.22; --bgfx-fx-opacity:0.10;
+  --bg-app:#071018; --bg-1:#071018; --bg-2:#0a1f2e; --bg-3:#0b3d91;
   --skin-panel-bg:rgba(7,16,24,0.82); --bg-panel:var(--skin-panel-bg);
   --bg-input:rgba(80,200,255,0.06);
   --accent:#38bdf8; --accent-glow:rgba(56,189,248,0.55);
@@ -1028,8 +1095,8 @@ body[data-theme="pirate"]{
 
 /* LOW POLY: SAMURAI */
 body[data-theme="samurai"]{
-  --bg-app:#0b0b0f;
-  --bgfx-base-opacity:0.20; --bg-1:#0b0b0f; --bg-2:#2a0b10; --bg-3:#450a0a;
+  --bgfx-base-opacity:0.22; --bgfx-fx-opacity:0.10;
+  --bg-app:#0b0b0f; --bg-1:#0b0b0f; --bg-2:#2a0b10; --bg-3:#450a0a;
   --skin-panel-bg:rgba(11,11,15,0.84); --bg-panel:var(--skin-panel-bg);
   --bg-input:rgba(255,220,120,0.06);
   --accent:#f59e0b; --accent-glow:rgba(245,158,11,0.5);
@@ -1040,8 +1107,8 @@ body[data-theme="samurai"]{
 
 /* LOW POLY: DESERTO */
 body[data-theme="desert"]{
-  --bg-app:#1c1407;
-  --bgfx-base-opacity:0.22; --bg-1:#1c1407; --bg-2:#5a3b12; --bg-3:#c68e17;
+  --bgfx-base-opacity:0.24; --bgfx-fx-opacity:0.12;
+  --bg-app:#1c1407; --bg-1:#1c1407; --bg-2:#5a3b12; --bg-3:#c68e17;
   --skin-panel-bg:rgba(28,20,7,0.80); --bg-panel:var(--skin-panel-bg);
   --bg-input:rgba(255,210,120,0.06);
   --accent:#fbbf24; --accent-glow:rgba(251,191,36,0.55);
@@ -1138,3 +1205,9 @@ button:active{ transform:translateY(0px) scale(0.98); }
    Acessibilidade / utilitários
    ========================================================= */
 .hidden{ display:none !important; }
+
+
+.ambient-row{margin-top:12px;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,0.22);border:1px solid rgba(255,255,255,0.14);backdrop-filter:blur(var(--glass-blur));}
+.ambient-left{display:flex;flex-direction:column;gap:2px;}
+.ambient-title{font-weight:800;font-size:13px;color:var(--text-primary);}
+.ambient-sub{font-size:11px;color:var(--text-secondary);}

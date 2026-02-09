@@ -158,6 +158,26 @@ function carregarFicha() {
   gerarEstrutura();
   gerarGrimorio();
 
+
+  // =========================
+  // Stepper (atributos) — mantém estética glass
+  // =========================
+  document.querySelectorAll(".attr-step").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const attr = btn.getAttribute("data-attr");
+      const step = parseInt(btn.getAttribute("data-step"), 10) || 0;
+      const input = document.getElementById(`score-${attr}`);
+      if(!input) return;
+      let v = parseInt(input.value || "10", 10);
+      if(Number.isNaN(v)) v = 10;
+      v = Math.max(1, Math.min(30, v + step));
+      input.value = String(v);
+      input.dispatchEvent(new Event("input", { bubbles:true }));
+      input.dispatchEvent(new Event("change", { bubbles:true }));
+    });
+  });
+
+
   // Hidratar inputs com dados salvos
   Object.keys(currentHero.dados).forEach((k) => {
     const el = document.getElementById(k);
@@ -172,6 +192,112 @@ function carregarFicha() {
     const node = document.getElementById(`score-${a}`);
     if (node && (node.value === "" || node.value === null || node.value === undefined)) node.value = 10;
   });
+
+  // =========================
+  // Editar personagem (nome + jogador + foto) — modal glass
+  // =========================
+  const heroEditModal = document.getElementById("hero-edit-modal");
+  const heroEditOpen = document.getElementById("edit-hero-btn");
+  const heroEditClose = document.getElementById("hero-edit-close");
+  const heroEditCancel = document.getElementById("hero-edit-cancel");
+  const heroEditSave = document.getElementById("hero-edit-save");
+  const heroEditPick = document.getElementById("hero-edit-pick");
+  const heroEditClear = document.getElementById("hero-edit-clear");
+  const heroEditFile = document.getElementById("hero-edit-file");
+  const heroEditName = document.getElementById("hero-edit-name");
+  const heroEditPlayer = document.getElementById("hero-edit-player");
+  const heroEditPreview = document.getElementById("hero-edit-preview");
+
+  let pendingAvatar = null;
+
+  function openHeroEdit(){
+    if(!heroEditModal) return;
+    heroEditName.value = currentHero.nome || "";
+    heroEditPlayer.value = currentHero.jogador || "";
+    pendingAvatar = null;
+    const img = currentHero.img || "";
+    heroEditPreview.style.backgroundImage = img ? `url(${img})` : "none";
+    heroEditModal.classList.add("open");
+  }
+  function closeHeroEdit(){
+    if(!heroEditModal) return;
+    heroEditModal.classList.remove("open");
+  }
+  if(heroEditOpen) heroEditOpen.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); openHeroEdit(); });
+  if(heroEditClose) heroEditClose.addEventListener("click", (e)=>{ e.preventDefault(); closeHeroEdit(); });
+  if(heroEditCancel) heroEditCancel.addEventListener("click", (e)=>{ e.preventDefault(); closeHeroEdit(); });
+  if(heroEditModal) heroEditModal.addEventListener("click", (e)=>{ if(e.target===heroEditModal) closeHeroEdit(); });
+
+  if(heroEditPick){
+    heroEditPick.addEventListener("click", (e)=>{
+      e.preventDefault();
+      heroEditFile && heroEditFile.click();
+    });
+  }
+  if(heroEditFile){
+    heroEditFile.addEventListener("change", async ()=>{
+      const f = heroEditFile.files && heroEditFile.files[0];
+      if(!f) return;
+      if(!f.type.startsWith("image/")) return;
+      const maxBytes = 1.5 * 1024 * 1024;
+      const file = (f.size <= maxBytes) ? f : f; // compress below
+      const dataUrl = await (async ()=>{
+        // compress via canvas
+        const img = new Image();
+        const p = new Promise((res, rej)=>{ img.onload=()=>res(); img.onerror=rej; });
+        img.src = URL.createObjectURL(file);
+        await p;
+        const cvs = document.createElement("canvas");
+        const ctx = cvs.getContext("2d");
+        const max = 512;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        cvs.width = Math.max(1, Math.round(img.width*scale));
+        cvs.height = Math.max(1, Math.round(img.height*scale));
+        ctx.drawImage(img,0,0,cvs.width,cvs.height);
+        URL.revokeObjectURL(img.src);
+        return cvs.toDataURL("image/webp", 0.85);
+      })();
+      pendingAvatar = dataUrl;
+      heroEditPreview.style.backgroundImage = `url(${dataUrl})`;
+    });
+  }
+
+  if(heroEditClear){
+    heroEditClear.addEventListener("click", (e)=>{
+      e.preventDefault();
+      pendingAvatar = "";
+      heroEditPreview.style.backgroundImage = "none";
+      if(heroEditFile) heroEditFile.value = "";
+    });
+  }
+
+  function persistHeroProfile(){
+    // Atualiza display no topo
+    const dn = document.getElementById("display-name");
+    const dp = document.getElementById("display-player");
+    const av = document.getElementById("sheet-avatar");
+    if(dn) dn.textContent = currentHero.nome || "Personagem";
+    if(dp) dp.textContent = currentHero.jogador || "Jogador";
+    if(av) av.style.backgroundImage = currentHero.img ? `url(${currentHero.img})` : "none";
+  }
+
+  if(heroEditSave){
+    heroEditSave.addEventListener("click", (e)=>{
+      e.preventDefault();
+      const newName = (heroEditName.value || "").trim();
+      const newPlayer = (heroEditPlayer.value || "").trim();
+      if(newName) currentHero.nome = newName;
+      if(newPlayer) currentHero.jogador = newPlayer;
+      if(pendingAvatar !== null){
+        currentHero.img = pendingAvatar || "";
+      }
+      persistHeroProfile();
+      salvarHero();
+      closeHeroEdit();
+    });
+  }
+
+
 
   calcStats();
   calcSpells();
@@ -409,114 +535,3 @@ window.rollSkill = rollSkill;
 window.calcSpells = calcSpells;
 window.voltarParaHome = voltarParaHome;
 window.switchTab = switchTab;
-
-
-
-/* =========================================================
-   EDITAR IDENTIDADE (✏️)
-   - altera nome do personagem, nome do jogador e foto
-   - atualiza display e salva no nexus_db
-   ========================================================= */
-let _heroEditTempImg = null;
-
-function openHeroEditModal(ev){
-  try{ if(ev) ev.stopPropagation(); }catch(e){}
-  const modal = document.getElementById("hero-edit-modal");
-  if(!modal) return;
-
-  // Preenche com dados atuais
-  try{
-    const h = currentHero;
-    const nameIn = document.getElementById("edit-hero-name");
-    const playerIn = document.getElementById("edit-hero-player");
-    const prev = document.getElementById("edit-hero-img-preview");
-
-    if(nameIn) nameIn.value = h?.nome || "";
-    if(playerIn) playerIn.value = h?.player || "";
-
-    _heroEditTempImg = null;
-    if(prev){
-      if(h?.img) prev.style.backgroundImage = `url(${h.img})`;
-      else prev.style.backgroundImage = "";
-    }
-  }catch(e){}
-
-  modal.style.display = "flex";
-}
-
-function closeHeroEditModal(){
-  const modal = document.getElementById("hero-edit-modal");
-  if(modal) modal.style.display = "none";
-  _heroEditTempImg = null;
-}
-
-function previewHeroEditImage(e){
-  const file = e?.target?.files?.[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    _heroEditTempImg = ev.target.result;
-    const prev = document.getElementById("edit-hero-img-preview");
-    if(prev) prev.style.backgroundImage = `url(${_heroEditTempImg})`;
-  };
-  reader.readAsDataURL(file);
-}
-
-function applyHeroEdits(){
-  const nameIn = document.getElementById("edit-hero-name");
-  const playerIn = document.getElementById("edit-hero-player");
-  const newName = (nameIn?.value || "").trim();
-  const newPlayer = (playerIn?.value || "").trim();
-
-  if(!newName){
-    alert("Nome do Personagem é obrigatório.");
-    return;
-  }
-  if(!newPlayer){
-    alert("Nome do Jogador é obrigatório.");
-    return;
-  }
-
-  // Atualiza objeto do herói
-  currentHero.nome = newName;
-  currentHero.player = newPlayer;
-  if(_heroEditTempImg) currentHero.img = _heroEditTempImg;
-
-  // Mantém coerência com campos da ficha (dados)
-  if(!currentHero.dados) currentHero.dados = {};
-  currentHero.dados["c-name"] = newName;
-  currentHero.dados["c-player"] = newPlayer;
-
-  // Atualiza UI header
-  const dn = document.getElementById("display-name");
-  const dp = document.getElementById("display-player");
-  if(dn) dn.innerText = newName.toUpperCase();
-  if(dp) dp.innerText = newPlayer.toUpperCase();
-  if(currentHero.img){
-    const av = document.getElementById("sheet-avatar");
-    if(av) av.style.backgroundImage = `url(${currentHero.img})`;
-  }
-
-  // Se inputs existirem no header (ids antigos)
-  const cName = document.getElementById("c-name");
-  const cPlayer = document.getElementById("c-player");
-  if(cName) cName.value = newName;
-  if(cPlayer) cPlayer.value = newPlayer;
-
-  // Persiste
-  try{
-    Auth.saveUser(currentUser);
-  }catch(e){
-    // fallback — tenta salvar direto
-    try{
-      const db = JSON.parse(localStorage.getItem("nexus_db")||"[]");
-      const idx = db.findIndex(u => u.email === currentUser.email);
-      if(idx>=0){
-        db[idx] = currentUser;
-        localStorage.setItem("nexus_db", JSON.stringify(db));
-      }
-    }catch(_){}
-  }
-
-  closeHeroEditModal();
-}

@@ -10,7 +10,6 @@
   "use strict";
 
   const STORAGE_KEY = "vasteria_theme";
-  const AMBIENT_KEY = "vasteria_ambient_muted";
   const DEFAULT_THEME = "caramel";
 
   /** Lista de temas. Regra: NÃO remover nenhum — só rework/adição. */
@@ -26,7 +25,7 @@
     { id:"wild",     name:"Selva Viva",      badge:"MINIMAL",  kind:"minimal", preview:"ranger",   desc:"Verde natural — spores animadas, vibe druid." },
 
     // ==== Especiais pedidos ====
-    { id:"aura",     name:"Aura do Amanhecer", badge:"LOW POLY", kind:"lowpoly", preview:"aura", desc:"Amanhecer áurico low poly: aurora dourada, poeira estelar e montanhas." },
+    { id:"aura",     name:"Aura do Amanhecer", badge:"SPECIAL", kind:"minimal", preview:"aura", desc:"Galáxias e aurora dourada — estrelas, poeira cósmica." },
     { id:"cthulhu",  name:"Sussurros de Cthulhu", badge:"LOW POLY", kind:"lowpoly", preview:"cthulhu", desc:"Abismo verde, tentáculos e bolhas — horror elegante." },
 
     // ==== 7 classes D&D (novos) ====
@@ -116,48 +115,7 @@
     qsa(".current-theme-label").forEach(el => el.textContent = getThemeName(theme));
   }
 
-  
-  // =========================================================
-  // ÁUDIO AMBIENTE — estado + UI (mute dentro do modal)
-  // =========================================================
-  function getAmbientMuted(){
-    return localStorage.getItem(AMBIENT_KEY) === "1";
-  }
-  function setAmbientMuted(muted){
-    localStorage.setItem(AMBIENT_KEY, muted ? "1" : "0");
-    // notifica o engine (se existir)
-    if(window.VG_Ambient && typeof window.VG_Ambient.setMuted === "function"){
-      window.VG_Ambient.setMuted(muted);
-    }
-    // feedback sonoro (leve)
-    try{ playSelectSound(); }catch(e){}
-  }
-  function syncAmbientUI(modal){
-    const isMuted = getAmbientMuted();
-    const btn = qs("#ambient-toggle", modal);
-    const dot = qs("#ambient-dot", modal);
-    const st  = qs("#ambient-status", modal);
-    if(btn){
-      btn.classList.toggle("muted", isMuted);
-      btn.textContent = isMuted ? "ATIVAR" : "MUTAR";
-    }
-    if(dot){
-      dot.style.background = isMuted ? "rgba(255,255,255,0.35)" : "var(--ui-blue)";
-      dot.style.boxShadow = isMuted ? "none" : "0 0 12px var(--ui-blue-glow)";
-    }
-    if(st){
-      st.textContent = isMuted ? "Som ambiente mutado" : "Som ambiente ativo (por tema)";
-    }
-  }
-
-
-  function toggleAmbient(modal){
-    const newMuted = !getAmbientMuted();
-    setAmbientMuted(newMuted);
-    syncAmbientUI(modal);
-  }
-
-function getThemeName(id){
+  function getThemeName(id){
     const t = VASTERIA_THEMES.find(x => x.id === id);
     return t ? t.name : "Tema";
   }
@@ -238,19 +196,14 @@ function getThemeName(id){
                 <span class="theme-badge" id="big-badge">—</span>
               </div>
             </div>
-            
-            <div class="theme-audio-row" id="theme-audio-row">
-              <div class="theme-audio-left">
-                <div class="theme-audio-dot" id="ambient-dot"></div>
-                <div class="theme-audio-text">
-                  <strong>Áudio ambiente</strong>
-                  <span id="ambient-status">Carregando...</span>
-                </div>
-              </div>
-              <button class="theme-audio-toggle" id="ambient-toggle" type="button">MUTAR</button>
-            </div>
-
             <button class="apply-btn" id="apply-theme-btn">SELECIONAR TEMA</button>
+            <div class="ambient-row">
+              <div class="ambient-left">
+                <div class="ambient-title">Som ambiente</div>
+                <div class="ambient-sub">(low poly)</div>
+              </div>
+              <button id="ambient-toggle" class="vg-btn vg-icon-btn" title="Ativar/Desativar som ambiente">🔊</button>
+            </div>
             <div style="font-size:12px;color:rgba(255,255,255,0.60);line-height:1.5">
               Dica: clique em um tema para habilitar o botão azul.<br/>
               O modal não fecha sozinho — você escolhe quando voltar.
@@ -356,6 +309,16 @@ function getThemeName(id){
       const bigDesc = qs("#big-desc", modal);
       const bigBadge = qs("#big-badge", modal);
       const applyBtn = qs("#apply-theme-btn", modal);
+    const ambBtn = qs("#ambient-toggle", modal);
+    const ambKey = "vasteria_ambient_muted";
+    const getMuted = ()=> localStorage.getItem(ambKey)==="1";
+    const setMuted = (m)=> localStorage.setItem(ambKey, m?"1":"0");
+    const updateAmb = ()=>{
+      if(!ambBtn) return;
+      const muted = getMuted();
+      ambBtn.textContent = muted ? "🔇" : "🔊";
+      ambBtn.classList.toggle("is-muted", muted);
+    };
 
       if(bigPrev) bigPrev.innerHTML = `<div class="theme-preview" data-preview="${t.preview || t.id}" style="position:absolute;inset:0"></div>`;
       if(bigName) bigName.textContent = t.name;
@@ -366,7 +329,20 @@ function getThemeName(id){
       if(applyBtn){
         applyBtn.disabled = false;
         applyBtn.textContent = "SELECIONAR TEMA";
-        applyBtn.onclick = () => {
+        if(ambBtn){
+      ambBtn.onclick = (ev)=>{
+        ev.preventDefault();
+        ev.stopPropagation();
+        const next = !getMuted();
+        setMuted(next);
+        updateAmb();
+        window.dispatchEvent(new CustomEvent("vasteria:ambient", { detail:{ muted: next } }));
+        // feedback pequeno
+        if(typeof playSelectSound === "function") playSelectSound();
+      };
+    }
+
+    applyBtn.onclick = () => {
           applyTheme(themeId);
           markCurrent(themeId);
         };
@@ -391,9 +367,6 @@ function getThemeName(id){
 
     // build cards (idempotente)
     buildThemeCards(modal);
-
-    // áudio ambiente (toggle dentro do modal)
-    syncAmbientUI(modal);
 
     // foco no input
     const search = qs("#theme-search", modal);
