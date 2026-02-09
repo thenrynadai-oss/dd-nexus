@@ -38,6 +38,7 @@
             </button>
 
             <div class="hero-card-floating">
+                <button class="hero-edit-btn" title="Editar Personagem" onclick="openHeroEditModal(event)">✏️</button>
                 <div class="hero-img-box" id="sheet-avatar" aria-label="Avatar do personagem"></div>
                 <div class="hero-text-box">
                     <div class="top-row-info">
@@ -216,6 +217,43 @@
     <script src="themes.js"></script>
     <script src="bg.js"></script>
     <script src="auth.js"></script>
-    <script src="sheet.js"></script>
+    
+    <!-- Modal: editar personagem (nome/jogador/foto) -->
+    <div id="hero-edit-modal" class="roll-overlay" style="display:none;" onclick="closeHeroEditModal()">
+        <div class="edit-hero-card" onclick="event.stopPropagation()">
+            <div class="edit-hero-head">
+                <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+                    <div style="font-family:'Cinzel'; font-weight:900; color:var(--accent); letter-spacing:1px;">EDITAR PERSONAGEM</div>
+                    <div style="font-size:12px; color:rgba(255,255,255,0.65)">Atualize nome, jogador e foto do personagem.</div>
+                </div>
+                <button class="btn-ghost" style="padding:10px 12px;" onclick="closeHeroEditModal()">FECHAR</button>
+            </div>
+
+            <div class="edit-hero-body">
+                <div class="edit-hero-img-col">
+                    <div class="edit-hero-img" id="edit-hero-img-preview" onclick="document.getElementById('edit-hero-img-file').click()">
+                        <span style="font-size:11px;opacity:0.8">CLIQUE PARA TROCAR</span>
+                    </div>
+                    <div class="edit-hero-upload"><button class="btn-ghost" style="width:100%; padding:10px 12px;" onclick="document.getElementById('edit-hero-img-file').click()">TROCAR FOTO</button></div>
+                    <input type="file" id="edit-hero-img-file" hidden accept="image/*" onchange="previewHeroEditImage(event)">
+                </div>
+
+                <div class="edit-hero-fields">
+                    <label>NOME DO PERSONAGEM</label>
+                    <input id="edit-hero-name" class="save-field" placeholder="Nome do Personagem">
+
+                    <label>NOME DO JOGADOR</label>
+                    <input id="edit-hero-player" class="save-field" placeholder="Nome do Jogador">
+
+                    <div class="edit-hero-actions">
+                        <button class="btn-primary" onclick="applyHeroEdits()">SALVAR</button>
+                        <button class="btn-ghost" onclick="closeHeroEditModal()">CANCELAR</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="sheet.js"></script>
 </body>
 </html>

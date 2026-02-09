@@ -409,3 +409,114 @@ window.rollSkill = rollSkill;
 window.calcSpells = calcSpells;
 window.voltarParaHome = voltarParaHome;
 window.switchTab = switchTab;
+
+
+
+/* =========================================================
+   EDITAR IDENTIDADE (✏️)
+   - altera nome do personagem, nome do jogador e foto
+   - atualiza display e salva no nexus_db
+   ========================================================= */
+let _heroEditTempImg = null;
+
+function openHeroEditModal(ev){
+  try{ if(ev) ev.stopPropagation(); }catch(e){}
+  const modal = document.getElementById("hero-edit-modal");
+  if(!modal) return;
+
+  // Preenche com dados atuais
+  try{
+    const h = currentHero;
+    const nameIn = document.getElementById("edit-hero-name");
+    const playerIn = document.getElementById("edit-hero-player");
+    const prev = document.getElementById("edit-hero-img-preview");
+
+    if(nameIn) nameIn.value = h?.nome || "";
+    if(playerIn) playerIn.value = h?.player || "";
+
+    _heroEditTempImg = null;
+    if(prev){
+      if(h?.img) prev.style.backgroundImage = `url(${h.img})`;
+      else prev.style.backgroundImage = "";
+    }
+  }catch(e){}
+
+  modal.style.display = "flex";
+}
+
+function closeHeroEditModal(){
+  const modal = document.getElementById("hero-edit-modal");
+  if(modal) modal.style.display = "none";
+  _heroEditTempImg = null;
+}
+
+function previewHeroEditImage(e){
+  const file = e?.target?.files?.[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    _heroEditTempImg = ev.target.result;
+    const prev = document.getElementById("edit-hero-img-preview");
+    if(prev) prev.style.backgroundImage = `url(${_heroEditTempImg})`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function applyHeroEdits(){
+  const nameIn = document.getElementById("edit-hero-name");
+  const playerIn = document.getElementById("edit-hero-player");
+  const newName = (nameIn?.value || "").trim();
+  const newPlayer = (playerIn?.value || "").trim();
+
+  if(!newName){
+    alert("Nome do Personagem é obrigatório.");
+    return;
+  }
+  if(!newPlayer){
+    alert("Nome do Jogador é obrigatório.");
+    return;
+  }
+
+  // Atualiza objeto do herói
+  currentHero.nome = newName;
+  currentHero.player = newPlayer;
+  if(_heroEditTempImg) currentHero.img = _heroEditTempImg;
+
+  // Mantém coerência com campos da ficha (dados)
+  if(!currentHero.dados) currentHero.dados = {};
+  currentHero.dados["c-name"] = newName;
+  currentHero.dados["c-player"] = newPlayer;
+
+  // Atualiza UI header
+  const dn = document.getElementById("display-name");
+  const dp = document.getElementById("display-player");
+  if(dn) dn.innerText = newName.toUpperCase();
+  if(dp) dp.innerText = newPlayer.toUpperCase();
+  if(currentHero.img){
+    const av = document.getElementById("sheet-avatar");
+    if(av) av.style.backgroundImage = `url(${currentHero.img})`;
+  }
+
+  // Se inputs existirem no header (ids antigos)
+  const cName = document.getElementById("c-name");
+  const cPlayer = document.getElementById("c-player");
+  if(cName) cName.value = newName;
+  if(cPlayer) cPlayer.value = newPlayer;
+
+  // Persiste
+  try{
+    Auth.saveUser(currentUser);
+  }catch(e){
+    // fallback — tenta salvar direto
+    try{
+      const db = JSON.parse(localStorage.getItem("nexus_db")||"[]");
+      const idx = db.findIndex(u => u.email === currentUser.email);
+      if(idx>=0){
+        db[idx] = currentUser;
+        localStorage.setItem("nexus_db", JSON.stringify(db));
+      }
+    }catch(_){}
+  }
+
+  closeHeroEditModal();
+}
