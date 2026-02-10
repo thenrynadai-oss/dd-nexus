@@ -7,7 +7,7 @@
 
 .sheet-header-floating { width: 95%; max-width: 1300px; margin: 30px auto 18px; display: flex; gap: 20px; align-items: stretch; }
 
-.hero-card-floating { flex: 1; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 25px; padding: 25px; display: flex; gap: 30px; align-items: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3); backdrop-filter: blur(12px); transition: var(--transition); }
+.hero-card-floating { flex: 1; position: relative; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 25px; padding: 25px; display: flex; gap: 30px; align-items: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3); backdrop-filter: blur(12px); transition: var(--transition); }
 .hero-card-floating:hover { border-color: var(--accent); box-shadow: 0 0 30px var(--accent-glow); }
 
 .hero-img-box { width: 150px; height: 150px; border-radius: var(--skin-avatar-radius); background-size: cover; background-position: center; border: var(--skin-avatar-border); box-shadow: 0 0 20px var(--accent-glow); flex-shrink: 0; background-color: rgba(0,0,0,0.18); }
@@ -28,6 +28,143 @@
 
 .btn-back-pro { width: 60px; height: 100%; min-height: 60px; border-radius: 22px; background: var(--bg-panel); border: 2px solid var(--accent); color: var(--accent); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.3s; align-self: center; backdrop-filter: blur(10px); box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
 .btn-back-pro:hover { transform: scale(1.06); background: var(--accent); color: var(--bg-app); box-shadow: 0 0 20px var(--accent-glow); }
+
+
+/* =========================================================
+   BOTÃO: EDITAR PERSONAGEM (LÁPIS)
+   - fica no canto superior direito do header, igual imagem
+   ========================================================= */
+.btn-edit-hero{
+  position:absolute;
+  top:14px;
+  right:14px;
+  width:42px;
+  height:42px;
+  border-radius: 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: color-mix(in oklab, var(--bg-panel) 78%, rgba(255,255,255,0.10));
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, rgba(255,255,255,0.12));
+  color: color-mix(in oklab, var(--text-primary) 88%, white);
+  cursor:pointer;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.35);
+}
+.btn-edit-hero svg{ width:20px; height:20px; }
+.btn-edit-hero:hover{ border-color: var(--accent); box-shadow: 0 0 18px var(--accent-glow); transform: translateY(-2px); }
+.btn-edit-hero:active{ transform: translateY(0px) scale(0.98); }
+
+/* =========================================================
+   MODAL: EDITAR PERSONAGEM (mesma base do HUB)
+   ========================================================= */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.72);
+  backdrop-filter: blur(10px);
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.modal-card{ width:min(560px, 96vw); border-radius:24px; padding:18px; }
+.modal-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+.modal-head h3{ margin:0; font-family:var(--font-title, 'Cinzel'); letter-spacing:1px; color:var(--text-primary); }
+
+/* Modal inteiro mais “glass”/moderno (mais opacidade + blur) */
+#modal-edit-character.modal-overlay{ 
+  background: rgba(0,0,0,0.62);
+  backdrop-filter: blur(14px);
+}
+
+#modal-edit-character .modal-card{
+  background: color-mix(in oklab, var(--skin-panel-bg) 72%, rgba(255,255,255,0.10)) !important;
+  border: 1px solid color-mix(in oklab, var(--border) 62%, rgba(255,255,255,0.18)) !important;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 26px 90px rgba(0,0,0,0.55);
+}
+
+/* Close (X) precisa ser glass, não “rústico” */
+#modal-edit-character .icon-btn{
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.35);
+  font-weight: 950;
+}
+#modal-edit-character .icon-btn:hover{
+  border-color: var(--accent);
+  box-shadow: 0 0 18px var(--accent-glow), 0 18px 50px rgba(0,0,0,0.45);
+}
+#modal-edit-character .icon-btn:active{ transform: translateY(0px) scale(0.98); }
+.field{ display:flex; flex-direction:column; gap:6px; margin:10px 0; }
+.field label{ font-size:10px; font-weight:950; letter-spacing:1px; color:var(--text-secondary); text-transform:uppercase; }
+.field input{ width:100%; padding:14px 14px; border-radius:14px; box-sizing:border-box; }
+.row-btn{ display:flex; gap:10px; margin-top:12px; }
+.row-btn button{ flex:1; }
+
+/* Modal buttons precisam acompanhar o glass/tema (não pode virar barra branca “rústica”) */
+#modal-edit-character .btn-ghost,
+#modal-edit-character .btn-blue{
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  border: 1px solid color-mix(in oklab, var(--accent) 18%, rgba(255,255,255,0.14)) !important;
+  background: color-mix(in oklab, var(--bg-panel) 82%, rgba(255,255,255,0.10)) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 16px 44px rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  transition: 0.2s ease;
+}
+#modal-edit-character .btn-blue{
+  background: linear-gradient(135deg,
+    color-mix(in oklab, var(--accent) 72%, rgba(0,0,0,0.0)),
+    color-mix(in oklab, var(--accent) 45%, rgba(0,0,0,0.12))) !important;
+  border-color: color-mix(in oklab, var(--accent) 55%, rgba(255,255,255,0.18)) !important;
+  color: color-mix(in oklab, var(--bg-app) 15%, white) !important;
+}
+#modal-edit-character .btn-ghost:hover,
+#modal-edit-character .btn-blue:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 0 22px var(--accent-glow), 0 22px 60px rgba(0,0,0,0.45);
+}
+#modal-edit-character .btn-ghost:active,
+#modal-edit-character .btn-blue:active{
+  transform: translateY(0px) scale(0.99);
+}
+
+.edit-photo-row{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:12px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(0,0,0,0.22);
+}
+.edit-photo-preview{
+  width:82px;
+  height:82px;
+  border-radius:18px;
+  border:2px solid color-mix(in oklab, var(--accent) 60%, rgba(255,255,255,0.2));
+  background:rgba(255,255,255,0.05);
+  background-size:cover;
+  background-position:center;
+  box-shadow: 0 0 18px var(--accent-glow);
+}
+.edit-photo-actions{ display:flex; flex-direction:column; gap:10px; }
+.edit-photo-actions .btn-ghost{ padding:10px 14px; border-radius:14px; }
 
 /* =========================================================
    BARRA DE ABAS (NOVA) — NÃO EMPURRA BOTÕES / NÃO QUEBRA SCROLL
@@ -104,18 +241,30 @@
 .clean-area.small { min-height: 60px; }
 .full-height { min-height: 200px; height: 100%; }
 
-/* Atributos */
-.attr-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-input); padding: 7px 10px; border-radius: 10px; margin-bottom: 8px; transition: 0.3s; }
+/* Atributos (alinhado no centro, sem “dançar” por causa do tamanho do rótulo/mod) */
+.attr-row {
+  display: grid;
+  grid-template-columns: 46px 1fr 54px;
+  align-items: center;
+  background: var(--bg-input);
+  padding: 7px 10px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  transition: 0.3s;
+}
+.attr-row > span:first-child{ text-align:left; font-weight:900; letter-spacing:0.3px; }
+.attr-row .mini-stepper{ justify-self: center; }
+.attr-row .attr-mod{ justify-self: end; }
 .attr-row:hover { background: rgba(255,255,255,0.10); transform: translateX(1px); }
 .attr-val { width: 56px; text-align: center; border:none !important; background: transparent !important; font-weight: 800; font-size: 16px; color: var(--text-primary); }
 .attr-mod { font-size: 12px; background: var(--accent); color: var(--bg-app); padding: 3px 8px; border-radius: 8px; font-weight: 900; min-width: 42px; text-align:center; }
 
 /* Tabela Salvaguardas/Perícias */
-.skill-header-row { display: grid; grid-template-columns: 30px 1fr 40px 30px 40px 45px 45px; gap: 5px; padding: 10px 5px; border-bottom: 2px solid var(--accent); margin-bottom: 10px; align-items: center; text-align: center; }
+.skill-header-row { display: grid; grid-template-columns: 30px 1fr 40px 30px 40px 62px 62px; gap: 5px; padding: 10px 5px; border-bottom: 2px solid var(--accent); margin-bottom: 10px; align-items: center; text-align: center; }
 .skill-header-row span { font-size: 9px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
 .text-left { text-align: left !important; }
 
-.skill-row-pro { display: grid; grid-template-columns: 30px 1fr 40px 30px 40px 45px 45px; gap: 5px; padding: 8px 5px; align-items: center; border-bottom: 1px solid rgba(128,128,128,0.10); transition: 0.2s; border-radius: 8px; }
+.skill-row-pro { display: grid; grid-template-columns: 30px 1fr 40px 30px 40px 62px 62px; gap: 5px; padding: 8px 5px; align-items: center; border-bottom: 1px solid rgba(128,128,128,0.10); transition: 0.2s; border-radius: 8px; }
 .skill-row-pro:hover { background: rgba(255,255,255,0.06); transform: translateX(2px); }
 
 .skill-icon-btn { width: 26px; height: 26px; cursor: pointer; background: none; border: none; opacity: 0.8; transition: 0.2s; display: flex; align-items: center; justify-content: center; color: var(--text-primary); }
@@ -132,6 +281,7 @@
 
 .skill-input-line { width: 100%; background: transparent !important; border: none !important; border-bottom: 1px solid rgba(128,128,128,0.32) !important; border-radius: 0 !important; text-align: center; color: var(--text-primary); font-size: 13px; padding: 0; }
 .skill-input-line:focus { border-bottom-color: var(--accent) !important; box-shadow: none !important; transform: none !important; }
+
 
 /* Combate */
 .combat-grid-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
@@ -204,98 +354,116 @@
 }
 
 
-/* =========================
-   Editar personagem (glass)
-   ========================= */
-.hero-card-floating{ position:relative; }
-.hero-edit-btn{
-  position:absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 5;
-  font-weight: 900;
-}
-.vg-modal{
-  position: fixed;
-  inset: 0;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index: 9999;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(6px);
-}
-.vg-modal.open{ display:flex; }
-.vg-modal-panel{
-  width: min(520px, 92vw);
-  border-radius: 20px;
-  padding: 14px;
-}
-.vg-modal-head{
+/* =========================================================
+   GLASS STEPPER (atributos / números) — remove setinhas rústicas
+   ========================================================= */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+input[type=number]{ -moz-appearance:textfield; appearance:textfield; }
+
+.glass-stepper{
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  margin-bottom: 10px;
-}
-.vg-modal-title{
-  font-size: 16px;
-  font-weight: 900;
-  color: var(--text-primary);
-}
-.vg-modal-body{ display:flex; flex-direction:column; gap: 12px; }
-.vg-field label{
-  display:block;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-.vg-field input{
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.16);
-  background: rgba(0,0,0,0.22);
-  color: var(--text-primary);
-  outline: none;
-}
-.vg-upload-row{
-  display:flex;
-  gap: 12px;
-  align-items:center;
-}
-.vg-avatar-preview{
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.16);
-  background: rgba(255,255,255,0.06);
-  background-size: cover;
-  background-position:center;
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
-}
-.vg-upload-actions{ display:flex; flex-direction:column; gap: 8px; }
-.vg-modal-actions{
-  display:flex;
-  justify-content:flex-end;
-  gap: 10px;
-  margin-top: 4px;
+  gap:6px;
+  padding:4px 6px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.10));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
-.attr-stepper{
-  display:flex;
-  align-items:center;
-  gap: 8px;
+.step-btn{
+  width:28px;
+  height:28px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.18);
+  color: var(--text-primary);
+  font-weight: 900;
+  cursor:pointer;
+  transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
 }
-.attr-stepper .attr-val{
-  width: 74px;
+.step-btn:hover{
+  transform: translateY(-1px) scale(1.05);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+  background: rgba(255,255,255,0.08);
+}
+.step-btn:active{
+  transform: translateY(0px) scale(0.98);
+}
+
+.step-input{
+  min-width: 44px;
   text-align:center;
 }
-.attr-stepper .attr-step{
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  padding: 0;
-  font-size: 18px;
-  font-weight: 900;
+
+
+/* =========================================================
+   GLASS MINI STEPPERS (atributos e perícias)
+   ========================================================= */
+.mini-stepper{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 6px;
+  border-radius:10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
+.mini-stepper .step-btn{
+  width:22px;
+  height:22px;
+  border-radius:8px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.25);
+  color: var(--text-primary);
+  font-weight: 900;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  user-select:none;
+}
+.mini-stepper .step-btn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.25);
+  box-shadow: 0 0 18px var(--accent-glow);
+}
+.mini-stepper .step-btn:active{
+  transform: translateY(0px) scale(0.98);
+}
+.mini-stepper input[type=number]{
+  width:42px;
+  text-align:center;
+  font-weight: 800;
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-primary) !important;
+  padding:0;
+  margin:0;
+}
+
+/* versão compacta para a tabela de perícias */
+.mini-stepper-skill{
+  width: 62px;
+  justify-content: space-between;
+  gap:4px;
+  padding:3px 4px;
+  border-radius:9px;
+}
+.mini-stepper-skill input[type=number]{
+  width:26px;
+  font-size:12px;
+  font-weight:800;
+}
+
+/* remove spinners nativos (mantém visual clean) */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+

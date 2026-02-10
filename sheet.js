@@ -60,6 +60,113 @@ function playClickSound() {
   } catch(e) {}
 }
 
+
+
+// =========================================================
+// MODAL: EDITAR PERSONAGEM (nome + jogador + foto)
+// - botão lápis no header
+// - salva no currentHero e persiste no nexus_db
+// =========================================================
+function setupEditCharacterModal(){
+  const btnOpen = document.getElementById('btn-edit-character');
+  const modal = document.getElementById('modal-edit-character');
+  const btnClose = document.getElementById('btn-close-edit-character');
+  const btnCancel = document.getElementById('btn-edit-char-cancel');
+  const btnSave = document.getElementById('btn-edit-char-save');
+  const btnPick = document.getElementById('btn-edit-char-pick');
+  const btnRemove = document.getElementById('btn-edit-char-remove');
+  const file = document.getElementById('edit-char-file');
+  const inpName = document.getElementById('edit-char-name');
+  const inpPlayer = document.getElementById('edit-char-player');
+  const preview = document.getElementById('edit-char-preview');
+
+  if(!btnOpen || !modal || !inpName || !inpPlayer || !preview) return;
+
+  let tempImg = null;
+
+  const open = () => {
+    // hidrata campos
+    inpName.value = (currentHero?.nome || currentHero?.dados?.['c-name'] || '').toString();
+    inpPlayer.value = (currentHero?.player || currentHero?.dados?.['c-player'] || '').toString();
+    tempImg = (currentHero?.img || null);
+    preview.style.backgroundImage = tempImg ? `url(${tempImg})` : 'none';
+    modal.style.display = 'flex';
+  };
+
+  const close = () => {
+    modal.style.display = 'none';
+    if(file) file.value = '';
+  };
+
+  btnOpen.addEventListener('click', (e) => {
+    e.preventDefault();
+    playClickSound();
+    open();
+  });
+
+  // fechar clicando fora
+  modal.addEventListener('mousedown', (e) => {
+    if(e.target === modal) close();
+  });
+
+  btnClose && btnClose.addEventListener('click', (e)=>{ e.preventDefault(); close(); });
+  btnCancel && btnCancel.addEventListener('click', (e)=>{ e.preventDefault(); close(); });
+
+  btnPick && btnPick.addEventListener('click', (e)=>{ e.preventDefault(); playClickSound(); file && file.click(); });
+
+  file && file.addEventListener('change', async () => {
+    const f = file.files && file.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      tempImg = String(reader.result || '');
+      preview.style.backgroundImage = tempImg ? `url(${tempImg})` : 'none';
+    };
+    reader.readAsDataURL(f);
+  });
+
+  btnRemove && btnRemove.addEventListener('click', (e)=>{
+    e.preventDefault();
+    playClickSound();
+    tempImg = null;
+    preview.style.backgroundImage = 'none';
+    if(file) file.value = '';
+  });
+
+  btnSave && btnSave.addEventListener('click', (e)=>{
+    e.preventDefault();
+    playClickSound();
+
+    const name = (inpName.value || '').trim();
+    const player = (inpPlayer.value || '').trim();
+
+    if(!currentHero.dados) currentHero.dados = {};
+
+    // compat: mantém chaves antigas e novas
+    currentHero.nome = name || currentHero.nome || '---';
+    currentHero.player = player || currentHero.player || '---';
+    currentHero.dados['c-name'] = currentHero.nome;
+    currentHero.dados['c-player'] = currentHero.player;
+
+    if(tempImg){
+      currentHero.img = tempImg;
+    }else{
+      delete currentHero.img;
+    }
+
+    // atualiza header imediatamente
+    const dn = document.getElementById('display-name');
+    const dp = document.getElementById('display-player');
+    if(dn) dn.innerText = (currentHero.nome || '---').toString().toUpperCase();
+    if(dp) dp.innerText = (currentHero.player || '---').toString().toUpperCase();
+    const av = document.getElementById('sheet-avatar');
+    if(av) av.style.backgroundImage = currentHero.img ? `url(${currentHero.img})` : 'none';
+
+    schedulePersist();
+    close();
+  });
+}
+
 function setupTabBar() {
   const tabs = document.querySelectorAll("#sheet-tabs .tab-btn");
   tabs.forEach(btn => {
@@ -94,6 +201,7 @@ window.onload = () => {
   // Fundo e tema já são inicializados em themes.js/bg.js
   setupTabBar();
   carregarFicha();
+  setupEditCharacterModal();
 
   // Delegação de input para todos os campos (inclui elementos injetados)
   document.addEventListener("input", (e) => {
@@ -143,6 +251,33 @@ window.onload = () => {
   });
 };
 
+
+function initSteppers(){
+    document.querySelectorAll('.glass-stepper').forEach(wrap => {
+        const inputId = wrap.getAttribute('data-stepper-for');
+        const inp = inputId ? document.getElementById(inputId) : wrap.querySelector('input');
+        const down = wrap.querySelector('.step-down');
+        const up = wrap.querySelector('.step-up');
+        if(!inp || !down || !up) return;
+
+        const step = () => parseInt(inp.getAttribute('step') || '1', 10) || 1;
+        const clamp = (v) => {
+            const min = inp.getAttribute('min'); const max = inp.getAttribute('max');
+            if(min !== null && min !== "" && !isNaN(parseFloat(min))) v = Math.max(v, parseFloat(min));
+            if(max !== null && max !== "" && !isNaN(parseFloat(max))) v = Math.min(v, parseFloat(max));
+            return v;
+        };
+        const nudge = (dir) => {
+            const cur = parseFloat(inp.value || '0') || 0;
+            const v = clamp(cur + dir*step());
+            inp.value = String(v);
+            inp.dispatchEvent(new Event('input', { bubbles:true }));
+        };
+        down.addEventListener('click', (e)=>{ e.preventDefault(); nudge(-1); });
+        up.addEventListener('click', (e)=>{ e.preventDefault(); nudge(+1); });
+    });
+}
+
 function carregarFicha() {
   // Cabeçalho
   const name = (currentHero.nome || currentHero.dados["c-name"] || "---").toString();
@@ -157,26 +292,7 @@ function carregarFicha() {
 
   gerarEstrutura();
   gerarGrimorio();
-
-
-  // =========================
-  // Stepper (atributos) — mantém estética glass
-  // =========================
-  document.querySelectorAll(".attr-step").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const attr = btn.getAttribute("data-attr");
-      const step = parseInt(btn.getAttribute("data-step"), 10) || 0;
-      const input = document.getElementById(`score-${attr}`);
-      if(!input) return;
-      let v = parseInt(input.value || "10", 10);
-      if(Number.isNaN(v)) v = 10;
-      v = Math.max(1, Math.min(30, v + step));
-      input.value = String(v);
-      input.dispatchEvent(new Event("input", { bubbles:true }));
-      input.dispatchEvent(new Event("change", { bubbles:true }));
-    });
-  });
-
+  wireSteppers();
 
   // Hidratar inputs com dados salvos
   Object.keys(currentHero.dados).forEach((k) => {
@@ -193,112 +309,6 @@ function carregarFicha() {
     if (node && (node.value === "" || node.value === null || node.value === undefined)) node.value = 10;
   });
 
-  // =========================
-  // Editar personagem (nome + jogador + foto) — modal glass
-  // =========================
-  const heroEditModal = document.getElementById("hero-edit-modal");
-  const heroEditOpen = document.getElementById("edit-hero-btn");
-  const heroEditClose = document.getElementById("hero-edit-close");
-  const heroEditCancel = document.getElementById("hero-edit-cancel");
-  const heroEditSave = document.getElementById("hero-edit-save");
-  const heroEditPick = document.getElementById("hero-edit-pick");
-  const heroEditClear = document.getElementById("hero-edit-clear");
-  const heroEditFile = document.getElementById("hero-edit-file");
-  const heroEditName = document.getElementById("hero-edit-name");
-  const heroEditPlayer = document.getElementById("hero-edit-player");
-  const heroEditPreview = document.getElementById("hero-edit-preview");
-
-  let pendingAvatar = null;
-
-  function openHeroEdit(){
-    if(!heroEditModal) return;
-    heroEditName.value = currentHero.nome || "";
-    heroEditPlayer.value = currentHero.jogador || "";
-    pendingAvatar = null;
-    const img = currentHero.img || "";
-    heroEditPreview.style.backgroundImage = img ? `url(${img})` : "none";
-    heroEditModal.classList.add("open");
-  }
-  function closeHeroEdit(){
-    if(!heroEditModal) return;
-    heroEditModal.classList.remove("open");
-  }
-  if(heroEditOpen) heroEditOpen.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); openHeroEdit(); });
-  if(heroEditClose) heroEditClose.addEventListener("click", (e)=>{ e.preventDefault(); closeHeroEdit(); });
-  if(heroEditCancel) heroEditCancel.addEventListener("click", (e)=>{ e.preventDefault(); closeHeroEdit(); });
-  if(heroEditModal) heroEditModal.addEventListener("click", (e)=>{ if(e.target===heroEditModal) closeHeroEdit(); });
-
-  if(heroEditPick){
-    heroEditPick.addEventListener("click", (e)=>{
-      e.preventDefault();
-      heroEditFile && heroEditFile.click();
-    });
-  }
-  if(heroEditFile){
-    heroEditFile.addEventListener("change", async ()=>{
-      const f = heroEditFile.files && heroEditFile.files[0];
-      if(!f) return;
-      if(!f.type.startsWith("image/")) return;
-      const maxBytes = 1.5 * 1024 * 1024;
-      const file = (f.size <= maxBytes) ? f : f; // compress below
-      const dataUrl = await (async ()=>{
-        // compress via canvas
-        const img = new Image();
-        const p = new Promise((res, rej)=>{ img.onload=()=>res(); img.onerror=rej; });
-        img.src = URL.createObjectURL(file);
-        await p;
-        const cvs = document.createElement("canvas");
-        const ctx = cvs.getContext("2d");
-        const max = 512;
-        const scale = Math.min(1, max / Math.max(img.width, img.height));
-        cvs.width = Math.max(1, Math.round(img.width*scale));
-        cvs.height = Math.max(1, Math.round(img.height*scale));
-        ctx.drawImage(img,0,0,cvs.width,cvs.height);
-        URL.revokeObjectURL(img.src);
-        return cvs.toDataURL("image/webp", 0.85);
-      })();
-      pendingAvatar = dataUrl;
-      heroEditPreview.style.backgroundImage = `url(${dataUrl})`;
-    });
-  }
-
-  if(heroEditClear){
-    heroEditClear.addEventListener("click", (e)=>{
-      e.preventDefault();
-      pendingAvatar = "";
-      heroEditPreview.style.backgroundImage = "none";
-      if(heroEditFile) heroEditFile.value = "";
-    });
-  }
-
-  function persistHeroProfile(){
-    // Atualiza display no topo
-    const dn = document.getElementById("display-name");
-    const dp = document.getElementById("display-player");
-    const av = document.getElementById("sheet-avatar");
-    if(dn) dn.textContent = currentHero.nome || "Personagem";
-    if(dp) dp.textContent = currentHero.jogador || "Jogador";
-    if(av) av.style.backgroundImage = currentHero.img ? `url(${currentHero.img})` : "none";
-  }
-
-  if(heroEditSave){
-    heroEditSave.addEventListener("click", (e)=>{
-      e.preventDefault();
-      const newName = (heroEditName.value || "").trim();
-      const newPlayer = (heroEditPlayer.value || "").trim();
-      if(newName) currentHero.nome = newName;
-      if(newPlayer) currentHero.jogador = newPlayer;
-      if(pendingAvatar !== null){
-        currentHero.img = pendingAvatar || "";
-      }
-      persistHeroProfile();
-      salvarHero();
-      closeHeroEdit();
-    });
-  }
-
-
-
   calcStats();
   calcSpells();
 }
@@ -311,7 +321,11 @@ function gerarEstrutura() {
     attrCont.innerHTML += `
       <div class="attr-row">
         <span style="font-weight:900; font-size:14px">${a}</span>
-        <input id="score-${a}" class="attr-val save-field" value="10" type="number">
+        <div class="mini-stepper">
+          <button type="button" class="step-btn" data-target="score-${a}" data-delta="-1" aria-label="Diminuir ${a}">−</button>
+          <input id="score-${a}" class="attr-val save-field" value="10" type="number">
+          <button type="button" class="step-btn" data-target="score-${a}" data-delta="1" aria-label="Aumentar ${a}">+</button>
+        </div>
         <span id="mod-${a}" class="attr-mod">+0</span>
       </div>
     `;
@@ -392,6 +406,27 @@ function gerarGrimorio() {
       </div>
     `;
   }
+}
+
+
+function wireSteppers() {
+  document.querySelectorAll(".step-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const targetId = btn.getAttribute("data-target");
+      const delta = parseInt(btn.getAttribute("data-delta") || "0", 10);
+      const input = document.getElementById(targetId);
+      if (!input) return;
+
+      let v = parseInt(input.value || "0", 10);
+      if (Number.isNaN(v)) v = 0;
+      input.value = String(v + delta);
+
+      // dispara o pipeline normal (save + calc)
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  });
 }
 
 function calcStats() {

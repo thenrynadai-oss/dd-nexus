@@ -10,12 +10,14 @@
   "use strict";
 
   const STORAGE_KEY = "vasteria_theme";
-  const DEFAULT_THEME = "caramel";
+  // salva o "grupo" do tema para aplicar overlay/skin cedo (evita flicker ao trocar de aba)
+  const STORAGE_KIND_KEY = "vasteria_theme_kind";
+  const DEFAULT_THEME = "coffee_caramel";
 
   /** Lista de temas. Regra: NÃO remover nenhum — só rework/adição. */
   const VASTERIA_THEMES = [
     // ==== Existentes (rework) ====
-    { id:"caramel",  name:"Café & Caramelo", badge:"LOW POLY", kind:"lowpoly", preview:"caramel",  desc:"Cafeteria low poly viva: vapor, pessoas passando, luz quente." },
+    { id:"coffee_caramel",  name:"Café & Caramelo", badge:"LOW POLY", kind:"lowpoly", preview:"caramel",  desc:"Cafeteria low poly viva: vapor, pessoas passando, luz quente." },
     { id:"coffee",   name:"Taverna do Café", badge:"MINIMAL",  kind:"minimal", preview:"coffee",   desc:"Taverna discreta, madeira, luz âmbar — clean e elegante." },
     { id:"master",   name:"Tema do Mestre",  badge:"MINIMAL",  kind:"minimal", preview:"master",   desc:"Trono vermelho veludo com ouro — vibe de autoridade." },
     { id:"arcane",   name:"Arcano",          badge:"MINIMAL",  kind:"minimal", preview:"arcane",   desc:"Runas e energia mística — magia que pulsa ao fundo." },
@@ -29,13 +31,20 @@
     { id:"cthulhu",  name:"Sussurros de Cthulhu", badge:"LOW POLY", kind:"lowpoly", preview:"cthulhu", desc:"Abismo verde, tentáculos e bolhas — horror elegante." },
 
     // ==== 7 classes D&D (novos) ====
-    { id:"paladin",    name:"Paladino Solar",  badge:"CLASS", kind:"minimal", preview:"paladin", desc:"Ouro sagrado + preto — proteção e honra." },
-    { id:"cleric",     name:"Clérigo Celeste", badge:"CLASS", kind:"minimal", preview:"cleric",  desc:"Azul claro e luz divina — clean e confortável." },
-    { id:"bard",       name:"Bardo Neon",      badge:"CLASS", kind:"minimal", preview:"bard",    desc:"Rosa/púrpura — show, ritmo e brilho." },
-    { id:"monk",       name:"Monge Zen",       badge:"CLASS", kind:"minimal", preview:"monk",    desc:"Verde suave — calma e foco." },
-    { id:"barbarian",  name:"Bárbaro do Norte",badge:"CLASS", kind:"minimal", preview:"barbarian",desc:"Fogo e fúria — texturas duras." },
-    { id:"ranger",     name:"Rastreador",      badge:"CLASS", kind:"minimal", preview:"ranger",  desc:"Floresta e caça — verde profundo." },
-    { id:"warlock",    name:"Pacto Sombrio",   badge:"CLASS", kind:"minimal", preview:"warlock", desc:"Roxo e trevas — pacto arcano." },
+    // "CLASSE" = vivo e premium, mas NÃO low poly (pedido).
+    { id:"paladin",    name:"Paladino Solar",  badge:"CLASS", kind:"classe", preview:"paladin", desc:"Ouro sagrado + preto — proteção e honra." },
+    { id:"cleric",     name:"Clérigo Celeste", badge:"CLASS", kind:"classe", preview:"cleric",  desc:"Azul claro e luz divina — clean e confortável." },
+    { id:"bard",       name:"Bardo Neon",      badge:"CLASS", kind:"classe", preview:"bard",    desc:"Rosa/púrpura — show, ritmo e brilho." },
+    { id:"monk",       name:"Monge Zen",       badge:"CLASS", kind:"classe", preview:"monk",    desc:"Verde suave — calma e foco." },
+    { id:"barbarian",  name:"Bárbaro do Norte",badge:"CLASS", kind:"classe", preview:"barbarian",desc:"Fogo e fúria — texturas duras." },
+    { id:"ranger",     name:"Rastreador",      badge:"CLASS", kind:"classe", preview:"ranger",  desc:"Floresta e caça — verde profundo." },
+    { id:"warlock",    name:"Pacto Sombrio",   badge:"CLASS", kind:"classe", preview:"warlock", desc:"Roxo e trevas — pacto arcano." },
+
+    // ==== SECRET (skins pesadas: bordas + overlays) ====
+    // Aparece em "Todos" e também tem filtro próprio.
+    { id:"secret_obsidian", name:"Obsidiana Proibida", badge:"SECRET", kind:"secret", preview:"secret_obsidian", desc:"Skin pesada: vinheta, noise, bordas fortes — vibe obsidian." },
+    { id:"secret_bloodmoon", name:"Lua de Sangue", badge:"SECRET", kind:"secret", preview:"secret_bloodmoon", desc:"Glow vermelho + sombra — overlay intenso e bordas agressivas." },
+    { id:"secret_abyss", name:"Abyssal", badge:"SECRET", kind:"secret", preview:"secret_abyss", desc:"Abismo roxo/azul — textura profunda, contraste e moldura arcana." },
 
     // ==== 10 novos temas (metade lowpoly / metade minimal) ====
     { id:"bonfire",   name:"Fogueira dos Mortos", badge:"LOW POLY", kind:"lowpoly", preview:"bonfire", desc:"Fogueira estilo souls — brasa, faísca e cinza." },
@@ -93,8 +102,15 @@
     return localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
   }
 
+  function getStoredKind(){
+    return localStorage.getItem(STORAGE_KIND_KEY) || "minimal";
+  }
+
   function setStoredTheme(id){
     localStorage.setItem(STORAGE_KEY, id);
+    const t = VASTERIA_THEMES.find(x => x.id === id);
+    const kind = (t && t.kind) ? t.kind : "minimal";
+    localStorage.setItem(STORAGE_KIND_KEY, kind);
   }
 
   function isValidTheme(id){
@@ -103,7 +119,18 @@
 
   function applyTheme(id, {silent=false} = {}){
     const theme = isValidTheme(id) ? id : DEFAULT_THEME;
-    document.body.setAttribute("data-theme", theme);
+    const meta = VASTERIA_THEMES.find(t => t.id === theme);
+    const kind = meta?.kind || "minimal";
+
+    document.documentElement.setAttribute("data-theme-switching","1");
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-theme-group", kind);
+    document.body && document.body.setAttribute("data-theme", theme);
+    document.body && document.body.setAttribute("data-theme-group", kind);
+    // remove lock after paint
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.documentElement.removeAttribute("data-theme-switching");
+    }));
     setStoredTheme(theme);
 
     if(!silent) playSelectSound();
@@ -176,8 +203,9 @@
                 <option value="all">Todos</option>
                 <option value="minimal">Minimal</option>
                 <option value="lowpoly">Low Poly</option>
+                <option value="classe">Classe</option>
+                <option value="secret">Secret</option>
                 <option value="special">Special</option>
-                <option value="class">Class</option>
               </select>
             </div>
             <div class="theme-grid-wrap" id="theme-grid-wrap">
@@ -197,13 +225,6 @@
               </div>
             </div>
             <button class="apply-btn" id="apply-theme-btn">SELECIONAR TEMA</button>
-            <div class="ambient-row">
-              <div class="ambient-left">
-                <div class="ambient-title">Som ambiente</div>
-                <div class="ambient-sub">(low poly)</div>
-              </div>
-              <button id="ambient-toggle" class="vg-btn vg-icon-btn" title="Ativar/Desativar som ambiente">🔊</button>
-            </div>
             <div style="font-size:12px;color:rgba(255,255,255,0.60);line-height:1.5">
               Dica: clique em um tema para habilitar o botão azul.<br/>
               O modal não fecha sozinho — você escolhe quando voltar.
@@ -237,8 +258,9 @@
         let matchFilter = true;
         if(f === "minimal") matchFilter = kind === "minimal";
         else if(f === "lowpoly") matchFilter = kind === "lowpoly";
+        else if(f === "classe") matchFilter = kind === "classe";
+        else if(f === "secret") matchFilter = kind === "secret";
         else if(f === "special") matchFilter = badge.includes("special");
-        else if(f === "class") matchFilter = badge.includes("class");
 
         return matchText && matchFilter;
       });
@@ -309,16 +331,6 @@
       const bigDesc = qs("#big-desc", modal);
       const bigBadge = qs("#big-badge", modal);
       const applyBtn = qs("#apply-theme-btn", modal);
-    const ambBtn = qs("#ambient-toggle", modal);
-    const ambKey = "vasteria_ambient_muted";
-    const getMuted = ()=> localStorage.getItem(ambKey)==="1";
-    const setMuted = (m)=> localStorage.setItem(ambKey, m?"1":"0");
-    const updateAmb = ()=>{
-      if(!ambBtn) return;
-      const muted = getMuted();
-      ambBtn.textContent = muted ? "🔇" : "🔊";
-      ambBtn.classList.toggle("is-muted", muted);
-    };
 
       if(bigPrev) bigPrev.innerHTML = `<div class="theme-preview" data-preview="${t.preview || t.id}" style="position:absolute;inset:0"></div>`;
       if(bigName) bigName.textContent = t.name;
@@ -329,20 +341,7 @@
       if(applyBtn){
         applyBtn.disabled = false;
         applyBtn.textContent = "SELECIONAR TEMA";
-        if(ambBtn){
-      ambBtn.onclick = (ev)=>{
-        ev.preventDefault();
-        ev.stopPropagation();
-        const next = !getMuted();
-        setMuted(next);
-        updateAmb();
-        window.dispatchEvent(new CustomEvent("vasteria:ambient", { detail:{ muted: next } }));
-        // feedback pequeno
-        if(typeof playSelectSound === "function") playSelectSound();
-      };
-    }
-
-    applyBtn.onclick = () => {
+        applyBtn.onclick = () => {
           applyTheme(themeId);
           markCurrent(themeId);
         };

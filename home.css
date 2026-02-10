@@ -214,16 +214,26 @@
   gap:10px;
   align-items:flex-start;
 }
+.hero-title{
+  flex:1;
+  min-width:0; /* permite ellipsis dentro de flex */
+}
 .hero-title-row h4{
   margin:0;
   font-family:var(--font-title, 'Cinzel');
   letter-spacing:0.6px;
   color:rgba(255,255,255,0.92);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .hero-title-row p{
   margin:4px 0 0 0;
   color:rgba(255,255,255,0.65);
   font-size:12px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .hero-actions{

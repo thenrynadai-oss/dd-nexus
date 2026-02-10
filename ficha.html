@@ -6,8 +6,23 @@
     <title>Vasteria Gate | Ficha</title>
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="sheet.css">
+
+  <script>
+  // Aplica o tema ANTES do paint (evita flicker/overlap).
+  (function(){
+    try{
+      var t = localStorage.getItem('vasteria_theme') || 'coffee_caramel';
+      var k = localStorage.getItem('vasteria_theme_kind') || 'minimal';
+      // compat: 'caramel' antigo vira 'coffee_caramel'
+      if(t === 'caramel') t = 'coffee_caramel';
+      document.documentElement.setAttribute('data-theme', t);
+      document.documentElement.setAttribute('data-theme-group', k);
+    }catch(e){}
+  })();
+  </script>
+
 </head>
-<body data-theme="caramel">
+<body>
 
     <!-- Canvas de fundo animado (LOW POLY / Minimal) -->
     <canvas id="bg-canvas"></canvas>
@@ -38,7 +53,12 @@
             </button>
 
             <div class="hero-card-floating">
-                <button id="edit-hero-btn" class="vg-btn vg-icon-btn hero-edit-btn" title="Editar perfil do personagem">✎</button>
+                <button id="btn-edit-character" class="btn-edit-hero" type="button" title="Editar personagem" aria-label="Editar personagem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                  </svg>
+                </button>
                 <div class="hero-img-box" id="sheet-avatar" aria-label="Avatar do personagem"></div>
                 <div class="hero-text-box">
                     <div class="top-row-info">
@@ -71,6 +91,7 @@
                     </div>
                 </div>
             </div>
+
         </header>
 
         <!-- TABS (NOVA BARRA SUPERIOR) -->
@@ -211,6 +232,45 @@
         </div>
     </section>
 
+
+
+    <!-- MODAL: editar personagem (igual ao estilo do HUB) -->
+    <div id="modal-edit-character" class="modal-overlay" style="display:none;">
+      <div class="modal-card panel-skin" role="dialog" aria-modal="true" aria-label="Editar personagem">
+        <div class="modal-head">
+          <h3>Editar personagem</h3>
+          <button class="icon-btn" id="btn-close-edit-character" title="Fechar">✕</button>
+        </div>
+
+        <div class="field">
+          <label>Nome do personagem</label>
+          <input id="edit-char-name" placeholder="Nome" />
+        </div>
+
+        <div class="field">
+          <label>Nome do jogador</label>
+          <input id="edit-char-player" placeholder="Ex: Dani..." />
+        </div>
+
+        <div class="field">
+          <label>Foto do personagem</label>
+          <div class="edit-photo-row">
+            <div class="edit-photo-preview" id="edit-char-preview" aria-label="Preview da foto"></div>
+            <div class="edit-photo-actions">
+              <button id="btn-edit-char-pick" class="btn-ghost" type="button">Escolher foto</button>
+              <button id="btn-edit-char-remove" class="btn-ghost" type="button">Remover foto</button>
+            </div>
+          </div>
+          <input type="file" id="edit-char-file" accept="image/*" hidden />
+        </div>
+
+        <div class="row-btn">
+          <button id="btn-edit-char-cancel" class="btn-ghost" type="button">Cancelar</button>
+          <button id="btn-edit-char-save" class="btn-blue" type="button">Salvar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Botão ÚNICO de temas (o modal é gerado em themes.js) -->
     <button class="dock-trigger-large open-themes" data-action="open-themes" title="Temas">🎨</button>
 
@@ -218,44 +278,5 @@
     <script src="bg.js"></script>
     <script src="auth.js"></script>
     <script src="sheet.js"></script>
-
-    <!-- Modal: editar perfil do personagem -->
-    <div id="hero-edit-modal" class="vg-modal">
-      <div class="vg-modal-panel vg-glass">
-        <div class="vg-modal-head">
-          <div class="vg-modal-title">Editar personagem</div>
-          <button id="hero-edit-close" class="vg-btn vg-icon-btn" title="Fechar">✕</button>
-        </div>
-
-        <div class="vg-modal-body">
-          <div class="vg-field">
-            <label>Nome do personagem</label>
-            <input id="hero-edit-name" class="save-field" placeholder="Ex: Alaric...">
-          </div>
-          <div class="vg-field">
-            <label>Nome do jogador</label>
-            <input id="hero-edit-player" class="save-field" placeholder="Ex: Dani...">
-          </div>
-
-          <div class="vg-field">
-            <label>Foto do personagem</label>
-            <div class="vg-upload-row">
-              <div class="vg-avatar-preview" id="hero-edit-preview"></div>
-              <div class="vg-upload-actions">
-                <input id="hero-edit-file" type="file" accept="image/*" style="display:none;">
-                <button id="hero-edit-pick" class="vg-btn">Escolher foto</button>
-                <button id="hero-edit-clear" class="vg-btn">Remover foto</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="vg-modal-actions">
-            <button id="hero-edit-cancel" class="vg-btn">Cancelar</button>
-            <button id="hero-edit-save" class="vg-btn" style="background:linear-gradient(180deg, rgba(90,170,255,0.35), rgba(0,0,0,0.12)); border-color: rgba(90,170,255,0.35);">Salvar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
 </body>
 </html>

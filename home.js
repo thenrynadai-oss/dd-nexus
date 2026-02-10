@@ -123,6 +123,7 @@
       top.className = "hero-title-row";
 
       const titleWrap = document.createElement("div");
+      titleWrap.className = "hero-title";
       const nm = (h.nome || h.dados?.["c-name"] || "SEM NOME").toString();
       titleWrap.innerHTML = `<h4>${nm}</h4><p>${heroCampaign(h)} • Nível ${heroLevel(h)}</p>`;
 

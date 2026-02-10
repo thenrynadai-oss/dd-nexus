@@ -6,8 +6,23 @@
   <title>Vasteria Gate — Hub</title>
   <link rel="stylesheet" href="global.css" />
   <link rel="stylesheet" href="home.css" />
+
+  <script>
+  // Aplica o tema ANTES do paint (evita flicker/overlap).
+  (function(){
+    try{
+      var t = localStorage.getItem('vasteria_theme') || 'coffee_caramel';
+      var k = localStorage.getItem('vasteria_theme_kind') || 'minimal';
+      // compat: 'caramel' antigo vira 'coffee_caramel'
+      if(t === 'caramel') t = 'coffee_caramel';
+      document.documentElement.setAttribute('data-theme', t);
+      document.documentElement.setAttribute('data-theme-group', k);
+    }catch(e){}
+  })();
+  </script>
+
 </head>
-<body data-theme="caramel">
+<body>
   <canvas id="bg-canvas"></canvas>
 
   <!-- ÚNICO botão de temas -->

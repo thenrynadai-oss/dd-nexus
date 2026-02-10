@@ -216,100 +216,248 @@
     ctx.restore();
   }
 
-  function sceneCafe(state, ctx, palette, w,h, t){
-    // cafeteria low poly: paredes + balcão + pessoas + vapor
-    if(!state.mesh || state.w!==w || state.h!==h){
-      state.mesh = makeMesh(w,h, 220, 0.30);
-      state.parts = makeParticles(60, w,h);
-      // pessoas (silhuetas)
-      state.people = Array.from({length:6}).map((_,i)=>({
-        x:Math.random()*w,
-        y:h*0.58 + Math.random()*h*0.12,
-        s:0.7 + Math.random()*0.6,
-        dir: Math.random()>0.5 ? 1 : -1,
-        sp: 0.25 + Math.random()*0.35
-      }));
-      // vapor
-      state.steam = Array.from({length:14}).map(()=> ({
-        x:w*0.5 + (Math.random()*2-1)*w*0.18,
-        y:h*0.62 + Math.random()*h*0.15,
-        off:Math.random()*Math.PI*2
-      }));
-      state.w=w; state.h=h;
+  function sceneCafe(state, ctx, palette, w, h, t){
+    // === CAFETERIA LOW POLY 2.5D (WALLPAPER VIVO) ===
+    // Objetivo: parecer uma cafeteria de verdade (balcão, mesas, janela, letreiro)
+    // + pessoas passando (loop) + vapor + luz quente.
+    const T = t*0.001;
+
+    // base céu interno quente
+    ctx.save();
+    const bg = ctx.createLinearGradient(0,0,0,h);
+    bg.addColorStop(0, palette.bgTop || "#1a0f0a");
+    bg.addColorStop(1, palette.bgBot || "#4a2c20");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,w,h);
+    ctx.restore();
+
+    // parallax suave (mouse/touch)
+    const px = (state.parX||0)*0.8;
+    const py = (state.parY||0)*0.8;
+
+    // helpers
+    const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+    function poly(points, fill, stroke, alpha=1){
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], points[0][1]);
+      for(let i=1;i<points.length;i++) ctx.lineTo(points[i][0], points[i][1]);
+      ctx.closePath();
+      if(fill){ ctx.fillStyle = fill; ctx.fill(); }
+      if(stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+      ctx.restore();
+    }
+    function glowCircle(x,y,r, col, a){
+      ctx.save();
+      ctx.globalAlpha = a;
+      const g = ctx.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0, col);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+      ctx.restore();
     }
 
-    drawMesh(ctx, state.mesh, palette, t, 14);
+    // === chão isométrico (trapezoide) ===
+    const floorTop = h*0.56 + py*0.25;
+    const floorBot = h*1.02;
+    const floorL = w*0.08 + px*0.2;
+    const floorR = w*0.92 + px*0.2;
 
-    // chão + balcão (low poly)
+    poly([[floorL,floorTop],[floorR,floorTop],[w*1.02,floorBot],[-w*0.02,floorBot]],
+      "rgba(10,6,5,0.55)", "rgba(255,179,71,0.06)", 1);
+
+    // tiles low poly (losangos) — bem leve
     ctx.save();
-    // chão
-    const floor = ctx.createLinearGradient(0, h*0.55, 0, h);
-    floor.addColorStop(0, rgba(palette.bg2, 0.15));
-    floor.addColorStop(1, rgba(palette.bg1, 0.55));
-    ctx.fillStyle = floor;
-    ctx.fillRect(0, h*0.55, w, h*0.45);
+    ctx.globalAlpha = 0.18;
+    ctx.strokeStyle = "rgba(255,179,71,0.09)";
+    ctx.lineWidth = 1;
+    const tile = Math.max(30, Math.min(70, w/18));
+    for(let y=floorTop; y<floorBot; y+=tile*0.55){
+      const off = (Math.floor((y-floorTop)/(tile*0.55))%2)*tile*0.5;
+      for(let x=-tile; x<w+tile; x+=tile){
+        ctx.beginPath();
+        ctx.moveTo(x+off, y);
+        ctx.lineTo(x+off+tile*0.5, y+tile*0.25);
+        ctx.lineTo(x+off, y+tile*0.5);
+        ctx.lineTo(x+off-tile*0.5, y+tile*0.25);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
 
-    // balcão
-    ctx.fillStyle = rgba(lerpColor(palette.bg2, palette.accent, 0.25), 0.22);
+    // === parede + janela ===
+    const wallTop = h*0.12 + py*0.1;
+    const wallMid = h*0.56 + py*0.15;
+
+    poly([[0,wallTop],[w,wallTop],[w,wallMid],[0,wallMid]],
+      "rgba(35,22,18,0.70)", null, 1);
+
+    // moldura da janela
+    const winX = w*0.16 + px*0.25;
+    const winY = h*0.18 + py*0.12;
+    const winW = w*0.68;
+    const winH = h*0.22;
+
+    poly([[winX,winY],[winX+winW,winY],[winX+winW,winY+winH],[winX,winY+winH]],
+      "rgba(0,0,0,0.18)", "rgba(255,179,71,0.14)", 1);
+
+    // reflexo da janela (anima)
+    ctx.save();
+    ctx.globalAlpha = 0.14;
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    const rx = winX + (Math.sin(T*0.7)*0.5+0.5)*winW*0.18;
     ctx.beginPath();
-    ctx.moveTo(w*0.12, h*0.62);
-    ctx.lineTo(w*0.68, h*0.62);
-    ctx.lineTo(w*0.78, h*0.80);
-    ctx.lineTo(w*0.22, h*0.80);
+    ctx.moveTo(rx, winY+winH*0.08);
+    ctx.lineTo(rx+winW*0.22, winY+winH*0.04);
+    ctx.lineTo(rx+winW*0.28, winY+winH*0.92);
+    ctx.lineTo(rx+winW*0.06, winY+winH*0.96);
     ctx.closePath();
     ctx.fill();
+    ctx.restore();
 
-    // xícaras
-    for(let i=0;i<3;i++){
-      const cx = w*(0.25 + i*0.12);
-      const cy = h*0.68;
-      ctx.fillStyle = "rgba(255,255,255,0.10)";
-      ctx.strokeStyle = rgba(palette.accent, 0.35);
+    // === pessoas passando atrás da janela (mantém a ideia que você curtiu) ===
+    // 3 faixas com velocidades diferentes
+    function person(x,y,s, col){
+      poly([[x,y],[x+s*0.55,y],[x+s*0.60,y+s*1.1],[x-s*0.05,y+s*1.1]], col, "rgba(0,0,0,0.2)", 0.85);
+      glowCircle(x+s*0.25,y+s*0.2,s*0.35,"rgba(255,179,71,0.22)",0.35);
+    }
+    const laneY = winY + winH*0.55;
+    const baseS = Math.max(18, Math.min(42, w*0.04));
+    for(let i=0;i<7;i++){
+      const sp = 26 + i*7;
+      const x = ((T*sp*18 + i*120) % (winW+baseS*4)) - baseS*2;
+      person(winX+x, laneY + Math.sin(T*1.5+i)*2, baseS*(0.75+0.08*(i%3)), "rgba(15,10,9,0.45)");
+    }
+    for(let i=0;i<5;i++){
+      const sp = 18 + i*6;
+      const x = ((T*sp*14 + i*170) % (winW+baseS*5)) - baseS*3;
+      person(winX+(winW-x), laneY-10 + Math.sin(T*1.1+i)*2, baseS*(0.65+0.06*(i%3)), "rgba(10,7,6,0.38)");
+    }
+
+    // === letreiro "CAFÉ" (neon) ===
+    ctx.save();
+    ctx.font = `900 ${Math.max(18, Math.min(36, w*0.035))}px Outfit, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const signX = w*0.50 + px*0.25;
+    const signY = h*0.33 + py*0.15;
+    glowCircle(signX, signY, w*0.12, "rgba(255,179,71,0.20)", 0.55);
+    ctx.fillStyle = "rgba(255,179,71,0.95)";
+    ctx.fillText("CAFÉ", signX, signY);
+    ctx.restore();
+
+
+    // === prateleiras / menu / detalhes (deixa a cena menos "crua") ===
+    const shelfY1 = wallTop + (wallMid-wallTop)*0.72;
+    const shelfY2 = wallTop + (wallMid-wallTop)*0.86;
+    function shelf(y){
+      poly([[w*0.12+px*0.15,y],[w*0.88+px*0.15,y],[w*0.90+px*0.15,y+6],[w*0.10+px*0.15,y+6]],
+        "rgba(0,0,0,0.22)","rgba(255,179,71,0.10)",1);
+    }
+    shelf(shelfY1); shelf(shelfY2);
+
+    // garrafas/canecas low poly (balançam levemente)
+    ctx.save();
+    for(let i=0;i<10;i++){
+      const x = (w*0.16 + i*(w*0.07)) + px*0.12;
+      const wob = Math.sin(T*1.4 + i*0.9)*1.2;
+      const y = (i%2? shelfY1 : shelfY2) - 16 + wob;
+      const col = (i%3===0) ? "rgba(255,179,71,0.35)" : (i%3===1 ? "rgba(200,140,80,0.28)" : "rgba(255,255,255,0.16)");
+      poly([[x,y],[x+18,y+3],[x+16,y+22],[x-2,y+20]], col, "rgba(0,0,0,0.25)", 0.95);
+      glowCircle(x+8,y+10,18,"rgba(255,179,71,0.20)",0.35);
+    }
+    ctx.restore();
+
+    // menu board (texto fake com brilho)
+    ctx.save();
+    const mX = w*0.78+px*0.22, mY = wallTop + 28 + py*0.1;
+    poly([[mX,mY],[mX+w*0.14,mY],[mX+w*0.14,mY+h*0.18],[mX,mY+h*0.18]],
+      "rgba(0,0,0,0.25)","rgba(255,179,71,0.18)",1);
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = "rgba(255,179,71,0.35)";
+    for(let l=0;l<8;l++){
+      const yy = mY + 16 + l*14 + Math.sin(T*0.8 + l)*1.2;
+      ctx.fillRect(mX+12, yy, w*0.11 - (l%3)*10, 3);
+    }
+    ctx.restore();
+
+
+    // === balcão ===
+    const counterY = h*0.62 + py*0.20;
+    poly([[w*0.18+px*0.2,counterY],[w*0.82+px*0.2,counterY],[w*0.90+px*0.2,h*0.90],[w*0.10+px*0.2,h*0.90]],
+      "rgba(55,33,25,0.78)", "rgba(255,179,71,0.08)", 1);
+
+    // tampo do balcão
+    poly([[w*0.22+px*0.2,counterY-18],[w*0.78+px*0.2,counterY-18],[w*0.82+px*0.2,counterY],[w*0.18+px*0.2,counterY]],
+      "rgba(90,60,45,0.75)", "rgba(255,179,71,0.10)", 1);
+
+    // === mesas + xícaras com vapor ===
+    function cup(cx, cy, s){
+      // pires
+      poly([[cx-s*1.2,cy],[cx+s*1.2,cy],[cx+s*0.9,cy+s*0.35],[cx-s*0.9,cy+s*0.35]],
+        "rgba(255,248,225,0.10)", "rgba(255,179,71,0.10)", 0.9);
+      // copo
+      poly([[cx-s*0.45,cy-s*0.9],[cx+s*0.45,cy-s*0.9],[cx+s*0.35,cy],[cx-s*0.35,cy]],
+        "rgba(255,248,225,0.14)", "rgba(255,179,71,0.12)", 0.95);
+
+      // vapor (3 colunas)
+      for(let k=0;k<3;k++){
+        const tt = T*0.9 + k*0.7;
+        const vx = cx + (k-1)*s*0.28 + Math.sin(tt*2.0)*s*0.10;
+        const vy = cy - s*1.05 - (tt%1)*s*1.6;
+        glowCircle(vx, vy, s*0.9, "rgba(255,255,255,0.18)", 0.35);
+        ctx.save();
+        ctx.globalAlpha = 0.24;
+        ctx.strokeStyle = "rgba(255,255,255,0.45)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(vx, vy+s*0.9);
+        ctx.bezierCurveTo(vx-s*0.2, vy+s*0.55, vx+s*0.25, vy+s*0.25, vx, vy);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    const tables = [
+      {x:w*0.28,y:h*0.78,s:baseS*0.55},
+      {x:w*0.46,y:h*0.84,s:baseS*0.62},
+      {x:w*0.66,y:h*0.79,s:baseS*0.58}
+    ];
+    tables.forEach((tb,i)=>{
+      const x=tb.x+px*0.25, y=tb.y+py*0.25, s=tb.s;
+      poly([[x-s*2.2,y-s*0.4],[x+s*2.2,y-s*0.4],[x+s*1.6,y+s*0.6],[x-s*1.6,y+s*0.6]],
+        "rgba(255,179,71,0.06)", "rgba(255,179,71,0.08)", 1);
+      cup(x+(i-1)*s*0.8, y, s*0.55);
+    });
+
+    // === luzes pendentes ===
+    for(let i=0;i<4;i++){
+      const lx = w*(0.28+i*0.16) + px*0.15;
+      const ly = h*0.18 + py*0.10;
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,179,71,0.25)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(cx-18, cy-12, 36, 22, 8);
-      ctx.fill();
+      ctx.moveTo(lx, wallTop);
+      ctx.lineTo(lx + Math.sin(T*0.9+i)*6, ly);
       ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(cx+22, cy-2, 8, -Math.PI/2, Math.PI/2);
-      ctx.stroke();
+      ctx.restore();
+
+      glowCircle(lx + Math.sin(T*0.9+i)*6, ly+18, 42, "rgba(255,179,71,0.18)", 0.55);
+      poly([[lx-10,ly+10],[lx+10,ly+10],[lx+16,ly+26],[lx-16,ly+26]],
+        "rgba(255,179,71,0.10)", "rgba(255,179,71,0.12)", 1);
     }
 
-    // pessoas passando (silhuetas simples)
-    for(const p of state.people){
-      p.x += p.dir * p.sp;
-      if(p.x > w+40) p.x = -40;
-      if(p.x < -40) p.x = w+40;
-
-      const px = p.x;
-      const py = p.y + Math.sin((t*0.002)+px*0.01)*2;
-      ctx.fillStyle = "rgba(0,0,0,0.35)";
-      ctx.beginPath();
-      ctx.roundRect(px-10*p.s, py-32*p.s, 20*p.s, 36*p.s, 8*p.s);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(px, py-40*p.s, 10*p.s, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    // vapor (linhas sinuosas)
-    ctx.strokeStyle = rgba(palette.accent, 0.20);
-    ctx.lineWidth = 2;
-    for(const s of state.steam){
-      const x = s.x + Math.sin(t*0.001 + s.off)*10;
-      const y = s.y;
-      ctx.beginPath();
-      for(let k=0;k<26;k++){
-        const yy = y - k*8;
-        const xx = x + Math.sin((k*0.35) + t*0.002 + s.off)*10;
-        if(k===0) ctx.moveTo(xx, yy);
-        else ctx.lineTo(xx, yy);
-      }
-      ctx.stroke();
-    }
-
-    // poeira / brilho
-    drawParticles(ctx, state.parts, palette, w,h, t, "dust");
+    // vinheta sutil
+    ctx.save();
+    const vg = ctx.createRadialGradient(w*0.5,h*0.6, w*0.1, w*0.5,h*0.6, w*0.75);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.fillStyle = vg;
+    ctx.fillRect(0,0,w,h);
     ctx.restore();
   }
 
@@ -466,62 +614,213 @@
     ctx.restore();
   }
 
-  function sceneCthulhu(state, ctx, palette, w,h, t){
-    if(!state.mesh || state.w!==w || state.h!==h){
-      state.mesh = makeMesh(w,h, 240, 0.34);
-      state.bubbles = Array.from({length:80}).map(()=> ({
-        x:Math.random()*w,
-        y:h + Math.random()*h,
-        vy:0.25 + Math.random()*0.8,
-        r:2 + Math.random()*10,
-        a:0.04 + Math.random()*0.18,
-        wob:Math.random()*Math.PI*2
-      }));
-      state.w=w; state.h=h;
-    }
-    drawMesh(ctx, state.mesh, palette, t, 10);
+  function sceneCthulhu(state, ctx, palette, w, h, t){
+    // === CTHULHU IMPERADOR LOW POLY 2.5D (WALLPAPER VIVO) ===
+    // Trono + galáxia + tentáculos + bolhas do abismo.
+    const T = t*0.001;
+    const px = (state.parX||0);
+    const py = (state.parY||0);
 
+    // fundo galáctico
     ctx.save();
+    const g = ctx.createRadialGradient(w*0.5, h*0.35, w*0.05, w*0.5, h*0.35, w*0.75);
+    g.addColorStop(0, "rgba(130,70,255,0.12)");
+    g.addColorStop(0.35, "rgba(0,180,255,0.10)");
+    g.addColorStop(1, "rgba(0,0,0,0.95)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,w,h);
+    ctx.restore();
 
-    // tentáculos desenhados (curvas)
-    ctx.globalCompositeOperation = "lighter";
-    ctx.strokeStyle = rgba(palette.accent, 0.08);
-    ctx.lineWidth = 10;
-    ctx.lineCap = "round";
-    for(let i=0;i<4;i++){
-      const ox = w*(0.15 + i*0.22);
-      const oy = h*0.95;
-      const sway = Math.sin(t*0.001 + i)*40;
-      ctx.beginPath();
-      ctx.moveTo(ox, oy);
-      ctx.bezierCurveTo(ox-80, h*0.75, ox+60, h*0.55, ox+sway, h*0.25);
-      ctx.stroke();
+    // estrelas
+    if(!state.stars || state.w!==w || state.h!==h){
+      state.stars = Array.from({length:140}).map(()=> ({
+        x:Math.random()*w,
+        y:Math.random()*h,
+        r:Math.random()*1.8+0.2,
+        s:Math.random()*0.8+0.2,
+        tw:Math.random()*2.0+0.5
+      }));
     }
-    ctx.globalCompositeOperation = "source-over";
+    ctx.save();
+    for(const s of state.stars){
+      const tw = 0.25 + 0.75*(0.5+0.5*Math.sin(T*s.tw + s.x*0.01));
+      ctx.globalAlpha = tw*0.55;
+      ctx.fillStyle = "rgba(220,245,255,0.9)";
+      ctx.beginPath();
+      ctx.arc(s.x + px*0.15, s.y + py*0.10, s.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
 
-    // bolhas subindo
-    for(const b of state.bubbles){
-      b.y -= b.vy;
-      b.x += Math.sin(t*0.0015 + b.wob)*0.25;
-      if(b.y < -40){
-        b.y = h + 40 + Math.random()*h*0.5;
-        b.x = Math.random()*w;
-        b.vy = 0.25 + Math.random()*0.9;
-      }
-      ctx.strokeStyle = rgba(palette.accent, b.a);
+    // vórtice/galáxia
+    ctx.save();
+    ctx.translate(w*0.5 + px*0.2, h*0.32 + py*0.18);
+    ctx.rotate(T*0.15);
+    for(let i=0;i<10;i++){
+      ctx.globalAlpha = 0.08;
+      ctx.strokeStyle = i%2? "rgba(0,255,200,0.45)" : "rgba(160,120,255,0.45)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+      const r0 = w*(0.06+i*0.03);
+      for(let a=0;a<Math.PI*2; a+=0.2){
+        const rr = r0 + Math.sin(a*3 + T*1.1+i)*8;
+        const x = Math.cos(a)*rr;
+        const y = Math.sin(a)*rr*0.62;
+        if(a===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+      }
+      ctx.closePath();
       ctx.stroke();
     }
+    ctx.restore();
 
-    // vinheta escura
-    const v = ctx.createRadialGradient(w*0.5, h*0.5, 20, w*0.5, h*0.5, Math.max(w,h)*0.65);
-    v.addColorStop(0, "rgba(0,0,0,0)");
-    v.addColorStop(1, "rgba(0,0,0,0.35)");
-    ctx.fillStyle = v;
+    // helpers
+    function poly(points, fill, stroke, alpha=1){
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], points[0][1]);
+      for(let i=1;i<points.length;i++) ctx.lineTo(points[i][0], points[i][1]);
+      ctx.closePath();
+      if(fill){ ctx.fillStyle = fill; ctx.fill(); }
+      if(stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+      ctx.restore();
+    }
+    function glow(x,y,r,col,a){
+      ctx.save();
+      ctx.globalAlpha = a;
+      const gg = ctx.createRadialGradient(x,y,0,x,y,r);
+      gg.addColorStop(0,col);
+      gg.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    // chão do trono (plataforma)
+    const baseY = h*0.78 + py*0.25;
+    poly([[w*0.14,baseY],[w*0.86,baseY],[w*0.98,h*1.02],[w*0.02,h*1.02]],
+      "rgba(0,0,0,0.55)","rgba(0,255,200,0.06)",1);
+
+
+    // névoa/nebula low poly (camadas)
+    function nebula(seed, yBase, colA, colB, alpha){
+      const a = alpha;
+      ctx.save();
+      ctx.globalAlpha = a;
+      for(let i=0;i<6;i++){
+        const k = seed*100 + i;
+        const x0 = (w*0.10 + i*w*0.15) + Math.sin(T*0.18 + k)*w*0.06 + px*0.18;
+        const y0 = yBase + Math.cos(T*0.22 + k)*h*0.03 + py*0.12;
+        poly([[x0,y0],[x0+w*0.18,y0-h*0.06],[x0+w*0.28,y0+h*0.02],[x0+w*0.12,y0+h*0.09]],
+          i%2?colA:colB, null, 1);
+      }
+      ctx.restore();
+    }
+    nebula(1, h*0.22, "rgba(0,255,200,0.06)", "rgba(120,70,255,0.05)", 1);
+    nebula(2, h*0.34, "rgba(0,180,255,0.07)", "rgba(0,255,150,0.05)", 1);
+
+    // aura imperial atrás do Cthulhu
+    ctx.save();
+    const haloR = Math.min(w,h)*0.32;
+    const halo = ctx.createRadialGradient(w*0.5+px*0.22, h*0.55+py*0.18, 0, w*0.5+px*0.22, h*0.55+py*0.18, haloR);
+    halo.addColorStop(0, "rgba(0,255,200,0.18)");
+    halo.addColorStop(0.45, "rgba(0,180,255,0.08)");
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(w*0.5+px*0.22, h*0.55+py*0.18, haloR, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+
+    // trono
+    const tx = w*0.5 + px*0.25;
+    const ty = h*0.60 + py*0.22;
+    poly([[tx-w*0.08,ty],[tx+w*0.08,ty],[tx+w*0.11,ty+h*0.16],[tx-w*0.11,ty+h*0.16]],
+      "rgba(8,18,18,0.70)","rgba(0,255,200,0.10)",1);
+    poly([[tx-w*0.11,ty],[tx-w*0.02,ty-h*0.14],[tx+w*0.02,ty-h*0.14],[tx+w*0.11,ty]],
+      "rgba(10,25,25,0.72)","rgba(0,255,200,0.10)",1);
+
+    // Cthulhu "imperador" (cabeça + coroa + olhos)
+    const hx = tx;
+    const hy = ty-h*0.10;
+    poly([[hx-w*0.05,hy],[hx+w*0.05,hy],[hx+w*0.04,hy+h*0.08],[hx-w*0.04,hy+h*0.08]],
+      "rgba(10,40,35,0.75)","rgba(0,255,200,0.12)",1);
+
+    // coroa
+    poly([[hx-w*0.05,hy],[hx-w*0.02,hy-h*0.05],[hx,hy-h*0.02],[hx+w*0.02,hy-h*0.05],[hx+w*0.05,hy],[hx,hy+h*0.01]],
+      "rgba(0,255,200,0.10)","rgba(0,255,200,0.18)",1);
+
+    // olhos glow
+    glow(hx-w*0.015, hy+h*0.04, 26, "rgba(0,255,200,0.35)", 0.8);
+    glow(hx+w*0.015, hy+h*0.04, 26, "rgba(0,255,200,0.35)", 0.8);
+    ctx.save();
+    ctx.fillStyle = "rgba(0,255,200,0.95)";
+    ctx.beginPath(); ctx.arc(hx-w*0.015, hy+h*0.04, 3.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hx+w*0.015, hy+h*0.04, 3.2, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // tentáculos (4) animados
+    for(let i=0;i<4;i++){
+      const side = i<2?-1:1;
+      const off = (i%2?0.02:0.06);
+      const sx = hx + side*w*off;
+      const sy = hy + h*0.08;
+      const sway = Math.sin(T*0.9 + i)*w*0.03;
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = "rgba(0,255,200,0.22)";
+      ctx.lineWidth = 10;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.bezierCurveTo(sx+side*w*0.06+sway, sy+h*0.10, sx+side*w*0.14-sway, sy+h*0.22, sx+side*w*0.10, sy+h*0.33);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // runas flutuando
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.strokeStyle = "rgba(160,120,255,0.35)";
+    for(let i=0;i<18;i++){
+      const x = (i*97 + (T*40)%w) % w;
+      const y = (i*53 + (T*24)%h) % h;
+      ctx.beginPath();
+      ctx.arc(x, y, 8 + 4*Math.sin(T*1.3+i), 0, Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // bolhas subindo do abismo
+    if(!state.bubbles || state.w!==w || state.h!==h){
+      state.bubbles = Array.from({length:90}).map(()=> ({
+        x:Math.random()*w,
+        y:h + Math.random()*h*0.8,
+        r:Math.random()*8+2,
+        sp:Math.random()*18+8,
+        drift:(Math.random()*2-1)*16
+      }));
+    }
+    for(const b of state.bubbles){
+      b.y -= (b.sp*0.12);
+      b.x += Math.sin(T*0.8 + b.y*0.01)*0.4 + b.drift*0.002;
+      if(b.y < -30){ b.y = h + Math.random()*h*0.5; b.x = Math.random()*w; }
+      glow(b.x + px*0.1, b.y + py*0.1, b.r*2.2, "rgba(0,255,200,0.12)", 0.55);
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+      ctx.strokeStyle = "rgba(200,255,245,0.35)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(b.x + px*0.1, b.y + py*0.1, b.r, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+
+    // vinheta final
+    ctx.save();
+    const vg = ctx.createRadialGradient(w*0.5,h*0.55, w*0.12, w*0.5,h*0.55, w*0.85);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(0,0,0,0.55)");
+    ctx.fillStyle = vg;
     ctx.fillRect(0,0,w,h);
-
     ctx.restore();
   }
 
@@ -690,12 +989,6 @@
   // Engine core
   // =========================================================
   const state = {
-    parx: 0,
-    pary: 0,
-    ptrX: 0,
-    ptrY: 0,
-    ptrActive: false,
-    
     canvas:null,
     ctx:null,
     w:0,
@@ -707,8 +1000,132 @@
     mesh:null
   };
 
-  const sceneMap = {
+  
+  /* ===============================
+     AMBIENT AUDIO (procedural)
+     - Sem arquivos externos
+     - Respeita vasteria_mute
+     =============================== */
+  const AUDIO = {
+    ctx: null,
+    master: null,
+    running: false,
+    theme: "",
+    muted: false,
+    nodes: [],
+    _timer: null
+  };
+
+  function audioEnsure(){
+    if(AUDIO.ctx) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return;
+    AUDIO.ctx = new Ctx();
+    AUDIO.master = AUDIO.ctx.createGain();
+    AUDIO.master.gain.value = 0.0;
+    AUDIO.master.connect(AUDIO.ctx.destination);
+    AUDIO.running = true;
+  }
+
+  function audioSetMuted(m){
+    AUDIO.muted = !!m;
+    if(!AUDIO.master) return;
+    AUDIO.master.gain.setTargetAtTime(AUDIO.muted ? 0.0 : 0.12, AUDIO.ctx.currentTime, 0.05);
+  }
+
+  function audioStop(){
+    if(!AUDIO.ctx) return;
+    try{
+      AUDIO.nodes.forEach(n => { try{ n.disconnect(); }catch(e){} });
+      AUDIO.nodes = [];
+      if(AUDIO._timer) { clearInterval(AUDIO._timer); AUDIO._timer=null; }
+    }catch(e){}
+    AUDIO.theme = "";
+  }
+
+  function audioStart(theme){
+    audioEnsure();
+    if(!AUDIO.ctx) return;
+    if(AUDIO.theme === theme) return;
+    audioStop();
+    AUDIO.theme = theme;
+
+    // só roda em lowpoly (piloto café + cthulhu)
+    if(theme !== "coffee_caramel" && theme !== "cthulhu") return;
+
+    // garantir que o contexto esteja ativo (necessita gesto)
+    if(AUDIO.ctx.state === "suspended"){
+      // tenta retomar; se falhar, ficará mudo até o próximo clique
+      AUDIO.ctx.resume().catch(()=>{});
+    }
+
+    const ctx = AUDIO.ctx;
+
+    // base noise
+    const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const out = noiseBuf.getChannelData(0);
+    for(let i=0;i<out.length;i++) out[i] = (Math.random()*2-1);
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+    noise.loop = true;
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass"; hp.frequency.value = 200;
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = theme === "coffee_caramel" ? 1800 : 900;
+
+    const ambGain = ctx.createGain();
+    ambGain.gain.value = theme === "coffee_caramel" ? 0.35 : 0.28;
+
+    noise.connect(hp); hp.connect(lp); lp.connect(ambGain); ambGain.connect(AUDIO.master);
+    noise.start();
+
+    AUDIO.nodes.push(noise, hp, lp, ambGain);
+
+    // eventos pontuais (clinks / sussurros)
+    AUDIO._timer = setInterval(() => {
+      if(AUDIO.muted || !AUDIO.ctx) return;
+      const now = ctx.currentTime;
+
+      if(theme === "coffee_caramel"){
+        // "clink" aleatório
+        if(Math.random() < 0.45){
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(700 + Math.random()*600, now);
+          g.gain.setValueAtTime(0.0001, now);
+          g.gain.exponentialRampToValueAtTime(0.02, now+0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001, now+0.08);
+          osc.connect(g); g.connect(AUDIO.master);
+          osc.start(now); osc.stop(now+0.09);
+          AUDIO.nodes.push(osc,g);
+        }
+      } else {
+        // "sussurro" grave + ping distante
+        if(Math.random() < 0.35){
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(90 + Math.random()*60, now);
+          g.gain.setValueAtTime(0.0001, now);
+          g.gain.exponentialRampToValueAtTime(0.03, now+0.03);
+          g.gain.exponentialRampToValueAtTime(0.0001, now+0.35);
+          const flt = ctx.createBiquadFilter();
+          flt.type = "lowpass"; flt.frequency.value = 380;
+          osc.connect(flt); flt.connect(g); g.connect(AUDIO.master);
+          osc.start(now); osc.stop(now+0.36);
+          AUDIO.nodes.push(osc,flt,g);
+        }
+      }
+    }, 1200);
+
+    audioSetMuted(localStorage.getItem("vasteria_mute")==="1");
+  }
+const sceneMap = {
     caramel: sceneCafe,
+    coffee_caramel: sceneCafe,
     coffee: sceneGeneric,
     master: sceneGeneric,
     arcane: sceneGeneric,
@@ -739,6 +1156,11 @@
     clockwork: sceneGeneric,
     sunset: sceneGeneric,
     classic: sceneGeneric,
+
+    // SECRET skins (usa a cena genérica com partículas)
+    secret_obsidian: sceneGeneric,
+    secret_bloodmoon: sceneGeneric,
+    secret_abyss: sceneGeneric,
   };
 
   function ensureCanvas(){
@@ -751,369 +1173,6 @@
     return c;
   }
 
-
-
-  function ensureWallpaper(){
-    let w = qs("#bg-wallpaper");
-    if(!w){
-      w = document.createElement("div");
-      w.id = "bg-wallpaper";
-      w.innerHTML = '<div class="wp" id="bg-wp"></div>';
-      document.body.prepend(w);
-    }
-    return w;
-  }
-
-  function svgDataUri(svg){
-    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-  }
-
-  function wallpaperSVG(theme){
-    const W = 1600, H = 900;
-    const base = (inner) => `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">\n  <defs>\n    <linearGradient id="g-sky" x1="0" y1="0" x2="0" y2="1">\n      <stop offset="0" stop-color="rgba(255,255,255,0.06)"/>\n      <stop offset="1" stop-color="rgba(0,0,0,0.38)"/>\n    </linearGradient>\n    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">\n      <feGaussianBlur stdDeviation="6" result="b"/>\n      <feColorMatrix type="matrix" values="1 0 0 0 0\n 0 1 0 0 0\n 0 0 1 0 0\n 0 0 0 0.9 0" in="b" result="c"/>\n      <feMerge><feMergeNode in="c"/><feMergeNode in="SourceGraphic"/></feMerge>\n    </filter>\n  </defs>\n  ${inner}\n</svg>`;
-    const poly = (pts, fill, extra="") => `<polygon points="${pts}" fill="${fill}" ${extra}/>`;
-    const circle = (cx,cy,r,fill,extra="") => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" ${extra}/>`;
-    const rect = (x,y,w,h,fill,extra="") => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" ${extra}/>`;
-    const path = (d,fill,extra="") => `<path d="${d}" fill="${fill}" ${extra}/>`;
-    const stars = () => {
-      let s = "";
-      for(let i=0;i<140;i++){
-        const x = (i*73)%W;
-        const y = (i*191)%H;
-        const r = (i%3===0)?1.8:1.2;
-        const o = (i%7===0)?0.9:0.55;
-        s += `<circle cx="${x}" cy="${y}" r="${r}" fill="rgba(255,255,255,${o})" />`;
-      }
-      return s;
-    };
-
-    if(theme === "caramel"){
-      return base(`
-        <rect width="${W}" height="${H}" fill="#1a0f0a"/>
-        <g data-depth style="--d:.08">
-          ${rect(0,0,W,H,"#20120d")}
-          ${rect(0,0,W,420,"#2a1b15")}
-          ${rect(0,420,W,480,"#140b08")}
-          ${poly("0,470 600,360 1200,420 1600,340 1600,900 0,900","#1a0f0a")}
-        </g>
-
-        <g data-depth style="--d:.18">
-          ${rect(160,140,1280,420,"rgba(255,179,71,0.08)","rx='22'")}
-          ${rect(190,170,1220,360,"rgba(10,10,10,0.35)","rx='16'")}
-          ${rect(190,170,1220,360,"rgba(255,255,255,0.03)","rx='16'")}
-          ${rect(200,180,1200,340,"rgba(255,179,71,0.02)","rx='16'")}
-          <g filter="url(#softGlow)">
-            <text x="800" y="120" text-anchor="middle" font-family="Outfit, sans-serif" font-size="72" fill="rgba(255,179,71,0.92)">CAFÉ</text>
-            <text x="800" y="156" text-anchor="middle" font-family="Outfit, sans-serif" font-size="22" fill="rgba(255,248,225,0.75)">CARAMEL · LOW POLY</text>
-          </g>
-        </g>
-
-        <g data-depth style="--d:.26">
-          ${poly("220,620 1380,620 1500,900 100,900","#2a1b15")}
-          ${poly("260,620 1340,620 1405,690 195,690","#3a241b")}
-          ${poly("260,690 1340,690 1360,720 240,720","#2d1c15")}
-
-          ${poly("310,560 520,520 600,590 390,640","#3b2a21")}
-          ${poly("1020,560 1230,520 1310,590 1100,640","#3b2a21")}
-          ${poly("480,520 520,520 390,640 350,640","#2b1a13")}
-          ${poly("1190,520 1230,520 1100,640 1060,640","#2b1a13")}
-
-          <g id="mugs">
-            ${rect(520,575,52,28,"#e6c8a0","rx='6'")}
-            ${rect(528,582,36,14,"rgba(0,0,0,0.25)","rx='6'")}
-            ${rect(1040,575,52,28,"#e6c8a0","rx='6'")}
-            ${rect(1048,582,36,14,"rgba(0,0,0,0.25)","rx='6'")}
-          </g>
-        </g>
-
-        <g data-depth style="--d:.30">
-          <g style="animation:steamRise 2.6s infinite ease-out;">
-            ${circle(546,568,12,"rgba(255,255,255,0.25)")}
-            ${circle(562,556,9,"rgba(255,255,255,0.18)")}
-            ${circle(534,552,8,"rgba(255,255,255,0.14)")}
-          </g>
-          <g style="animation:steamRise 2.9s .6s infinite ease-out;">
-            ${circle(1066,568,12,"rgba(255,255,255,0.25)")}
-            ${circle(1082,556,9,"rgba(255,255,255,0.18)")}
-            ${circle(1054,552,8,"rgba(255,255,255,0.14)")}
-          </g>
-        </g>
-
-        <g data-depth style="--d:.12">
-          <g class="npc-walk" style="animation:npcWalk 9s linear infinite;">
-            ${rect(-140,520,70,160,"rgba(255,255,255,0.08)","rx='18'")}
-            ${circle(-105,505,26,"rgba(255,255,255,0.08)")}
-          </g>
-          <g class="npc-walk" style="animation:npcWalk 12s 2s linear infinite;">
-            ${rect(-260,540,90,190,"rgba(0,0,0,0.20)","rx='22'")}
-            ${circle(-215,520,34,"rgba(0,0,0,0.20)")}
-          </g>
-        </g>
-
-        <rect width="${W}" height="${H}" fill="url(#g-sky)" opacity="0.65"/>
-      `);
-    }
-
-    if(theme === "bonfire"){
-      return base(`
-        <rect width="${W}" height="${H}" fill="#07070a"/>
-        <g data-depth style="--d:.08">
-          ${rect(0,0,W,520,"#0b0b12")}
-          ${poly("0,520 400,420 900,520 1600,420 1600,900 0,900","#090910")}
-          ${stars()}
-        </g>
-
-        <g data-depth style="--d:.18">
-          ${poly("120,760 520,600 900,700 1350,580 1500,760 800,900","#14121a")}
-          ${poly("0,820 430,640 980,780 1600,640 1600,900 0,900","#0f0f15")}
-        </g>
-
-        <g data-depth style="--d:.30">
-          ${poly("760,740 840,740 860,820 740,820","#202028")}
-          ${poly("798,540 812,540 822,740 788,740","#cfcfcf")}
-          ${poly("792,525 818,525 812,548 798,548","#9f9f9f")}
-          <g style="transform-origin:800px 740px;animation:flameFlicker 1.2s infinite ease-in-out;">
-            ${path("M800 720 C770 700 775 660 800 640 C825 660 830 700 800 720 Z","#ffb347","filter='url(#softGlow)'")}
-            ${path("M800 710 C785 695 790 675 800 660 C812 675 816 695 800 710 Z","#ffd700","opacity='0.85'")}
-          </g>
-          ${circle(740,790,3,"rgba(255,179,71,0.45)")}
-          ${circle(860,800,2.5,"rgba(255,215,0,0.35)")}
-        </g>
-
-        <g data-depth style="--d:.24" opacity="0.65">
-          <g style="animation:tentacleSway 6s infinite ease-in-out; transform-origin:700px 820px;">
-            ${poly("640,820 710,750 760,820","#1a1622")}
-            ${circle(700,742,18,"#1a1622")}
-          </g>
-          <g style="animation:tentacleSway 7.5s infinite ease-in-out; transform-origin:900px 820px;">
-            ${poly("860,820 930,750 980,820","#1a1622")}
-            ${circle(920,742,18,"#1a1622")}
-          </g>
-        </g>
-
-        <rect width="${W}" height="${H}" fill="url(#g-sky)" opacity="0.5"/>
-      `);
-    }
-
-    if(theme === "cthulhu"){
-      return base(`
-        <rect width="${W}" height="${H}" fill="#00030a"/>
-        <g data-depth style="--d:.06">
-          ${rect(0,0,W,H,"#00040b")}
-          ${stars()}
-          ${circle(1180,230,160,"rgba(0,255,200,0.06)")}
-          ${circle(1180,230,260,"rgba(120,0,255,0.05)")}
-        </g>
-
-        <g data-depth style="--d:.12" opacity="0.9">
-          <path d="M350,280 C520,140 760,140 920,260 C1060,360 1150,560 980,650 C800,740 520,720 360,560 C220,420 240,330 350,280 Z" fill="rgba(140,0,255,0.10)"/>
-          <path d="M410,320 C560,210 750,210 880,310 C1000,400 1060,540 930,610 C780,690 560,670 430,560 C320,470 330,380 410,320 Z" fill="rgba(0,255,200,0.08)"/>
-        </g>
-
-        <g data-depth style="--d:.22">
-          ${poly("600,760 1000,760 1120,900 480,900","#0a1720")}
-          ${poly("650,520 950,520 1020,760 580,760","#0f2531")}
-          ${poly("680,560 920,560 960,740 640,740","#102b38")}
-          ${rect(705,610,40,10,"rgba(0,255,200,0.18)")}
-          ${rect(855,610,40,10,"rgba(0,255,200,0.18)")}
-        </g>
-
-        <g data-depth style="--d:.30">
-          ${poly("720,560 880,560 940,720 660,720","#0e2f2b")}
-          ${circle(800,520,70,"#0e2f2b")}
-          ${poly("750,460 800,420 850,460 838,470 800,450 762,470","#0b201e")}
-          <g filter="url(#softGlow)">
-            ${circle(775,520,10,"rgba(0,255,200,0.8)")}
-            ${circle(825,520,10,"rgba(0,255,200,0.8)")}
-          </g>
-
-          <g style="transform-origin:800px 600px; animation:tentacleSway 4.5s infinite ease-in-out;">
-            ${path("M730 560 C650 600 620 700 700 760 C760 800 760 830 720 860 C690 885 730 900 760 880 C820 850 820 820 780 790 C720 740 710 670 760 620 Z","rgba(14,47,43,0.9)")}
-          </g>
-          <g style="transform-origin:800px 600px; animation:tentacleSway 5.3s -.7s infinite ease-in-out;">
-            ${path("M870 560 C950 600 980 700 900 760 C840 800 840 830 880 860 C910 885 870 900 840 880 C780 850 780 820 820 790 C880 740 890 670 840 620 Z","rgba(14,47,43,0.9)")}
-          </g>
-        </g>
-
-        <rect width="${W}" height="${H}" fill="url(#g-sky)" opacity="0.45"/>
-      `);
-    }
-
-    if(theme === "aura"){
-      return base(`
-        <rect width="${W}" height="${H}" fill="#02030b"/>
-        <g data-depth style="--d:.06">
-          ${rect(0,0,W,H,"#030514")}
-          ${stars()}
-        </g>
-
-        <g data-depth style="--d:.12">
-          ${circle(260,640,240,"rgba(255,190,120,0.12)")}
-          ${circle(260,640,140,"rgba(255,220,180,0.18)")}
-        </g>
-
-        <g data-depth style="--d:.22">
-          ${poly("0,760 240,560 520,700 820,520 1120,700 1400,560 1600,760 1600,900 0,900","#07162a")}
-          ${poly("0,820 260,650 560,780 900,610 1200,780 1480,650 1600,820 1600,900 0,900","#061025")}
-        </g>
-
-        <g data-depth style="--d:.28" opacity="0.85">
-          <path d="M-40,240 C240,160 420,280 680,220 C940,160 1160,260 1660,180 L1660,320 C1160,420 940,320 680,380 C420,440 240,320 -40,420 Z" fill="rgba(0,255,200,0.10)" style="animation:auraDrift 10s infinite ease-in-out;" />
-          <path d="M-40,300 C260,220 460,340 720,280 C980,220 1200,320 1660,250 L1660,380 C1200,460 980,360 720,420 C460,480 260,360 -40,460 Z" fill="rgba(160,120,255,0.10)" style="animation:auraDrift 12s -.8s infinite ease-in-out;" />
-        </g>
-
-        <g data-depth style="--d:.18" opacity="0.55">
-          <path d="M980,520 q30,-20 60,0 q-30,-10 -60,0 Z" fill="rgba(255,255,255,0.25)"/>
-          <path d="M1040,540 q24,-16 48,0 q-24,-8 -48,0 Z" fill="rgba(255,255,255,0.22)"/>
-        </g>
-
-        <rect width="${W}" height="${H}" fill="url(#g-sky)" opacity="0.35"/>
-      `);
-    }
-
-
-    if(theme === "viking"){
-      return base(`
-        <rect width="${W}" height="${H}" fill="#06121c"/>
-        <g data-depth style="--d:.06">
-          ${rect(0,0,W,H,"#061829")}
-          ${stars()}
-        </g>
-        <g data-depth style="--d:.14">
-          ${poly("0,720 260,560 540,680 860,540 1180,680 1500,560 1600,620 1600,900 0,900","#072235")}
-          ${poly("0,800 300,650 600,780 900,630 1200,780 1500,660 1600,740 1600,900 0,900","#061b2c")}
-        </g>
-        <!-- fiorde + mar -->
-        <g data-depth style="--d:.20">
-          ${rect(0,700,W,200,"rgba(60,120,180,0.20)")}
-          ${path("M0 770 C200 740 420 800 620 770 C820 740 1060 810 1260 780 C1460 750 1540 760 1600 740 L1600 900 L0 900 Z","rgba(90,170,255,0.10)")}
-        </g>
-        <!-- drakkar -->
-        <g data-depth style="--d:.30">
-          ${poly("560,760 1040,760 980,820 620,820","#0b2a2a")}
-          ${poly("620,820 980,820 940,860 660,860","#0a2222")}
-          ${poly("700,620 720,620 730,760 690,760","#c7c7c7")}
-          ${poly("720,630 900,720 720,720","#e6d2b0")}
-          ${path("M560 760 C520 770 520 800 560 810 C600 820 620 780 560 760 Z","#0b2a2a")}
-          ${path("M1040 760 C1080 770 1080 800 1040 810 C1000 820 980 780 1040 760 Z","#0b2a2a")}
-        </g>
-        <rect width="${W}" height="${H}" fill="url(#g-sky)" opacity="0.35"/>
-      `);
-    }
-
-    if(theme === "pirate"){
-      return base(`
-        <rect width="${W}" height="${H}" fill="#061022"/>
-        <g data-depth style="--d:.06">
-          ${rect(0,0,W,H,"#071431")}
-          ${stars()}
-          ${circle(1320,170,90,"rgba(255,255,255,0.06)")}
-        </g>
-        <!-- mar -->
-        <g data-depth style="--d:.16">
-          ${rect(0,600,W,300,"rgba(40,120,190,0.18)")}
-          ${path("M0 650 C220 620 440 690 660 650 C880 610 1120 700 1320 660 C1480 628 1560 640 1600 620 L1600 900 L0 900 Z","rgba(120,220,255,0.10)")}
-          ${path("M0 710 C260 680 520 750 780 710 C1040 670 1260 760 1600 700 L1600 900 L0 900 Z","rgba(255,255,255,0.04)")}
-        </g>
-        <!-- navio -->
-        <g data-depth style="--d:.30">
-          ${poly("560,700 1180,700 1100,820 640,820","#2a1a12")}
-          ${poly("640,820 1100,820 1020,860 720,860","#21130e")}
-          ${poly("860,420 884,420 900,700 844,700","#cfcfcf")}
-          ${poly("900,460 1120,620 900,620","#f2e0c7")}
-          ${poly("860,520 700,620 860,620","#e6d2b0")}
-          ${path("M1180 700 C1250 720 1250 780 1180 800 C1120 820 1100 760 1180 700 Z","#2a1a12")}
-        </g>
-        <!-- gaivotas -->
-        <g data-depth style="--d:.18" opacity="0.55">
-          <path d="M380,260 q26,-16 52,0 q-26,-8 -52,0 Z" fill="rgba(255,255,255,0.22)"/>
-          <path d="M440,280 q20,-12 40,0 q-20,-6 -40,0 Z" fill="rgba(255,255,255,0.18)"/>
-        </g>
-        <rect width="${W}" height="${H}" fill="url(#g-sky)" opacity="0.35"/>
-      `);
-    }
-
-    if(theme === "samurai"){
-      return base(`
-        <rect width="${W}" height="${H}" fill="#120610"/>
-        <g data-depth style="--d:.06">
-          ${rect(0,0,W,H,"#1a0714")}
-          ${stars()}
-        </g>
-        <!-- lua -->
-        <g data-depth style="--d:.12">
-          ${circle(1320,210,120,"rgba(255,230,240,0.08)")}
-          ${circle(1320,210,80,"rgba(255,230,240,0.10)")}
-        </g>
-        <!-- colinas -->
-        <g data-depth style="--d:.16">
-          ${poly("0,760 260,620 520,740 820,600 1120,740 1400,610 1600,700 1600,900 0,900","#1b0a18")}
-          ${poly("0,820 300,700 600,820 900,690 1200,820 1500,700 1600,760 1600,900 0,900","#140714")}
-        </g>
-        <!-- Torii -->
-        <g data-depth style="--d:.28">
-          ${rect(360,430,40,320,"#a5132d","rx='10'")}
-          ${rect(520,430,40,320,"#a5132d","rx='10'")}
-          ${rect(320,410,280,40,"#c0183a","rx='12'")}
-          ${rect(300,380,320,36,"#8f0f25","rx='12'")}
-          ${rect(392,520,136,18,"rgba(0,0,0,0.25)","rx='8'")}
-        </g>
-        <!-- lantern -->
-        <g data-depth style="--d:.30">
-          <g style="transform-origin:760px 520px;animation:tentacleSway 3.6s infinite ease-in-out;">
-            ${rect(740,520,40,70,"#e6c8a0","rx='10'")}
-            ${rect(748,530,24,50,"rgba(0,0,0,0.22)","rx='8'")}
-            ${circle(760,555,14,"rgba(255,179,71,0.18)")}
-          </g>
-        </g>
-        <rect width="${W}" height="${H}" fill="url(#g-sky)" opacity="0.42"/>
-      `);
-    }
-
-    if(theme === "desert"){
-      return base(`
-        <rect width="${W}" height="${H}" fill="#200e05"/>
-        <g data-depth style="--d:.06">
-          ${rect(0,0,W,H,"#2a1307")}
-          ${circle(1340,220,160,"rgba(255,179,71,0.08)")}
-          ${circle(1340,220,90,"rgba(255,215,0,0.06)")}
-        </g>
-        <!-- dunas -->
-        <g data-depth style="--d:.18">
-          ${path("M0 640 C220 560 420 720 640 650 C860 580 1040 730 1260 660 C1460 610 1560 640 1600 620 L1600 900 L0 900 Z","rgba(255,179,71,0.12)")}
-          ${path("M0 720 C260 650 520 800 780 730 C1040 660 1260 820 1600 720 L1600 900 L0 900 Z","rgba(255,215,160,0.08)")}
-        </g>
-        <!-- caravana -->
-        <g data-depth style="--d:.30" opacity="0.65">
-          ${poly("340,760 420,700 520,760","#1c0b05")}
-          ${circle(420,690,16,"#1c0b05")}
-          ${poly("600,760 680,700 780,760","#1c0b05")}
-          ${circle(680,690,16,"#1c0b05")}
-          <g class="npc-walk" style="animation:npcWalk 14s linear infinite;">
-            ${poly("-120,790 -60,740 0,790","#140704")}
-            ${circle(-60,730,12,"#140704")}
-          </g>
-        </g>
-        <rect width="${W}" height="${H}" fill="url(#g-sky)" opacity="0.55"/>
-      `);
-    }
-
-    return base(`<rect width="${W}" height="${H}" fill="rgba(0,0,0,0)"/>`);
-  }
-
-  function applyWallpaper(themeId){
-    ensureWallpaper();
-    const wp = qs("#bg-wp");
-    if(!wp) return;
-    const svg = wallpaperSVG(themeId);
-    if(svg && svg.length > 50){
-      wp.style.backgroundImage = `url(${svgDataUri(svg)})`;
-      wp.style.backgroundSize = "cover";
-      wp.style.backgroundPosition = "center";
-    }else{
-      wp.style.backgroundImage = "none";
-    }
-  }
   function resize(){
     if(!state.canvas) return;
     const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
@@ -1142,190 +1201,6 @@
     ctx.fillRect(0,0,w,h);
   }
 
-
-  // =========================================================
-  // AMBIENT AUDIO (procedural — sem arquivos)
-  // - respeita mute salvo em localStorage: vasteria_ambient_muted
-  // - cada tema lowpoly tem "paisagem sonora" própria
-  // =========================================================
-  let amb = {
-    ctx: null,
-    master: null,
-    nodes: [],
-    theme: "",
-    muted: false
-  };
-
-  function ambientIsMuted(){
-    return localStorage.getItem("vasteria_ambient_muted") === "1";
-  }
-
-  function ambientEnsure(){
-    if(!amb.ctx){
-      amb.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      amb.master = amb.ctx.createGain();
-      amb.master.gain.value = 0.0;
-      amb.master.connect(amb.ctx.destination);
-    }
-    return amb.ctx;
-  }
-
-  function ambientStop(){
-    try{
-      amb.nodes.forEach(n=>{
-        try{ n.stop && n.stop(); }catch(_){}
-        try{ n.disconnect && n.disconnect(); }catch(_){}
-      });
-    }catch(_){}
-    amb.nodes = [];
-  }
-
-  function ambientSetMuted(m){
-    amb.muted = !!m;
-    try{
-      if(amb.master){
-        amb.master.gain.cancelScheduledValues(amb.ctx.currentTime);
-        amb.master.gain.setTargetAtTime(amb.muted ? 0.0 : 0.18, amb.ctx.currentTime, 0.12);
-      }
-    }catch(_){}
-  }
-
-  function brownNoise(ctx){
-    const bufferSize = 2 * ctx.sampleRate;
-    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    let lastOut = 0.0;
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      output[i] = (lastOut + (0.02 * white)) / 1.02;
-      lastOut = output[i];
-      output[i] *= 3.5;
-    }
-    const node = ctx.createBufferSource();
-    node.buffer = noiseBuffer;
-    node.loop = true;
-    return node;
-  }
-
-  function ambientCafe(ctx){
-    // chatter + machine hiss + bell
-    const mix = ctx.createGain(); mix.gain.value = 0.8;
-    const chatter = brownNoise(ctx);
-    const f1 = ctx.createBiquadFilter(); f1.type="bandpass"; f1.frequency.value=900; f1.Q.value=0.7;
-    const g1 = ctx.createGain(); g1.gain.value=0.12;
-
-    chatter.connect(f1); f1.connect(g1); g1.connect(mix);
-
-    const hiss = brownNoise(ctx);
-    const f2 = ctx.createBiquadFilter(); f2.type="highpass"; f2.frequency.value=1800; f2.Q.value=0.5;
-    const g2 = ctx.createGain(); g2.gain.value=0.05;
-    hiss.connect(f2); f2.connect(g2); g2.connect(mix);
-
-    // slow LFO
-    const lfo = ctx.createOscillator(); lfo.type="sine"; lfo.frequency.value=0.07;
-    const lfoG = ctx.createGain(); lfoG.gain.value=0.04;
-    lfo.connect(lfoG); lfoG.connect(g1.gain);
-
-    // bell ping
-    const bell = () => {
-      const t0 = ctx.currentTime;
-      const o = ctx.createOscillator(); o.type="sine";
-      const g = ctx.createGain();
-      o.frequency.setValueAtTime(1200 + Math.random()*400, t0);
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(0.05, t0+0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0+0.22);
-      o.connect(g); g.connect(mix);
-      o.start(t0); o.stop(t0+0.25);
-      amb.nodes.push(o,g);
-    };
-    const bellTimer = setInterval(()=>{ if(!amb.muted && Math.random()<0.18) bell(); }, 2500);
-    amb.nodes.push({ stop: ()=>clearInterval(bellTimer) });
-
-    mix.connect(amb.master);
-    chatter.start(); hiss.start(); lfo.start();
-    amb.nodes.push(chatter,hiss,lfo,mix,f1,f2,g1,g2,lfoG);
-  }
-
-  function ambientFire(ctx){
-    const mix = ctx.createGain(); mix.gain.value=1.0;
-    const n = brownNoise(ctx);
-    const lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=900; lp.Q.value=0.7;
-    const g = ctx.createGain(); g.gain.value=0.14;
-    n.connect(lp); lp.connect(g); g.connect(mix);
-
-    const crack = () => {
-      const t0 = ctx.currentTime;
-      const o = ctx.createOscillator(); o.type="triangle";
-      const gg = ctx.createGain();
-      o.frequency.setValueAtTime(300 + Math.random()*700, t0);
-      gg.gain.setValueAtTime(0.0001, t0);
-      gg.gain.exponentialRampToValueAtTime(0.06, t0+0.005);
-      gg.gain.exponentialRampToValueAtTime(0.0001, t0+0.09);
-      o.connect(gg); gg.connect(mix);
-      o.start(t0); o.stop(t0+0.1);
-      amb.nodes.push(o,gg);
-    };
-    const timer = setInterval(()=>{ if(!amb.muted && Math.random()<0.22) crack(); }, 900);
-    amb.nodes.push({ stop: ()=>clearInterval(timer) });
-
-    mix.connect(amb.master);
-    n.start();
-    amb.nodes.push(n,lp,g,mix);
-  }
-
-  function ambientCosmic(ctx){
-    const mix = ctx.createGain(); mix.gain.value=1.0;
-    const o1 = ctx.createOscillator(); o1.type="sine"; o1.frequency.value=55;
-    const o2 = ctx.createOscillator(); o2.type="sine"; o2.frequency.value=110;
-    const g1 = ctx.createGain(); g1.gain.value=0.05;
-    const g2 = ctx.createGain(); g2.gain.value=0.03;
-
-    const lfo = ctx.createOscillator(); lfo.type="sine"; lfo.frequency.value=0.03;
-    const lfoG = ctx.createGain(); lfoG.gain.value=0.015;
-
-    lfo.connect(lfoG); lfoG.connect(g1.gain);
-
-    o1.connect(g1); o2.connect(g2);
-    g1.connect(mix); g2.connect(mix);
-
-    const sh = brownNoise(ctx);
-    const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=2200; hp.Q.value=0.5;
-    const ng = ctx.createGain(); ng.gain.value=0.012;
-    sh.connect(hp); hp.connect(ng); ng.connect(mix);
-
-    mix.connect(amb.master);
-    o1.start(); o2.start(); lfo.start(); sh.start();
-    amb.nodes.push(o1,o2,lfo,sh,hp,ng,g1,g2,lfoG,mix);
-  }
-
-  function ambientSetTheme(theme){
-    const wantMute = ambientIsMuted();
-    ambientEnsure();
-    ambientStop();
-    amb.theme = theme;
-    ambientSetMuted(wantMute);
-    // Não toca em temas minimalistas por padrão
-    const lowpoly = ["caramel","bonfire","cthulhu","aura","viking","pirate","samurai","desert"];
-    if(lowpoly.includes(theme)){
-      if(theme === "caramel") ambientCafe(amb.ctx);
-      else if(theme === "bonfire") ambientFire(amb.ctx);
-      else if(theme === "cthulhu" || theme === "aura") ambientCosmic(amb.ctx);
-      else ambientCosmic(amb.ctx);
-      // fade in
-      try{ amb.master.gain.setTargetAtTime(amb.muted?0.0:0.18, amb.ctx.currentTime, 0.2); }catch(_){}
-    }else{
-      try{ amb.master.gain.setTargetAtTime(0.0, amb.ctx.currentTime, 0.2); }catch(_){}
-    }
-  }
-
-  // recebe mute do modal
-  window.addEventListener("vasteria:ambient", (e)=>{
-    const m = !!(e.detail && e.detail.muted);
-    localStorage.setItem("vasteria_ambient_muted", m ? "1" : "0");
-    ambientSetMuted(m);
-  });
-
   function tick(t){
     if(!state.running) return;
     const ctx = state.ctx;
@@ -1341,12 +1216,12 @@
   }
 
   function setTheme(themeId){
+    if(themeId === "caramel") themeId = "coffee_caramel";
     state.theme = themeId || "";
+    // áudio ambiente (piloto)
+    audioStart(state.theme);
     // reset scene state pra trocar completamente
     state.sceneState = {};
-    applyWallpaper(state.theme);
-    ambientSetTheme(state.theme);
-
   }
 
   function init(){
@@ -1355,24 +1230,9 @@
     resize();
     window.addEventListener("resize", resize);
 
-    const onPtr = (x,y) => {
-      state.ptrX = x; state.ptrY = y; state.ptrActive = true;
-      // map to -1..1
-      const nx = (x / Math.max(1, window.innerWidth)) * 2 - 1;
-      const ny = (y / Math.max(1, window.innerHeight)) * 2 - 1;
-      state.parx = (-nx) * 22; // px
-      state.pary = (-ny) * 18; // px
-      const wp = qs("#bg-wallpaper");
-      if(wp){
-        wp.style.setProperty("--parx", state.parx + "px");
-        wp.style.setProperty("--pary", state.pary + "px");
-      }
-    };
-    window.addEventListener("pointermove", (e)=> onPtr(e.clientX, e.clientY), { passive:true });
-    window.addEventListener("touchmove", (e)=> {
-      if(e.touches && e.touches[0]) onPtr(e.touches[0].clientX, e.touches[0].clientY);
-    }, { passive:true });
-
+    document.addEventListener("pointerdown", () => {
+      try{ audioEnsure(); if(AUDIO.ctx && AUDIO.ctx.state === "suspended") AUDIO.ctx.resume().catch(()=>{}); }catch(e){}
+    }, { once:false });
 
     // recebe eventos do Theme.apply()
     window.addEventListener("vasteria:theme", (e) => {
@@ -1380,7 +1240,7 @@
     });
 
     // pega tema atual no carregamento
-    setTheme(document.body.getAttribute("data-theme") || "");
+    setTheme(document.documentElement.getAttribute("data-theme") || document.body.getAttribute("data-theme") || "");
 
     state.running = true;
     requestAnimationFrame(tick);
