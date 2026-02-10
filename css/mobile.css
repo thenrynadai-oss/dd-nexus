@@ -1,0 +1,37 @@
+
+/* ===== MOBILE VERSION ===== */
+@media (max-width: 768px){
+  body{ font-size:15px; }
+
+  header, .topbar{
+    padding:12px;
+  }
+
+  .hero-card, .card{
+    width:100%;
+    margin-bottom:12px;
+  }
+
+  .heroes-grid{
+    grid-template-columns: 1fr !important;
+  }
+
+  .sheet-grid{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  button{
+    min-height:44px;
+  }
+
+  input, select{
+    font-size:16px;
+  }
+
+  .modal{
+    width:92%;
+    max-height:90vh;
+  }
+}
