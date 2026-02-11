@@ -185,26 +185,39 @@
 
     async myHeroes(){
       if(!this.user) return [];
-      const { collection, query, where, orderBy, getDocs } = this.fb;
-      const q = query(
-        collection(this.db, "heroes"),
-        where("ownerUid","==", this.user.uid),
-        orderBy("clientUpdatedAt","desc")
-      );
-      const snap = await getDocs(q);
-      return snap.docs.map(d => d.data());
+      const { collection, query, where, getDocs } = this.fb;
+      try{
+        const q = query(
+          collection(this.db, "heroes"),
+          where("ownerUid","==", this.user.uid)
+        );
+        const snap = await getDocs(q);
+        const arr = snap.docs.map(d => d.data());
+        // sort client-side (evita index composto)
+        arr.sort((a,b)=>(b?.clientUpdatedAt||0)-(a?.clientUpdatedAt||0));
+        return arr;
+      }catch(err){
+        console.warn("[VGCloud] myHeroes() failed", err);
+        return [];
+      }
     },
 
     async publicHeroes(){
       if(!this.user) return [];
-      const { collection, query, where, orderBy, getDocs } = this.fb;
-      const q = query(
-        collection(this.db, "heroes"),
-        where("visibility","==","public"),
-        orderBy("clientUpdatedAt","desc")
-      );
-      const snap = await getDocs(q);
-      return snap.docs.map(d => d.data());
+      const { collection, query, where, getDocs } = this.fb;
+      try{
+        const q = query(
+          collection(this.db, "heroes"),
+          where("visibility","==","public")
+        );
+        const snap = await getDocs(q);
+        const arr = snap.docs.map(d => d.data());
+        arr.sort((a,b)=>(b?.clientUpdatedAt||0)-(a?.clientUpdatedAt||0));
+        return arr;
+      }catch(err){
+        console.warn("[VGCloud] publicHeroes() failed", err);
+        return [];
+      }
     },
 
     async upsertHero(hero){

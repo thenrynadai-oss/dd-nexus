@@ -11,6 +11,12 @@
   const qs = (s)=>document.querySelector(s);
   const qsa = (s)=>Array.from(document.querySelectorAll(s));
 
+  function buildShareLink(token){
+    const base = (location.href || "").split("?")[0].split("#")[0];
+    return `${base}?share=${encodeURIComponent(token)}`;
+  }
+
+
   function getLocalProfile(){
     try{
       const u = window.Auth?.getCurrentUser?.();
@@ -65,9 +71,23 @@
   function renderPresence(users){
     const box = qs("#vg-presence");
     if(!box) return;
-    box.innerHTML = "";
+
     const now = Date.now();
     const alive = (users||[]).filter(u => (now - (u.lastSeenMs||0)) < 45000).slice(0, 8);
+
+    // só mostrar quando tiver MAIS DE UMA pessoa usando
+    const myUid = window.VGCloud?.user?.uid || null;
+    let effective = alive.length;
+    if(myUid && !alive.some(u => u.uid === myUid)) effective += 1;
+
+    if(effective <= 1){
+      box.classList.add("is-hidden");
+      box.innerHTML = "";
+      return;
+    }
+
+    box.classList.remove("is-hidden");
+    box.innerHTML = "";
 
     alive.forEach(u=>{
       const b = document.createElement("div");
@@ -77,10 +97,6 @@
       else b.textContent = (u.name||"A").slice(0,1).toUpperCase();
       box.appendChild(b);
     });
-
-    if(!alive.length){
-      box.innerHTML = `<span style="color:rgba(255,255,255,.65); font-size:12px;">ninguém online</span>`;
-    }
   }
 
   window.addEventListener("vg_presence_update", (e)=>{
@@ -90,12 +106,11 @@
   function mountHeaderTools(){
     const header = qs(".hero-card-floating") || qs(".sheet-header-floating") || document.body;
 
-    // presence pill
+    // Presence (só aparece quando tiver + de 1 pessoa)
     if(!qs("#vg-presence")){
       const p = document.createElement("div");
       p.id = "vg-presence";
-      p.className = "vg-presence";
-      p.style.marginLeft = "10px";
+      p.className = "vg-presence is-hidden";
       p.title = "Quem está nessa ficha agora";
       header.appendChild(p);
     }
@@ -109,18 +124,23 @@
     const legacyShare = qs("#vg-btn-share");
     if(legacyShare) legacyShare.remove();
 
-    // create gear + menu
-    if(!qs("#vg-btn-gear")){
-      const gearBtn = document.createElement("button");
+    // Gear button (à ESQUERDA do lápis)
+    let gearBtn = qs("#vg-btn-gear");
+    if(!gearBtn){
+      gearBtn = document.createElement("button");
       gearBtn.id = "vg-btn-gear";
       gearBtn.className = "vg-gear-btn";
       gearBtn.type = "button";
       gearBtn.title = "Opções";
       gearBtn.setAttribute("aria-label","Opções");
       gearBtn.textContent = "⚙️";
-      pencilBtn.insertAdjacentElement("afterend", gearBtn);
+      pencilBtn.insertAdjacentElement("beforebegin", gearBtn);
+    }
 
-      const menu = document.createElement("div");
+    // Menu no BODY (não corta e não fica atrás de nada)
+    let menu = qs("#vg-gear-menu");
+    if(!menu){
+      menu = document.createElement("div");
       menu.id = "vg-gear-menu";
       menu.className = "vg-gear-menu";
       menu.innerHTML = `
@@ -137,31 +157,85 @@
           <span>Compartilhar</span>
         </button>
       `;
-      gearBtn.insertAdjacentElement("afterend", menu);
+      document.body.appendChild(menu);
+    } else {
+      if(menu.parentElement !== document.body) document.body.appendChild(menu);
+    }
 
-      ensureShareModal();
+    ensureShareModal();
 
-      const closeMenu = ()=>{ menu.classList.remove("open"); };
+    const closeMenu = () => {
+      menu.classList.remove("open");
+      menu.style.display = "none";
+    };
+
+    const positionMenu = () => {
+      if(!menu.classList.contains("open")) return;
+
+      const r = gearBtn.getBoundingClientRect();
+      // garante medidas
+      const w = menu.offsetWidth || 320;
+      const h = menu.offsetHeight || 220;
+      const pad = 10;
+
+      let left = r.left;
+      let top = r.bottom + 8;
+
+      // se estourar embaixo, sobe
+      if(top + h > window.innerHeight - pad){
+        top = Math.max(pad, r.top - h - 8);
+      }
+
+      // se estourar à direita, puxa pra dentro
+      if(left + w > window.innerWidth - pad){
+        left = Math.max(pad, window.innerWidth - w - pad);
+      }
+      if(left < pad) left = pad;
+
+      menu.style.left = `${left}px`;
+      menu.style.top = `${top}px`;
+    };
+
+    if(!gearBtn.dataset.vgWired){
+      gearBtn.dataset.vgWired = "1";
 
       gearBtn.addEventListener("click", (e)=>{
         e.stopPropagation();
-        menu.classList.toggle("open");
-      });
-      menu.addEventListener("click", (e)=> e.stopPropagation());
-      document.addEventListener("click", closeMenu);
-
-      const shareAction = menu.querySelector("#vg-menu-share");
-      if(shareAction){
-        shareAction.addEventListener("click", ()=>{
+        const willOpen = !menu.classList.contains("open");
+        if(willOpen){
+          menu.classList.add("open");
+          menu.style.display = "block";
+          positionMenu();
+        }else{
           closeMenu();
-          const m = qs("#vg-share-modal");
-          if(m) m.style.display = "flex";
-        });
-      }
+        }
+      });
+
+      // impede fechar ao clicar dentro
+      menu.addEventListener("click", (e)=> e.stopPropagation());
+
+      // fecha clicando fora / ESC
+      document.addEventListener("click", closeMenu);
+      document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeMenu(); });
+
+      // re-posiciona em resize/scroll
+      window.addEventListener("resize", positionMenu);
+      window.addEventListener("scroll", positionMenu, true);
+    }
+
+    // Wire "Compartilhar" dentro do menu
+    const shareAction = menu.querySelector("#vg-menu-share");
+    if(shareAction && !shareAction.dataset.vgWired){
+      shareAction.dataset.vgWired = "1";
+      shareAction.addEventListener("click", ()=>{
+        closeMenu();
+        const m = qs("#vg-share-modal");
+        if(m) m.style.display = "flex";
+      });
     }
   }
 
-  function ensurePencilToggle(){
+function ensurePencilToggle(){
     const modal = qs("#modal-edit-character");
     if(!modal) return;
     if(qs("#vg-public-edit-field")) return;
@@ -277,10 +351,37 @@
   }
 
   function wireShareButtons(make){
+    // maker can change depending on context (public hero vs share)
+    window.__vgMakeShare = make;
+
     const btnR = qs("#vg-share-read");
     const btnE = qs("#vg-share-edit");
-    btnR && btnR.addEventListener("click", async ()=>{ await make("read"); });
-    btnE && btnE.addEventListener("click", async ()=>{ await make("edit"); });
+
+    if(btnR && !btnR.dataset.vgWired){
+      btnR.dataset.vgWired = "1";
+      btnR.addEventListener("click", async ()=>{
+        try{
+          if(typeof window.__vgMakeShare !== "function") return alert("Conecte-se ao Cloud para gerar o link.");
+          await window.__vgMakeShare("read");
+        }catch(err){
+          console.warn(err);
+          alert("Não consegui gerar o link agora.");
+        }
+      });
+    }
+
+    if(btnE && !btnE.dataset.vgWired){
+      btnE.dataset.vgWired = "1";
+      btnE.addEventListener("click", async ()=>{
+        try{
+          if(typeof window.__vgMakeShare !== "function") return alert("Conecte-se ao Cloud para gerar o link.");
+          await window.__vgMakeShare("edit");
+        }catch(err){
+          console.warn(err);
+          alert("Não consegui gerar o link agora.");
+        }
+      });
+    }
   }
 
   function setOwnerButton(owner){
@@ -396,7 +497,7 @@
       wireShareButtons(async (m) => {
         const snap = collectHeroFromUI();
         const token = await VGCloud.createShareRoom(snap, m);
-        qs("#vg-share-link").value = `${location.origin}${location.pathname}?share=${encodeURIComponent(token)}`;
+        qs("#vg-share-link").value = buildShareLink(token);
       });
 
       // toggle no lápis não faz sentido pra share (depende do dono original)
@@ -444,7 +545,7 @@
         if(!currentHero || currentHero.ownerUid !== VGCloud.user.uid) return;
         const snap = collectHeroFromUI();
         const token = await VGCloud.createShareRoom(snap, m);
-        qs("#vg-share-link").value = `${location.origin}${location.pathname}?share=${encodeURIComponent(token)}`;
+        qs("#vg-share-link").value = buildShareLink(token);
       });
 
       // Toggle dentro do lápis (somente dono + ficha pública)

@@ -7,7 +7,14 @@
   background:rgba(0,0,0,.18);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  position:absolute;
+  top:14px;
+  right:114px;
+  z-index: 99999;
 }
+
+.vg-presence.is-hidden{ display:none !important; }
+
 
 .vg-bubble{
   width:28px; height:28px;
@@ -89,12 +96,13 @@
 
 /* === Gear menu (Opções) abaixo do lápis === */
 .vg-gear-btn{
+  z-index: 99999;
   position:absolute;
-  top:62px;
-  right:14px;
+  top:14px;
+  right:62px;
   width:42px;
   height:42px;
-  border-radius:14px;
+  border-radius: 14px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -108,11 +116,16 @@
 }
 .vg-gear-btn:active{ transform: translateY(1px); }
 
+.vg-gear-btn:active{ transform: translateY(1px); }
+
 .vg-gear-menu{
-  position:absolute;
-  top:112px;
-  right:14px;
-  width:min(280px, 80vw);
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  z-index: 999999;
+  position:fixed;
+  top: 0;
+  left: 0;
+  width:min(320px, 86vw);
   padding:10px;
   border-radius:18px;
   border: 1px solid color-mix(in oklab, var(--accent) 16%, rgba(255,255,255,0.14));
@@ -121,7 +134,6 @@
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 22px 70px rgba(0,0,0,0.45);
   display:none;
-  z-index: 80;
 }
 .vg-gear-menu.open{ display:block; }
 
