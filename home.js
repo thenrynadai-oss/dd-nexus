@@ -197,7 +197,8 @@
   // Events
   // -----------------------------
   function bindEvents(){
-    btnLogout.addEventListener("click", () => {
+    btnLogout.addEventListener("click", async () => {
+      try{ if(window.VGCloud && VGCloud.enabled) await VGCloud.signOut(); }catch(e){}
       Auth.logout();
       window.location.href = "index.html";
     });

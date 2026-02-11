@@ -1,0 +1,78 @@
+/* ONLINE UI — glass */
+.vg-online-wrap{
+  display:none;
+  padding:14px;
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.20);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 18px 60px rgba(0,0,0,.35);
+}
+.vg-online-wrap.show{ display:block; }
+
+.vg-online-top{
+  display:flex; gap:10px; align-items:center; justify-content:space-between;
+  margin-bottom:12px;
+}
+
+.vg-chip{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  color:rgba(255,255,255,.85);
+  font-size:12px;
+}
+
+.vg-seg{
+  display:flex;
+  gap:8px;
+  padding:6px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.18);
+}
+.vg-seg button{
+  flex:1;
+  border:0;
+  border-radius:14px;
+  padding:10px 12px;
+  background:transparent;
+  color:rgba(255,255,255,.78);
+  cursor:pointer;
+}
+.vg-seg button.active{
+  background:rgba(255,255,255,.12);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  color:rgba(255,255,255,.95);
+}
+
+.vg-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap:12px;
+}
+
+.vg-card{
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(0,0,0,.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding:12px;
+}
+.vg-card h4{ margin:0 0 6px; color:rgba(255,255,255,.92); }
+.vg-card p{ margin:0 0 10px; color:rgba(255,255,255,.62); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.vg-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+.vg-actions button{
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  color:rgba(255,255,255,.85);
+  padding:9px 10px;
+  cursor:pointer;
+}
+.vg-actions button.primary{ background:rgba(0,170,255,.18); border-color:rgba(0,170,255,.38); }
+.vg-actions button:disabled{ opacity:.45; cursor:not-allowed; }

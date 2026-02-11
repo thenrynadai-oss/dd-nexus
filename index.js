@@ -7,14 +7,42 @@
   "use strict";
 
   // Theme + background
-  window.addEventListener("load", () => {
+  window.addEventListener("load", async () => {
     // Aplica tema salvo, se existir
     if(window.Theme && Theme.applySavedTheme) Theme.applySavedTheme();
     if(window.BG && BG.mount) BG.mount();
 
     // Se já estiver logado, pula para o hub
     const u = window.Auth?.getCurrentUser?.();
-    if(u) window.location.href = "home.html";
+    if(u) { window.location.href = "home.html"; return; }
+
+    // Cloud (Firebase) — se configurado, faz auto-login
+    if(window.VGCloud && VGCloud.enabled){
+      try{ await VGCloud.init(); }catch(e){}
+      VGCloud.onAuth(async (fbUser)=>{
+        if(!fbUser) return;
+        try{
+          await VGCloud.ensureUserProfile({});
+          const prof = await VGCloud.getMyProfile();
+          const provider = (fbUser.providerData && fbUser.providerData[0] && fbUser.providerData[0].providerId) || "firebase";
+          window.Auth.upsertCloudUser({
+            uid: fbUser.uid,
+            nome: prof?.displayName || fbUser.displayName || "Agente",
+            apelido: prof?.nick || (fbUser.email ? fbUser.email.split("@")[0] : "agente"),
+            email: fbUser.email || null,
+            profileImg: prof?.photoURL || fbUser.photoURL || null,
+            provider,
+          });
+          window.Auth.setSessionUID(fbUser.uid);
+          window.location.href = "home.html";
+        }catch(e){}
+      });
+
+      // UI
+      if(btnGoogle) btnGoogle.style.display = "";
+    } else {
+      if(btnGoogle) btnGoogle.style.display = "none";
+    }
   });
 
   // Elements
@@ -27,6 +55,7 @@
   const loginId = document.getElementById("login-id");
   const loginPass = document.getElementById("login-pass");
   const btnLogin = document.getElementById("btn-login");
+  const btnGoogle = document.getElementById("btn-google");
 
   const regName = document.getElementById("reg-name");
   const regNick = document.getElementById("reg-nick");
@@ -94,6 +123,61 @@
       imgBase64: tempImg,
     };
 
+    const contact = (payload.contato || "").trim();
+    const isEmail = contact.includes("@");
+
+    // Cloud register (email + senha) quando Firebase está configurado
+    if(window.VGCloud && VGCloud.enabled && isEmail){
+      try{
+        await VGCloud.init();
+
+        // valida apelido global (Cloud)
+        const nickKey = (payload.apelido || "").trim();
+        if(!nickKey){ showMsg("Preencha seu apelido.", "err"); return; }
+        const taken = await VGCloud.resolveNickToEmail(nickKey);
+        if(taken && taken.uid){
+          showMsg("Este apelido já existe no Cloud. Escolha outro.", "err");
+          return;
+        }
+
+        await VGCloud.registerEmail(contact, payload.pass, {
+          displayName: payload.nome,
+          nick: payload.apelido,
+          // não enviamos base64 para o Auth (pesado). Foto local continua funcionando.
+          photoURL: null,
+        });
+
+        // cria/atualiza perfil no Firestore (garante nick index)
+        await VGCloud.ensureUserProfile({ nick: payload.apelido, displayName: payload.nome });
+
+        // cria conta local com MESMO UID do Firebase (para manter tudo consistente)
+        const fbUid = VGCloud.user?.uid;
+        const resLocal = window.Auth.register({ ...payload, uidOverride: fbUid });
+        if(!resLocal.ok){
+          // se já existir local, só atualiza sessão
+          window.Auth.upsertCloudUser({
+            uid: fbUid,
+            nome: payload.nome,
+            apelido: payload.apelido,
+            email: contact,
+            profileImg: payload.imgBase64 || null,
+            provider: "password",
+          });
+        }
+
+        window.Auth.setSessionUID(fbUid);
+        showMsg("Conta Cloud criada! Indo para o HUB…");
+        setTimeout(() => window.location.href = "home.html", 350);
+        return;
+
+      }catch(e){
+        console.warn(e);
+        showMsg("Falha ao criar conta no Cloud. Verifique email/senha e as regras do Firebase.", "err");
+        return;
+      }
+    }
+
+    // Fallback local (offline ou cadastro por celular)
     const res = window.Auth.register(payload);
     if(!res.ok){
       showMsg(res.msg || "Falha no cadastro.", "err");
@@ -112,6 +196,41 @@
       identifier: loginId.value,
       pass: loginPass.value
     };
+
+    const id = (payload.identifier || "").trim();
+
+    // Cloud login (Google / Email / Apelido) quando Firebase está configurado
+    if(window.VGCloud && VGCloud.enabled){
+      try{
+        await VGCloud.init();
+        await VGCloud.signInNickOrEmail(id, payload.pass);
+        await VGCloud.ensureUserProfile({});
+        const prof = await VGCloud.getMyProfile();
+        const fbUser = VGCloud.user;
+
+        const provider = (fbUser.providerData && fbUser.providerData[0] && fbUser.providerData[0].providerId) || "password";
+
+        window.Auth.upsertCloudUser({
+          uid: fbUser.uid,
+          nome: prof?.displayName || fbUser.displayName || "Agente",
+          apelido: prof?.nick || (fbUser.email ? fbUser.email.split("@")[0] : "agente"),
+          email: fbUser.email || null,
+          profileImg: prof?.photoURL || fbUser.photoURL || null,
+          provider,
+        });
+        window.Auth.setSessionUID(fbUser.uid);
+
+        showMsg("Conectado no Cloud! Indo para o HUB…");
+        setTimeout(() => window.location.href = "home.html", 250);
+        return;
+
+      }catch(e){
+        // se não achou no cloud, cai pro local
+        console.warn(e);
+      }
+    }
+
+    // Local login fallback
     const res = window.Auth.login(payload);
     if(!res.ok){
       showMsg(res.msg || "Falha no login.", "err");
@@ -124,6 +243,36 @@
 
   btnRegister.addEventListener("click", doRegister);
   btnLogin.addEventListener("click", doLogin);
+  btnGoogle && btnGoogle.addEventListener("click", async () => {
+    clearMsg();
+    if(!(window.VGCloud && VGCloud.enabled)){
+      showMsg("Cloud não configurado neste build.", "err");
+      return;
+    }
+    try{
+      await VGCloud.init();
+      await VGCloud.signInGoogle();
+      await VGCloud.ensureUserProfile({});
+      const prof = await VGCloud.getMyProfile();
+      const fbUser = VGCloud.user;
+      const provider = "google.com";
+
+      window.Auth.upsertCloudUser({
+        uid: fbUser.uid,
+        nome: prof?.displayName || fbUser.displayName || "Agente",
+        apelido: prof?.nick || (fbUser.email ? fbUser.email.split("@")[0] : "agente"),
+        email: fbUser.email || null,
+        profileImg: prof?.photoURL || fbUser.photoURL || null,
+        provider,
+      });
+      window.Auth.setSessionUID(fbUser.uid);
+      showMsg("Conectado com Google! Indo para o HUB…");
+      setTimeout(() => window.location.href = "home.html", 250);
+    }catch(e){
+      console.warn(e);
+      showMsg("Falha ao entrar com Google.", "err");
+    }
+  });
 
   // Enter submits
   document.addEventListener("keydown", (e) => {
@@ -184,6 +333,12 @@
 
       item.addEventListener("click", () => {
         setMode("login");
+        // contas Google: não tem senha local -> sugere login Google
+        if(u.cloudProvider === "google.com"){
+          loginId.value = u.email || u.apelido || "";
+          showMsg("Esta conta usa Google. Clique em ENTRAR COM GOOGLE.");
+          return;
+        }
         loginId.value = u.apelido || u.email || u.phone || "";
         loginPass.focus();
         // som de feedback se existir

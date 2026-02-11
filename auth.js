@@ -146,7 +146,7 @@
   // -----------------------------
   // Public API
   // -----------------------------
-  function register({ nome, apelido, contato, pass, imgBase64 }){
+  function register({ nome, apelido, contato, pass, imgBase64, uidOverride }){
     const users = loadDB();
 
     const name = (nome || "").trim();
@@ -181,7 +181,7 @@
       return { ok:false, msg:"Este celular já está cadastrado." };
     }
 
-    const uid = makeUID();
+    const uid = uidOverride || makeUID();
     const newUser = {
       uid,
       nome: name,
@@ -365,6 +365,72 @@
     };
   }
 
+  // -----------------------------
+  // Cloud bridge (Firebase)
+  // -----------------------------
+  function makeSafeNickBase(s){
+    return normalizeNick(String(s || "")).replace(/[^a-z0-9_\-\.]/g, "").slice(0, 18) || "agente";
+  }
+
+  function uniqueNickForDB(users, base, uid){
+    let nick = makeSafeNickBase(base);
+    if(!nick) nick = "agente";
+    const exists = (n) => users.some(u => normalizeNick(u.apelido) === normalizeNick(n) && u.uid !== uid);
+    if(!exists(nick)) return nick;
+
+    for(let i=0;i<30;i++){
+      const suf = Math.random().toString(36).slice(2,6);
+      const tryNick = (nick + "_" + suf).slice(0, 22);
+      if(!exists(tryNick)) return tryNick;
+    }
+    return (nick + "_" + Date.now().toString(36).slice(-4)).slice(0, 22);
+  }
+
+  function upsertCloudUser({ uid, nome, apelido, email, phone, profileImg, provider } = {}){
+    if(!uid) return { ok:false, msg:"UID inválido." };
+    const users = loadDB();
+    const idx = users.findIndex(u => u.uid === uid);
+
+    const baseNick = apelido || (email ? email.split("@")[0] : "") || nome || "agente";
+    const safeNick = uniqueNickForDB(users, baseNick, uid);
+
+    const patch = {
+      uid,
+      nome: (nome || "").trim() || (idx>=0 ? users[idx].nome : "Agente"),
+      apelido: safeNick,
+      email: email ? normalizeEmail(email) : (idx>=0 ? users[idx].email : ""),
+      phone: phone ? normalizePhone(phone) : (idx>=0 ? users[idx].phone : ""),
+      profileImg: profileImg || (idx>=0 ? users[idx].profileImg : null),
+      cloudProvider: provider || (idx>=0 ? users[idx].cloudProvider : null),
+      updatedAt: nowISO(),
+    };
+
+    if(idx === -1){
+      const newUser = {
+        ...patch,
+        pass: users[idx]?.pass || "", // não usado em Google, mas mantém compat
+        heroes: [],
+        createdAt: nowISO(),
+      };
+      users.push(newUser);
+      saveDB(users);
+      return { ok:true, user:newUser };
+    }else{
+      users[idx] = { ...users[idx], ...patch };
+      if(!users[idx].createdAt) users[idx].createdAt = nowISO();
+      saveDB(users);
+      return { ok:true, user: users[idx] };
+    }
+  }
+
+  function setSessionUID(uid){
+    if(!uid) return { ok:false, msg:"UID inválido." };
+    setSession(uid);
+    quickloadAdd(uid);
+    return { ok:true };
+  }
+
+
   // expõe global
   window.Auth = {
     // db / sessão
@@ -374,6 +440,10 @@
     register, login, logout,
     updateCurrentUser,
 
+
+    // cloud bridge
+    upsertCloudUser,
+    setSessionUID,
     // heroes
     getHeroes,
     addHero,

@@ -282,3 +282,22 @@
   color:rgba(255,255,255,0.65);
   text-align:center;
 }
+
+
+/* Google login button */
+.btn-google{
+  width:100%;
+  margin-top:10px;
+  padding:13px 14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+  color:rgba(255,255,255,0.92);
+  font-weight:900;
+  letter-spacing:0.8px;
+  text-transform:uppercase;
+}
+.btn-google:hover{
+  border-color:rgba(255,255,255,0.22);
+  box-shadow:0 0 18px rgba(0,170,255,0.12);
+}

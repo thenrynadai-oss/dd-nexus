@@ -1,0 +1,181 @@
+/* Presence bar + share modal + owner button */
+.vg-presence{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.vg-bubble{
+  width:28px; height:28px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.08);
+  background-size:cover;
+  background-position:center;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px;
+  color:rgba(255,255,255,.9);
+}
+
+.vg-mini-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:42px; height:42px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.18);
+  color:rgba(255,255,255,.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor:pointer;
+}
+
+.vg-share-modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:9999; }
+.vg-share-modal .box{
+  width:min(560px, 92vw);
+  border-radius:24px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.28);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding:16px;
+  color:rgba(255,255,255,.9);
+}
+.vg-share-modal input{
+  width:100%;
+  padding:12px 12px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.18);
+  color:rgba(255,255,255,.9);
+}
+.vg-share-modal .row{ display:flex; gap:10px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap; }
+.vg-share-modal button{
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  color:rgba(255,255,255,.9);
+  padding:10px 12px;
+  cursor:pointer;
+}
+.vg-share-modal button.primary{ background:rgba(0,170,255,.18); border-color:rgba(0,170,255,.38); }
+
+/* Segmented control reused inside pencil modal */
+.vg-seg{
+  display:flex;
+  gap:8px;
+  padding:6px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.18);
+}
+.vg-seg button{
+  flex:1;
+  border:0;
+  border-radius:14px;
+  padding:10px 12px;
+  background:transparent;
+  color:rgba(255,255,255,.78);
+  cursor:pointer;
+}
+.vg-seg button.active{
+  background:rgba(255,255,255,.12);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  color:rgba(255,255,255,.95);
+}
+
+/* === Gear menu (Opções) abaixo do lápis === */
+.vg-gear-btn{
+  position:absolute;
+  top:62px;
+  right:14px;
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: color-mix(in oklab, var(--bg-panel) 78%, rgba(255,255,255,0.10));
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, rgba(255,255,255,0.12));
+  color: color-mix(in oklab, var(--text-primary) 88%, white);
+  cursor:pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.35);
+}
+.vg-gear-btn:active{ transform: translateY(1px); }
+
+.vg-gear-menu{
+  position:absolute;
+  top:112px;
+  right:14px;
+  width:min(280px, 80vw);
+  padding:10px;
+  border-radius:18px;
+  border: 1px solid color-mix(in oklab, var(--accent) 16%, rgba(255,255,255,0.14));
+  background: color-mix(in oklab, var(--bg-panel) 84%, rgba(0,0,0,0.18));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 22px 70px rgba(0,0,0,0.45);
+  display:none;
+  z-index: 80;
+}
+.vg-gear-menu.open{ display:block; }
+
+.vg-gear-owner{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+}
+.vg-owner-avatar{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.22);
+  background-size: cover;
+  background-position: center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color: rgba(255,255,255,0.9);
+  font-weight:700;
+  font-size:14px;
+}
+.vg-owner-label{
+  font-size:11px;
+  letter-spacing:.08em;
+  opacity:.75;
+}
+.vg-owner-name{
+  font-size:14px;
+  font-weight:700;
+  margin-top:2px;
+}
+
+.vg-gear-action{
+  margin-top:10px;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  color: rgba(255,255,255,0.9);
+  cursor:pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.vg-gear-action:hover{ background: rgba(255,255,255,0.08); }
+.vg-gear-action:disabled{ opacity:.5; cursor:not-allowed; }
+.vg-gear-action .ic{ width:22px; text-align:center; }
