@@ -95,7 +95,13 @@
       this.signInNickOrEmail = async (identifier, pass) => {
         const id = String(identifier||"").trim();
         if(id.includes("@")) return this.signInEmail(id, pass);
-        const map = await this.resolveNickToEmail(id);
+        let map = null;
+        try{ map = await this.resolveNickToEmail(id); }
+        catch(err){
+          const msg = String(err && (err.code || err.message) || err);
+          if(msg.includes("permission") || msg.includes("PERMISSION_DENIED")) throw new Error("NICK_RULES_BLOCKED");
+          throw err;
+        }
         if(!map || !map.email) throw new Error("APELIDO_NAO_ENCONTRADO");
         return this.signInEmail(map.email, pass);
       };

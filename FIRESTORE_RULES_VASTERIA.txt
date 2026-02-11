@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function authed() { return request.auth != null; }
+    function isOwner(doc) { return authed() && request.auth.uid == doc.ownerUid; }
+
+    match /users/{uid} {
+      allow read: if true;
+      allow write: if authed() && request.auth.uid == uid;
+
+      match /shared/{sid} {
+        allow read, write: if authed() && request.auth.uid == uid;
+      }
+    }
+
+    // Índice de apelidos (permite login por apelido sem estar logado)
+    match /nicks/{nick} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if authed();
+    }
+
+    match /heroes/{hid} {
+      allow read: if resource.data.visibility == "public" || isOwner(resource.data);
+      allow create: if authed();
+
+      allow update: if authed() && (
+        isOwner(resource.data)
+        ||
+        (
+          resource.data.visibility == "public"
+          && resource.data.allowPublicEdit == true
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.visibility == resource.data.visibility
+          && request.resource.data.allowPublicEdit == resource.data.allowPublicEdit
+        )
+      );
+
+      allow delete: if authed() && request.auth.uid == resource.data.ownerUid;
+
+      match /presence/{uid} {
+        allow read, write: if authed();
+      }
+    }
+
+    match /shares/{token} {
+      allow list: if false;
+      allow get: if authed();
+      allow create, update, delete: if authed();
+
+      match /presence/{uid} {
+        allow read, write: if authed();
+      }
+    }
+  }
+}

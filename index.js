@@ -56,6 +56,7 @@
   const loginPass = document.getElementById("login-pass");
   const btnLogin = document.getElementById("btn-login");
   const btnGoogle = document.getElementById("btn-google");
+  const btnGoogleRegister = document.getElementById("btn-google-register");
 
   const regName = document.getElementById("reg-name");
   const regNick = document.getElementById("reg-nick");
@@ -134,7 +135,8 @@
         // valida apelido global (Cloud)
         const nickKey = (payload.apelido || "").trim();
         if(!nickKey){ showMsg("Preencha seu apelido.", "err"); return; }
-        const taken = await VGCloud.resolveNickToEmail(nickKey);
+        let taken = null;
+        try{ taken = await VGCloud.resolveNickToEmail(nickKey); }catch(e){}
         if(taken && taken.uid){
           showMsg("Este apelido já existe no Cloud. Escolha outro.", "err");
           return;
@@ -172,7 +174,8 @@
 
       }catch(e){
         console.warn(e);
-        showMsg("Falha ao criar conta no Cloud. Verifique email/senha e as regras do Firebase.", "err");
+        const code = (e && (e.code || e.message)) ? String(e.code || e.message) : "";
+        showMsg("Falha ao criar conta no Cloud. " + (code ? ("Detalhe: " + code) : "Verifique email/senha e as rules do Firebase."), "err");
         return;
       }
     }
@@ -271,6 +274,60 @@
     }catch(e){
       console.warn(e);
       showMsg("Falha ao entrar com Google.", "err");
+    }
+  });
+
+  btnGoogleRegister && btnGoogleRegister.addEventListener("click", async () => {
+    clearMsg();
+    if(!(window.VGCloud && VGCloud.enabled)){
+      showMsg("Cloud não configurado neste build.", "err");
+      return;
+    }
+
+    const desiredNickRaw = (regNick.value || "").trim();
+    const desiredNameRaw = (regName.value || "").trim();
+
+    if(!desiredNickRaw){
+      showMsg("Preencha seu apelido antes de conectar com Google.", "err");
+      return;
+    }
+
+    try{
+      await VGCloud.init();
+      await VGCloud.signInGoogle();
+
+      // Checagem de nick (agora já está autenticado)
+      let map = null;
+      try{ map = await VGCloud.resolveNickToEmail(desiredNickRaw); }catch(e){ map = null; }
+      if(map && map.uid && map.uid !== VGCloud.user.uid){
+        try{ await VGCloud.signOut(); }catch(e){}
+        showMsg("Este apelido já existe no Cloud. Escolha outro e tente novamente.", "err");
+        return;
+      }
+
+      // Garante perfil com o nick escolhido
+      const prof = await VGCloud.ensureUserProfile({
+        nick: desiredNickRaw,
+        displayName: desiredNameRaw || (VGCloud.user && VGCloud.user.displayName) || "Agente",
+        photoURL: (VGCloud.user && VGCloud.user.photoURL) || null,
+      });
+
+      const fbUser = VGCloud.user;
+      window.Auth.upsertCloudUser({
+        uid: fbUser.uid,
+        nome: prof?.displayName || fbUser.displayName || desiredNameRaw || "Agente",
+        apelido: prof?.nick || desiredNickRaw,
+        email: fbUser.email || null,
+        profileImg: prof?.photoURL || fbUser.photoURL || tempImg || null,
+        provider: "google.com",
+      });
+      window.Auth.setSessionUID(fbUser.uid);
+
+      showMsg("Conta Google conectada! Indo para o HUB…");
+      setTimeout(() => window.location.href = "home.html", 250);
+    }catch(e){
+      console.warn(e);
+      showMsg("Falha ao cadastrar com Google.", "err");
     }
   });
 
