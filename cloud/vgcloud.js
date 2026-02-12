@@ -35,11 +35,12 @@
       const appMod  = await import(CDN + "firebase-app.js");
       const authMod = await import(CDN + "firebase-auth.js");
       const fsMod   = await import(CDN + "firebase-firestore.js");
-      const stMod   = await import(CDN + "firebase-storage.js");
-
+      let stMod = null;
       const { initializeApp } = appMod;
       const { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } = authMod;
-      const { getStorage, ref, uploadBytes, getDownloadURL } = stMod;
+      // Storage é opcional (pode não existir em projetos Spark / sem bucket)
+      let storage = null;
+      let fbStorage = null;
       const {
         getFirestore, enableIndexedDbPersistence,
         doc, setDoc, getDoc, updateDoc,
@@ -52,8 +53,17 @@
       const app = initializeApp(CFG);
       this.auth = getAuth(app);
       this.db = getFirestore(app);
-      this.storage = getStorage(app);
-      this.fbStorage = { ref, uploadBytes, getDownloadURL };
+      try {
+        stMod = await import(CDN + "firebase-storage.js");
+        const { getStorage, ref, uploadBytes, getDownloadURL } = stMod;
+        storage = getStorage(app);
+        fbStorage = { ref, uploadBytes, getDownloadURL };
+      } catch (e) {
+        console.warn("[VGCloud] Storage desabilitado (sem bucket ou plano). Use URL externa para banners.", e);
+      }
+
+      this.storage = storage;
+      this.fbStorage = fbStorage;
 
       try { await enableIndexedDbPersistence(this.db); } catch(e){}
 
@@ -194,7 +204,7 @@
 
     async uploadUserBanner(file){
       if(!this.user) throw new Error("NOT_AUTH");
-      if(!this.storage || !this.fbStorage) throw new Error("NO_STORAGE");
+      if(!this.storage || !this.fbStorage) throw new Error("NO_STORAGE_BUCKET");
       const { ref, uploadBytes, getDownloadURL } = this.fbStorage;
 
       const f = file;

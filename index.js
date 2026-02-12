@@ -195,6 +195,8 @@
   async function doLogin(){
     clearMsg();
 
+    let cloudErr = null;
+
     const payload = {
       identifier: loginId.value,
       pass: loginPass.value
@@ -230,13 +232,14 @@
       }catch(e){
         // se não achou no cloud, cai pro local
         console.warn(e);
+        cloudErr = (e && (e.code || e.message)) ? String(e.code || e.message) : String(e||"");
       }
     }
 
     // Local login fallback
     const res = window.Auth.login(payload);
     if(!res.ok){
-      showMsg(res.msg || "Falha no login.", "err");
+      showMsg((res.msg || "Falha no login.") + (cloudErr ? (" | Cloud: " + cloudErr) : ""), "err");
       return;
     }
 
@@ -273,7 +276,8 @@
       setTimeout(() => window.location.href = "home.html", 250);
     }catch(e){
       console.warn(e);
-      showMsg("Falha ao entrar com Google.", "err");
+      const code = (e && (e.code || e.message)) ? String(e.code || e.message) : "";
+      showMsg("Falha ao entrar com Google. " + (code ? ("Detalhe: " + code) : ""), "err");
     }
   });
 
@@ -327,7 +331,8 @@
       setTimeout(() => window.location.href = "home.html", 250);
     }catch(e){
       console.warn(e);
-      showMsg("Falha ao cadastrar com Google.", "err");
+      const code = (e && (e.code || e.message)) ? String(e.code || e.message) : "";
+      showMsg("Falha ao cadastrar com Google. " + (code ? ("Detalhe: " + code) : ""), "err");
     }
   });
 
