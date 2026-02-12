@@ -47,8 +47,17 @@
   const profilePhotoBtn = document.getElementById("profile-photo-btn");
   const profilePreview = document.getElementById("profile-preview");
 
+  // Mini Perfil (ONLINE → Amigos)
+  const miniBannerPreview = document.getElementById("mini-banner-preview");
+  const btnMiniBanner = document.getElementById("btn-mini-banner");
+  const miniBannerFile = document.getElementById("mini-banner-file");
+  const miniBannerUrl = document.getElementById("mini-banner-url");
+  const miniFavHero = document.getElementById("mini-fav-hero");
+
   let tempCharImg = null;
   let tempProfileImg = null;
+  let tempMiniBannerUrl = "";
+  let tempMiniBannerFile = null;
 
   function initials(s){
     const t = (s||"").trim();
@@ -87,7 +96,37 @@
     const n = parseInt(v, 10);
     if(Number.isFinite(n)) return n;
     return v || 1;
+  
+  function setMiniBanner(url){
+    tempMiniBannerUrl = url || "";
+    if(!miniBannerPreview) return;
+    if(url){
+      miniBannerPreview.classList.add("has-img");
+      miniBannerPreview.style.backgroundImage = `url(${url})`;
+      miniBannerPreview.innerHTML = "<span></span>";
+    }else{
+      miniBannerPreview.classList.remove("has-img");
+      miniBannerPreview.style.backgroundImage = "";
+      miniBannerPreview.innerHTML = "<span>+ BANNER</span>";
+    }
   }
+
+  function populateFavHeroSelect(){
+    if(!miniFavHero) return;
+    const u = Auth.getCurrentUser();
+    const heroes = u?.heroes || [];
+    // preserve first option
+    const keep = miniFavHero.querySelector("option[value='']")?.outerHTML || '<option value="">— Nenhum —</option>';
+    miniFavHero.innerHTML = keep;
+    heroes.forEach((h, idx) => {
+      const nm = (h.nome || h.dados?.["c-name"] || "SEM NOME").toString();
+      const opt = document.createElement("option");
+      opt.value = String(idx);
+      opt.textContent = nm;
+      miniFavHero.appendChild(opt);
+    });
+  }
+}
 
   function heroCampaign(hero){
     return hero?.campaign || hero?.dados?.["c-campaign"] || "—";
@@ -263,6 +302,23 @@
         profilePreview.innerHTML = "<span>+ FOTO</span>";
       }
 
+
+      // Mini perfil (ONLINE → Amigos)
+      tempMiniBannerFile = null;
+      const mini = u.miniProfile || {};
+      if(miniBannerUrl) miniBannerUrl.value = mini.bannerURL || "";
+      setMiniBanner(mini.bannerURL || "");
+      populateFavHeroSelect();
+      if(miniFavHero){
+        // tenta selecionar por índice salvo, senão por nome
+        if(typeof mini.favIndex === "number") miniFavHero.value = String(mini.favIndex);
+        else if(mini.favorite && mini.favorite.name){
+          const opts = Array.from(miniFavHero.options);
+          const found = opts.find(o => o.textContent === mini.favorite.name);
+          if(found) miniFavHero.value = found.value;
+        }
+      }
+
       openModal(modalProfile);
     });
 
@@ -271,6 +327,37 @@
     modalProfile.addEventListener("click", (e) => { if(e.target === modalProfile) closeModal(modalProfile); });
 
     profilePhotoBtn.addEventListener("click", () => profileFile.click());
+
+    if(btnMiniBanner && miniBannerFile){
+      btnMiniBanner.addEventListener("click", () => miniBannerFile.click());
+    }
+    if(miniBannerFile){
+      miniBannerFile.addEventListener("change", () => {
+        const f = miniBannerFile.files && miniBannerFile.files[0];
+        if(!f) return;
+        tempMiniBannerFile = f;
+        // preview imediata (local)
+        const reader = new FileReader();
+        reader.onload = () => {
+          const url = String(reader.result || "");
+          if(miniBannerUrl) miniBannerUrl.value = "";
+          setMiniBanner(url);
+        };
+        reader.readAsDataURL(f);
+      });
+    }
+    if(miniBannerUrl){
+      let tmr = null;
+      miniBannerUrl.addEventListener("input", () => {
+        clearTimeout(tmr);
+        tmr = setTimeout(() => {
+          tempMiniBannerFile = null;
+          const url = miniBannerUrl.value.trim();
+          setMiniBanner(url);
+        }, 120);
+      });
+    }
+
     profileFile.addEventListener("change", () => {
       const file = profileFile.files && profileFile.files[0];
       if(!file) return;
@@ -283,20 +370,75 @@
       r.readAsDataURL(file);
     });
 
-    btnProfileSave.addEventListener("click", () => {
-      const patch = {
-        nome: profileName.value.trim(),
-        apelido: profileNick.value.trim(),
-        profileImg: tempProfileImg
-      };
-      const res = Auth.updateCurrentUser(patch);
-      if(!res.ok){
-        alert(res.msg || "Não foi possível salvar.");
-        return;
+    btnProfileSave.addEventListener("click", async () => {
+      const btn = btnProfileSave;
+      const oldTxt = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "SALVANDO...";
+      try{
+        const cur = Auth.getCurrentUser();
+        if(!cur){ alert("Sem sessão."); return; }
+
+        // favorito
+        let fav = null;
+        let favIndex = null;
+        if(miniFavHero && miniFavHero.value !== ""){
+          const idx = parseInt(miniFavHero.value, 10);
+          if(Number.isFinite(idx) && cur.heroes && cur.heroes[idx]){
+            favIndex = idx;
+            const h = cur.heroes[idx];
+            const nm = (h.nome || h.dados?.["c-name"] || "SEM NOME").toString();
+            fav = { name: nm, img: h.img || null };
+          }
+        }
+
+        const localBanner = (tempMiniBannerUrl || "").trim();
+        let cloudBanner = localBanner;
+        if(cloudBanner.startsWith("data:")) cloudBanner = "";
+
+        // Se selecionou arquivo e estiver no cloud, tenta upload (Storage)
+        if(tempMiniBannerFile && window.VGCloud && VGCloud.enabled && VGCloud.user){
+          try{
+            cloudBanner = await VGCloud.uploadUserBanner(tempMiniBannerFile);
+          }catch(err){
+            console.warn("[VGCloud] banner upload falhou:", err);
+            // mantém apenas local (não joga dataURL no cloud)
+            cloudBanner = "";
+          }
+        }
+
+        const miniLocal = { bannerURL: localBanner, favorite: fav, favIndex };
+        const patch = {
+          nome: profileName.value.trim(),
+          apelido: profileNick.value.trim(),
+          profileImg: tempProfileImg,
+          miniProfile: miniLocal
+        };
+
+        const res = Auth.updateCurrentUser(patch);
+        if(!res.ok){
+          alert(res.msg || "Não foi possível salvar.");
+          return;
+        }
+
+        // Sync cloud (se logado)
+        if(window.VGCloud && VGCloud.enabled && VGCloud.user){
+          const miniCloud = { bannerURL: cloudBanner, favorite: fav, favIndex };
+          await VGCloud.upsertMyProfile({
+            name: patch.nome,
+            nick: patch.apelido,
+            profileImg: patch.profileImg,
+            miniProfile: miniCloud
+          });
+        }
+
+        closeModal(modalProfile);
+        renderHeader();
+        renderHeroes();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldTxt;
       }
-      closeModal(modalProfile);
-      renderHeader();
-      renderHeroes();
     });
   }
 

@@ -143,6 +143,34 @@
         <input id="profile-nick" placeholder="Seu apelido" />
       </div>
 
+
+      <div class="mini-profile-box panel-skin">
+        <div class="mini-profile-head">
+          <h4>MINI PERFIL (AMIGOS)</h4>
+          <p>Esse card aparece na aba <b>ONLINE → Amigos</b>. Você pode personalizar banner e personagem favorito.</p>
+        </div>
+
+        <div class="mini-banner-row">
+          <div id="mini-banner-preview" class="mini-banner-preview"><span>+ BANNER</span></div>
+          <div class="mini-banner-actions">
+            <button id="btn-mini-banner" class="btn-ghost" type="button">ESCOLHER BANNER</button>
+            <input type="file" id="mini-banner-file" accept="image/*,image/gif" hidden />
+            <div class="field" style="margin:10px 0 0;">
+              <label>ou URL do banner (GIF ou imagem)</label>
+              <input id="mini-banner-url" placeholder="https://... (gif/png/jpg/webp)" />
+            </div>
+            <small class="mini-hint">Dica: para GIF, cole um link direto (terminando em .gif) ou faça upload.</small>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Personagem favorito</label>
+          <select id="mini-fav-hero">
+            <option value="">— Nenhum —</option>
+          </select>
+        </div>
+      </div>
+
       <div class="row-btn">
         <button id="btn-profile-save" class="btn-blue" type="button">SALVAR</button>
         <button id="btn-profile-cancel" class="btn-ghost" type="button">CANCELAR</button>

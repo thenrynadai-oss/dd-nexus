@@ -8,6 +8,7 @@
   "use strict";
 
   const mkId = () => "h_" + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+  const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
   function getNewVis(modal){ return modal?.getAttribute("data-new-vis") || "private"; }
   function getNewPubEdit(modal){ return (modal?.getAttribute("data-new-public-edit") === "1"); }
@@ -262,11 +263,45 @@
         const users = await VGCloud.listUsers();
         users.forEach(u=>{
           const card = document.createElement("div");
-          card.className = "vg-card";
-          card.innerHTML = `<h4>${(u.nick || u.displayName || "Agente")}</h4><p>${u.displayName || "—"}</p>`;
+          card.className = "vg-card vg-friend-card";
+
+          const nick = esc(u.nick || u.displayName || "Agente");
+          const name = esc(u.displayName || "—");
+          const photo = u.photoURL || "";
+          const mp = u.miniProfile || {};
+          const banner = (mp.bannerURL || "").trim();
+          const fav = mp.favorite || null;
+
+          const favName = fav && fav.name ? esc(fav.name) : "";
+          const favImg  = fav && fav.img ? fav.img : "";
+
+          card.innerHTML = `
+            <div class="vg-friend-banner" style="${banner ? `background-image:url(${banner});` : ""}"></div>
+            <div class="vg-friend-inner">
+              <div class="vg-friend-top">
+                <div class="vg-friend-avatar" style="${photo ? `background-image:url(${photo});` : ""}">${photo ? "" : nick.slice(0,2).toUpperCase()}</div>
+                <div class="vg-friend-meta">
+                  <div class="vg-friend-nick">${nick}</div>
+                  <div class="vg-friend-name">${name}</div>
+                </div>
+              </div>
+
+              ${
+                favName ? `
+                  <div class="vg-friend-fav">
+                    <div class="vg-friend-fav-img" style="${favImg ? `background-image:url(${favImg});` : ""}"></div>
+                    <div class="vg-friend-fav-name">${favName}</div>
+                  </div>
+                ` : `
+                  <div class="vg-friend-fav muted">Sem personagem favorito</div>
+                `
+              }
+            </div>
+          `;
           list.appendChild(card);
         });
       }
+
 
       if(curTab === "public"){
         const heroes = await VGCloud.publicHeroes();

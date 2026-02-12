@@ -35,9 +35,11 @@
       const appMod  = await import(CDN + "firebase-app.js");
       const authMod = await import(CDN + "firebase-auth.js");
       const fsMod   = await import(CDN + "firebase-firestore.js");
+      const stMod   = await import(CDN + "firebase-storage.js");
 
       const { initializeApp } = appMod;
       const { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } = authMod;
+      const { getStorage, ref, uploadBytes, getDownloadURL } = stMod;
       const {
         getFirestore, enableIndexedDbPersistence,
         doc, setDoc, getDoc, updateDoc,
@@ -50,6 +52,8 @@
       const app = initializeApp(CFG);
       this.auth = getAuth(app);
       this.db = getFirestore(app);
+      this.storage = getStorage(app);
+      this.fbStorage = { ref, uploadBytes, getDownloadURL };
 
       try { await enableIndexedDbPersistence(this.db); } catch(e){}
 
@@ -113,7 +117,7 @@
         return snap.exists() ? snap.data() : null;
       };
 
-      this.ensureUserProfile = async ({ nick, displayName, photoURL } = {}) => {
+      this.ensureUserProfile = async ({ nick, displayName, photoURL, miniProfile } = {}) => {
         if(!this.user) return null;
         const { doc, setDoc, getDoc, serverTimestamp } = this.fb;
 
@@ -144,8 +148,24 @@
           updatedAt: serverTimestamp(),
         };
 
+        const miniPayload = {};
+        if(miniProfile && typeof miniProfile === "object"){
+          const mp = {};
+          if(typeof miniProfile.bannerURL === "string" && miniProfile.bannerURL.trim()){
+            mp.bannerURL = miniProfile.bannerURL.trim();
+          }
+          if(miniProfile.favorite && typeof miniProfile.favorite === "object"){
+            const fv = {};
+            if(typeof miniProfile.favorite.name === "string" && miniProfile.favorite.name.trim()) fv.name = miniProfile.favorite.name.trim();
+            if(typeof miniProfile.favorite.img === "string" && miniProfile.favorite.img.trim()) fv.img = miniProfile.favorite.img.trim();
+            if(Object.keys(fv).length) mp.favorite = fv;
+          }
+          if(Number.isFinite(miniProfile.favIndex)) mp.favIndex = miniProfile.favIndex;
+          if(Object.keys(mp).length) miniPayload.miniProfile = mp;
+        }
+
         // user doc
-        await setDoc(doc(this.db,"users",uid), { ...userPayload, createdAt: serverTimestamp() }, { merge:true });
+        await setDoc(doc(this.db,"users",uid), { ...userPayload, ...miniPayload, createdAt: serverTimestamp() }, { merge:true });
         // nick index
         await setDoc(doc(this.db,"nicks",safeNick), { uid, email, nick: safeNick, updatedAt: serverTimestamp() }, { merge:true });
 
@@ -167,14 +187,43 @@
         nick: localUser?.nick,
         displayName: localUser?.name,
         photoURL: localUser?.profileImg,
+        miniProfile: localUser?.miniProfile,
       });
+    },
+
+
+    async uploadUserBanner(file){
+      if(!this.user) throw new Error("NOT_AUTH");
+      if(!this.storage || !this.fbStorage) throw new Error("NO_STORAGE");
+      const { ref, uploadBytes, getDownloadURL } = this.fbStorage;
+
+      const f = file;
+      const ext = (String(f?.name||"banner").split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,6);
+      const name = Date.now() + "_" + Math.random().toString(36).slice(2,8) + "." + (ext || "png");
+      const path = `users/${this.user.uid}/mini_profile/${name}`;
+      const r = ref(this.storage, path);
+
+      const meta = {};
+      if(f && f.type) meta.contentType = f.type;
+
+      const snap = await uploadBytes(r, f, meta);
+      return await getDownloadURL(snap.ref);
     },
 
     async listUsers(){
       if(!this.user) return [];
       const { collection, getDocs } = this.fb;
       const snap = await getDocs(collection(this.db, "users"));
-      return snap.docs.map(d => d.data());
+      return snap.docs.map(d => {
+        const v = d.data() || {};
+        return {
+          uid: v.uid,
+          displayName: v.displayName || null,
+          nick: v.nick || null,
+          photoURL: v.photoURL || null,
+          miniProfile: v.miniProfile || null,
+        };
+      });
     },
 
     // ---------- HEROES (GLOBAL) ----------
@@ -320,7 +369,16 @@
       if(!this.user) return [];
       const { collection, getDocs } = this.fb;
       const snap = await getDocs(collection(this.db, "users", this.user.uid, "shared"));
-      return snap.docs.map(d => d.data());
+      return snap.docs.map(d => {
+        const v = d.data() || {};
+        return {
+          uid: v.uid,
+          displayName: v.displayName || null,
+          nick: v.nick || null,
+          photoURL: v.photoURL || null,
+          miniProfile: v.miniProfile || null,
+        };
+      });
     },
 
     // ---------- PRESENCE ----------

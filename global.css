@@ -287,13 +287,16 @@ html[data-theme-group="secret"] .theme-modal-card::after{
 }
 
 /* BACKGROUNDS ANIMADOS GERAIS (antigos) */
-body::before, body::after{ opacity: var(--bgfx-top-opacity, 1); 
+body::before, body::after{ opacity: var(--bgfx-top-opacity, 1);
   content:"";
   position:fixed;
   inset:0;
   pointer-events:none;
   transition:opacity 1s, background 1s, filter 1s;
   z-index:-3;
+  will-change: opacity, filter, transform, background;
+  backface-visibility:hidden;
+  transform: translateZ(0);
 }
 
 /* Camada base — gradiente do tema */
@@ -819,7 +822,7 @@ html[data-theme="master"] body::after{
   background:
     radial-gradient(circle at 30% 20%, rgba(255,215,0,0.06), transparent 55%),
     radial-gradient(circle at 70% 80%, rgba(255,215,0,0.04), transparent 60%),
-    url('https://www.transparenttextures.com/patterns/black-scales.png');
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='200'%20height='200'%20viewBox='0%200%20200%20200'%3E%3Cdefs%3E%3Cpattern%20id='p'%20width='40'%20height='40'%20patternUnits='userSpaceOnUse'%3E%3Cpath%20d='M0%2040%20Q20%2020%2040%2040'%20fill='none'%20stroke='rgba(255,255,255,0.10)'%20stroke-width='2'/%3E%3Cpath%20d='M0%200%20Q20%2020%2040%200'%20fill='none'%20stroke='rgba(255,255,255,0.06)'%20stroke-width='2'/%3E%3C/pattern%3E%3C/defs%3E%3Crect%20width='200'%20height='200'%20fill='url(#p)'/%3E%3C/svg%3E");
   opacity:0.34;
   animation: masterBreathing 6s ease-in-out infinite alternate;
   mix-blend-mode:overlay;
@@ -917,7 +920,7 @@ html[data-theme="coffee"]{
 html[data-theme="coffee"] body::after{
   background:
     radial-gradient(circle at 30% 30%, rgba(255,255,255,0.05), transparent 60%),
-    url('https://www.transparenttextures.com/patterns/wood-pattern.png');
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'%20viewBox='0%200%20240%20240'%3E%3Cdefs%3E%3Cpattern%20id='w'%20width='60'%20height='60'%20patternUnits='userSpaceOnUse'%3E%3Cpath%20d='M0%2010%20H60'%20stroke='rgba(255,255,255,0.05)'%20stroke-width='2'/%3E%3Cpath%20d='M0%2030%20H60'%20stroke='rgba(255,255,255,0.03)'%20stroke-width='2'/%3E%3Cpath%20d='M0%2050%20H60'%20stroke='rgba(255,255,255,0.04)'%20stroke-width='2'/%3E%3Cpath%20d='M15%200%20V60'%20stroke='rgba(255,255,255,0.02)'%20stroke-width='2'/%3E%3Cpath%20d='M45%200%20V60'%20stroke='rgba(255,255,255,0.015)'%20stroke-width='2'/%3E%3C/pattern%3E%3C/defs%3E%3Crect%20width='240'%20height='240'%20fill='url(#w)'/%3E%3C/svg%3E");
   opacity:0.18;
 }
 

@@ -76,3 +76,105 @@
 }
 .vg-actions button.primary{ background:rgba(0,170,255,.18); border-color:rgba(0,170,255,.38); }
 .vg-actions button:disabled{ opacity:.45; cursor:not-allowed; }
+
+/* =========================================================
+   FRIENDS CARDS — mini perfil
+   ========================================================= */
+.vg-friend-card{
+  padding:0;
+  overflow:hidden;
+  position:relative;
+}
+.vg-friend-banner{
+  height:72px;
+  background:linear-gradient(135deg, rgba(255,255,255,.10), rgba(0,0,0,.18));
+  background-size:cover;
+  background-position:center;
+  filter:saturate(1.05) contrast(1.02);
+}
+.vg-friend-banner::after{
+  content:"";
+  position:absolute;
+  left:0; right:0; top:0;
+  height:72px;
+  background:linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.55));
+  pointer-events:none;
+}
+.vg-friend-inner{
+  padding:12px;
+  position:relative;
+}
+.vg-friend-top{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin-top:-34px;
+}
+.vg-friend-avatar{
+  width:54px;
+  height:54px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background-size:cover;
+  background-position:center;
+  box-shadow: 0 18px 45px rgba(0,0,0,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  color:rgba(255,255,255,.82);
+}
+.vg-friend-meta{ min-width:0; }
+.vg-friend-nick{
+  font-weight:800;
+  letter-spacing:.04em;
+  color:rgba(255,255,255,.94);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width: 220px;
+}
+.vg-friend-name{
+  font-size:12px;
+  color:rgba(255,255,255,.62);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width: 220px;
+}
+.vg-friend-fav{
+  margin-top:12px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  padding:10px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(0,0,0,.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.vg-friend-fav.muted{
+  color:rgba(255,255,255,.45);
+  font-size:12px;
+}
+.vg-friend-fav-img{
+  width:36px;
+  height:36px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  background-size:cover;
+  background-position:center;
+}
+.vg-friend-fav-name{
+  color:rgba(255,255,255,.86);
+  font-size:13px;
+  font-weight:700;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}

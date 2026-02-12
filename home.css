@@ -378,3 +378,75 @@
   color:rgba(255,255,255,0.6);
   font-size:12px;
 }
+
+
+/* =========================================================
+   MINI PERFIL (AMIGOS) — dentro do modal de perfil
+   ========================================================= */
+.mini-profile-box{
+  margin-top:14px;
+  padding:14px;
+  border-radius:20px;
+}
+.mini-profile-head h4{
+  margin:0 0 6px;
+  letter-spacing:.12em;
+  font-size:12px;
+  color:rgba(255,255,255,.92);
+}
+.mini-profile-head p{
+  margin:0 0 12px;
+  font-size:12px;
+  color:rgba(255,255,255,.62);
+  line-height:1.35;
+}
+.mini-banner-row{
+  display:flex;
+  gap:12px;
+  align-items:stretch;
+  margin-bottom:12px;
+}
+.mini-banner-preview{
+  flex:0 0 180px;
+  height:92px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:rgba(255,255,255,.70);
+  font-size:12px;
+}
+.mini-banner-preview.has-img{
+  background-size:cover;
+  background-position:center;
+}
+.mini-banner-preview::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.45));
+  opacity:.55;
+  pointer-events:none;
+}
+.mini-banner-preview span{
+  position:relative;
+  z-index:1;
+}
+.mini-banner-actions{ flex:1; min-width:0; }
+.mini-hint{
+  display:block;
+  margin-top:8px;
+  color:rgba(255,255,255,.48);
+  font-size:11px;
+}
+
+@media (max-width: 560px){
+  .mini-banner-row{ flex-direction:column; }
+  .mini-banner-preview{ flex:0 0 auto; width:100%; height:104px; }
+}
