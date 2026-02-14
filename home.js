@@ -96,7 +96,8 @@
     const n = parseInt(v, 10);
     if(Number.isFinite(n)) return n;
     return v || 1;
-  
+  }
+
   function setMiniBanner(url){
     tempMiniBannerUrl = url || "";
     if(!miniBannerPreview) return;
@@ -126,7 +127,6 @@
       miniFavHero.appendChild(opt);
     });
   }
-}
 
   function heroCampaign(hero){
     return hero?.campaign || hero?.dados?.["c-campaign"] || "—";
@@ -306,8 +306,11 @@
       // Mini perfil (ONLINE → Amigos)
       tempMiniBannerFile = null;
       const mini = u.miniProfile || {};
-      if(miniBannerUrl) miniBannerUrl.value = mini.bannerURL || "";
-      setMiniBanner(mini.bannerURL || "");
+      const _bannerUrl = (mini.bannerUrl || mini.bannerURL || "").trim();
+      const _bannerData = (mini.bannerData || "").trim();
+      if(miniBannerUrl) miniBannerUrl.value = _bannerUrl;
+      
+      setMiniBanner(_bannerData || _bannerUrl || "");
       populateFavHeroSelect();
       if(miniFavHero){
         // tenta selecionar por índice salvo, senão por nome
@@ -392,22 +395,26 @@
           }
         }
 
-        const localBanner = (tempMiniBannerUrl || "").trim();
-        let cloudBanner = localBanner;
-        if(cloudBanner.startsWith("data:")) cloudBanner = "";
+        const localRaw = (tempMiniBannerUrl || "").trim();
+        const localIsData = localRaw.startsWith("data:");
+        const localUrl = localIsData ? "" : localRaw;
+        const localData = localIsData ? localRaw : "";
 
-        // Se selecionou arquivo e estiver no cloud, tenta upload (Storage)
-        if(tempMiniBannerFile && window.VGCloud && VGCloud.enabled && VGCloud.user){
-          try{
-            cloudBanner = await VGCloud.uploadUserBanner(tempMiniBannerFile);
-          }catch(err){
-            console.warn("[VGCloud] banner upload falhou:", err);
-            // mantém apenas local (não joga dataURL no cloud)
-            cloudBanner = "";
+        // Cloud é Firestore-only: guarda URL externa (bannerUrl) e, opcionalmente, bannerData pequeno.
+        let cloudUrl = localUrl;
+        let cloudData = "";
+        if(localData){
+          if(localData.length <= 30000){
+            cloudData = localData;
+          }else{
+            // mantém apenas local; no cloud exige URL
+            cloudUrl = "";
+            cloudData = "";
+            alert("Esse banner é grande demais para salvar no Cloud. Use um link (URL) no campo Banner.");
           }
         }
 
-        const miniLocal = { bannerURL: localBanner, favorite: fav, favIndex };
+        const miniLocal = { bannerUrl: localUrl, bannerData: localData || null, bannerURL: localUrl, favorite: fav, favIndex };
         const patch = {
           nome: profileName.value.trim(),
           apelido: profileNick.value.trim(),
@@ -423,7 +430,7 @@
 
         // Sync cloud (se logado)
         if(window.VGCloud && VGCloud.enabled && VGCloud.user){
-          const miniCloud = { bannerURL: cloudBanner, favorite: fav, favIndex };
+          const miniCloud = { bannerUrl: cloudUrl, bannerData: cloudData || null, bannerURL: cloudUrl, favorite: fav, favIndex };
           await VGCloud.upsertMyProfile({
             name: patch.nome,
             nick: patch.apelido,

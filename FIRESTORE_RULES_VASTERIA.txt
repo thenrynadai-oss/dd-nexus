@@ -1,31 +1,88 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function authed() { return request.auth != null; }
-    function isOwner(doc) { return authed() && request.auth.uid == doc.ownerUid; }
 
+    function authed() { return request.auth != null; }
+    function isMe(uid) { return authed() && request.auth.uid == uid; }
+    function isOwnerDoc() { return authed() && request.auth.uid == resource.data.ownerUid; }
+
+    function isShortString(x, min, max) { return x is string && x.size() >= min && x.size() <= max; }
+    function isUrl(x, maxLen) { return x is string && x.size() <= maxLen && x.matches('^https?://.*'); }
+
+    function validNickId(nickId) {
+      return nickId is string
+        && nickId.size() >= 3
+        && nickId.size() <= 22
+        && nickId.matches('^[a-zA-Z0-9_.-]+$');
+    }
+
+    function validMiniProfile(data) {
+      // miniProfile é opcional; valida se existir
+      return !(data.keys().hasAny(['miniProfile'])) || (
+        data.miniProfile is map
+        && (
+          !data.miniProfile.keys().hasAny(['bannerUrl']) || data.miniProfile.bannerUrl == null || isUrl(data.miniProfile.bannerUrl, 2048)
+        )
+        && (
+          !data.miniProfile.keys().hasAny(['bannerURL']) || data.miniProfile.bannerURL == null || isUrl(data.miniProfile.bannerURL, 2048)
+        )
+        && (
+          !data.miniProfile.keys().hasAny(['bannerData']) || data.miniProfile.bannerData == null || (data.miniProfile.bannerData is string && data.miniProfile.bannerData.size() <= 30000)
+        )
+        && (
+          !data.miniProfile.keys().hasAny(['favIndex']) || data.miniProfile.favIndex is int
+        )
+        && (
+          !data.miniProfile.keys().hasAny(['favorite']) || data.miniProfile.favorite == null || (
+            data.miniProfile.favorite is map
+            && (!data.miniProfile.favorite.keys().hasAny(['name']) || isShortString(data.miniProfile.favorite.name, 1, 60))
+            && (!data.miniProfile.favorite.keys().hasAny(['img'])  || data.miniProfile.favorite.img == null || isUrl(data.miniProfile.favorite.img, 2048))
+            && (!data.miniProfile.favorite.keys().hasAny(['photoURL']) || data.miniProfile.favorite.photoURL == null || isUrl(data.miniProfile.favorite.photoURL, 2048))
+          )
+        )
+      );
+    }
+
+    // USERS
     match /users/{uid} {
       allow read: if true;
-      allow write: if authed() && request.auth.uid == uid;
+      allow create, update, delete: if isMe(uid) && validMiniProfile(request.resource.data);
 
       match /shared/{sid} {
-        allow read, write: if authed() && request.auth.uid == uid;
+        allow read, write: if isMe(uid);
       }
     }
 
-    // Índice de apelidos (permite login por apelido sem estar logado)
+    // NICKS (apelido -> uid/email)
     match /nicks/{nick} {
       allow get: if true;
       allow list: if false;
-      allow write: if authed();
+
+      allow create: if authed()
+        && validNickId(nick)
+        && !exists(/databases/$(database)/documents/nicks/$(nick))
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 254;
+
+      allow update: if authed()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid;
+
+      allow delete: if authed() && resource.data.uid == request.auth.uid;
     }
 
+    // HEROES (GLOBAL)
     match /heroes/{hid} {
-      allow read: if resource.data.visibility == "public" || isOwner(resource.data);
-      allow create: if authed();
+      allow read: if resource.data.visibility == "public" || isOwnerDoc();
+
+      allow create: if authed()
+        && request.resource.data.ownerUid == request.auth.uid
+        && (request.resource.data.visibility in ["public", "private"])
+        && (request.resource.data.allowPublicEdit is bool);
 
       allow update: if authed() && (
-        isOwner(resource.data)
+        isOwnerDoc()
         ||
         (
           resource.data.visibility == "public"
@@ -38,18 +95,39 @@ service cloud.firestore {
 
       allow delete: if authed() && request.auth.uid == resource.data.ownerUid;
 
-      match /presence/{uid} {
-        allow read, write: if authed();
+      match /presence/{puid} {
+        allow read: if authed();
+        allow create, update, delete: if authed() && request.auth.uid == puid;
       }
     }
 
+    // SHARES
     match /shares/{token} {
       allow list: if false;
       allow get: if authed();
-      allow create, update, delete: if authed();
 
-      match /presence/{uid} {
-        allow read, write: if authed();
+      allow create: if authed()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.mode in ["read","edit"]
+        && request.resource.data.sourceHid is string
+        && request.resource.data.sourceHid.size() <= 80;
+
+      allow update: if authed() && (
+        resource.data.ownerUid == request.auth.uid
+        ||
+        (
+          resource.data.mode == "edit"
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.mode == resource.data.mode
+          && request.resource.data.sourceHid == resource.data.sourceHid
+        )
+      );
+
+      allow delete: if authed() && resource.data.ownerUid == request.auth.uid;
+
+      match /presence/{puid} {
+        allow read: if authed();
+        allow create, update, delete: if authed() && request.auth.uid == puid;
       }
     }
   }

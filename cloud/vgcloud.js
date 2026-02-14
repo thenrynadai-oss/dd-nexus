@@ -37,7 +37,7 @@
       const fsMod   = await import(CDN + "firebase-firestore.js");
       let stMod = null;
       const { initializeApp } = appMod;
-      const { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } = authMod;
+      const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } = authMod;
       // Storage é opcional (pode não existir em projetos Spark / sem bucket)
       let storage = null;
       let fbStorage = null;
@@ -53,14 +53,10 @@
       const app = initializeApp(CFG);
       this.auth = getAuth(app);
       this.db = getFirestore(app);
-      try {
-        stMod = await import(CDN + "firebase-storage.js");
-        const { getStorage, ref, uploadBytes, getDownloadURL } = stMod;
-        storage = getStorage(app);
-        fbStorage = { ref, uploadBytes, getDownloadURL };
-      } catch (e) {
-        console.warn("[VGCloud] Storage desabilitado (sem bucket ou plano). Use URL externa para banners.", e);
-      }
+
+      // Storage desabilitado (Firestore-only). Use bannerUrl/bannerData.
+      storage = null;
+      fbStorage = null;
 
       this.storage = storage;
       this.fbStorage = fbStorage;
@@ -72,10 +68,33 @@
         this._authCbs.forEach(fn => { try{ fn(this.user); }catch{} });
       });
 
+      // Finaliza login por redirect (caso tenha caído do popup).
+      this.processRedirectResult = async () => {
+        try{
+          const res = await getRedirectResult(this.auth);
+          if(res && res.user) return res.user;
+        }catch(e){
+          console.warn("[VGCloud] getRedirectResult falhou:", e);
+        }
+        return null;
+      };
+      // dispara uma vez (não bloqueia)
+      try{ this.processRedirectResult(); }catch(e){}
+
       this.signInGoogle = async () => {
         const prov = new GoogleAuthProvider();
-        const res = await signInWithPopup(this.auth, prov);
-        return res.user;
+        try{
+          const res = await signInWithPopup(this.auth, prov);
+          return res.user;
+        }catch(err){
+          const code = String(err && (err.code || err.message) || err || "");
+          // fallback automático quando popup é bloqueado/indisponível (mobile / navegador)
+          if(code.includes("auth/popup-blocked") || code.includes("auth/operation-not-supported-in-this-environment")){
+            await signInWithRedirect(this.auth, prov);
+            return null; // vai redirecionar
+          }
+          throw err;
+        }
       };
 
 
@@ -161,8 +180,14 @@
         const miniPayload = {};
         if(miniProfile && typeof miniProfile === "object"){
           const mp = {};
-          if(typeof miniProfile.bannerURL === "string" && miniProfile.bannerURL.trim()){
-            mp.bannerURL = miniProfile.bannerURL.trim();
+          const bUrl = (typeof miniProfile.bannerUrl === "string" ? miniProfile.bannerUrl : (typeof miniProfile.bannerURL === "string" ? miniProfile.bannerURL : "")).trim();
+          const bData = (typeof miniProfile.bannerData === "string" ? miniProfile.bannerData : "").trim();
+          if(bUrl){
+            mp.bannerUrl = bUrl;
+            mp.bannerURL = bUrl; // compat
+          }
+          if(bData){
+            mp.bannerData = bData.slice(0, 30000);
           }
           if(miniProfile.favorite && typeof miniProfile.favorite === "object"){
             const fv = {};

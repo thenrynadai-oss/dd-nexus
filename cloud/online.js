@@ -269,14 +269,16 @@
           const name = esc(u.displayName || "—");
           const photo = u.photoURL || "";
           const mp = u.miniProfile || {};
-          const banner = (mp.bannerURL || "").trim();
+          const banner = (mp.bannerUrl || mp.bannerURL || "").trim();
+          const bannerData = (mp.bannerData || "").trim();
+          const bannerBg = banner || bannerData;
           const fav = mp.favorite || null;
 
           const favName = fav && fav.name ? esc(fav.name) : "";
           const favImg  = fav && fav.img ? fav.img : "";
 
           card.innerHTML = `
-            <div class="vg-friend-banner" style="${banner ? `background-image:url(${banner});` : ""}"></div>
+            <div class="vg-friend-banner" style="${bannerBg ? `background-image:url(${bannerBg});` : ""}"></div>
             <div class="vg-friend-inner">
               <div class="vg-friend-top">
                 <div class="vg-friend-avatar" style="${photo ? `background-image:url(${photo});` : ""}">${photo ? "" : nick.slice(0,2).toUpperCase()}</div>
