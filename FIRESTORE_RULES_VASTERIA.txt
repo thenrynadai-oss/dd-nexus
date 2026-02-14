@@ -3,131 +3,99 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function authed() { return request.auth != null; }
-    function isMe(uid) { return authed() && request.auth.uid == uid; }
-    function isOwnerDoc() { return authed() && request.auth.uid == resource.data.ownerUid; }
+    function isOwnerUid(uid) { return authed() && request.auth.uid == uid; }
+    function isHeroOwner() { return authed() && request.auth.uid == resource.data.ownerUid; }
 
-    function isShortString(x, min, max) { return x is string && x.size() >= min && x.size() <= max; }
-    function isUrl(x, maxLen) { return x is string && x.size() <= maxLen && x.matches('^https?://.*'); }
+    function strMax(v, n){ return !(v is string) || v.size() <= n; }
+    function mapOrNull(v){ return (v == null) || (v is map); }
 
-    function validNickId(nickId) {
-      return nickId is string
-        && nickId.size() >= 3
-        && nickId.size() <= 22
-        && nickId.matches('^[a-zA-Z0-9_.-]+$');
+    function validFavorite(fv){
+      return mapOrNull(fv)
+        && (!('name' in fv) || (fv.name is string && fv.name.size() <= 60))
+        && (!('img'  in fv) || (fv.img  is string && fv.img.size()  <= 140000));
     }
 
-    function validMiniProfile(data) {
-      // miniProfile é opcional; valida se existir
-      return !(data.keys().hasAny(['miniProfile'])) || (
-        data.miniProfile is map
-        && (
-          !data.miniProfile.keys().hasAny(['bannerUrl']) || data.miniProfile.bannerUrl == null || isUrl(data.miniProfile.bannerUrl, 2048)
-        )
-        && (
-          !data.miniProfile.keys().hasAny(['bannerURL']) || data.miniProfile.bannerURL == null || isUrl(data.miniProfile.bannerURL, 2048)
-        )
-        && (
-          !data.miniProfile.keys().hasAny(['bannerData']) || data.miniProfile.bannerData == null || (data.miniProfile.bannerData is string && data.miniProfile.bannerData.size() <= 30000)
-        )
-        && (
-          !data.miniProfile.keys().hasAny(['favIndex']) || data.miniProfile.favIndex is int
-        )
-        && (
-          !data.miniProfile.keys().hasAny(['favorite']) || data.miniProfile.favorite == null || (
-            data.miniProfile.favorite is map
-            && (!data.miniProfile.favorite.keys().hasAny(['name']) || isShortString(data.miniProfile.favorite.name, 1, 60))
-            && (!data.miniProfile.favorite.keys().hasAny(['img'])  || data.miniProfile.favorite.img == null || isUrl(data.miniProfile.favorite.img, 2048))
-            && (!data.miniProfile.favorite.keys().hasAny(['photoURL']) || data.miniProfile.favorite.photoURL == null || isUrl(data.miniProfile.favorite.photoURL, 2048))
-          )
-        )
-      );
+    function validMiniProfile(mp){
+      return mapOrNull(mp)
+        && (!('bannerURL'  in mp) || (mp.bannerURL  is string && mp.bannerURL.size()  <= 600))
+        && (!('bannerData' in mp) || (mp.bannerData is string && mp.bannerData.size() <= 90000))
+        && (!('favorite'   in mp) || validFavorite(mp.favorite))
+        && (!('favIndex'   in mp) || (mp.favIndex is int && mp.favIndex >= -1 && mp.favIndex <= 5000));
     }
 
-    // USERS
+    function validUserDoc(){
+      return strMax(request.resource.data.displayName, 80)
+        && strMax(request.resource.data.nick, 22)
+        && strMax(request.resource.data.email, 140)
+        && strMax(request.resource.data.photoURL, 90000)
+        && (!('miniProfile' in request.resource.data) || validMiniProfile(request.resource.data.miniProfile));
+    }
+
+    // ================= USERS =================
     match /users/{uid} {
       allow read: if true;
-      allow create, update, delete: if isMe(uid) && validMiniProfile(request.resource.data);
+      allow create, update, delete: if isOwnerUid(uid) && validUserDoc();
 
       match /shared/{sid} {
-        allow read, write: if isMe(uid);
+        allow read, write: if isOwnerUid(uid);
       }
     }
 
-    // NICKS (apelido -> uid/email)
+    // ================= NICKS =================
+    // login por apelido precisa de GET público.
     match /nicks/{nick} {
       allow get: if true;
       allow list: if false;
 
       allow create: if authed()
-        && validNickId(nick)
-        && !exists(/databases/$(database)/documents/nicks/$(nick))
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.email is string
-        && request.resource.data.email.size() <= 254;
+        && request.resource.data.nick == nick
+        && strMax(request.resource.data.email, 140);
 
       allow update: if authed()
         && resource.data.uid == request.auth.uid
-        && request.resource.data.uid == resource.data.uid;
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.nick == nick
+        && strMax(request.resource.data.email, 140);
 
       allow delete: if authed() && resource.data.uid == request.auth.uid;
     }
 
-    // HEROES (GLOBAL)
+    // ================= HEROES =================
     match /heroes/{hid} {
-      allow read: if resource.data.visibility == "public" || isOwnerDoc();
 
-      allow create: if authed()
-        && request.resource.data.ownerUid == request.auth.uid
-        && (request.resource.data.visibility in ["public", "private"])
-        && (request.resource.data.allowPublicEdit is bool);
+      allow read: if resource.data.visibility == "public" || isHeroOwner();
+      allow create: if authed() && request.resource.data.ownerUid == request.auth.uid;
 
-      allow update: if authed() && (
-        isOwnerDoc()
-        ||
-        (
-          resource.data.visibility == "public"
-          && resource.data.allowPublicEdit == true
-          && request.resource.data.ownerUid == resource.data.ownerUid
-          && request.resource.data.visibility == resource.data.visibility
-          && request.resource.data.allowPublicEdit == resource.data.allowPublicEdit
-        )
-      );
+      // dono pode tudo
+      allow update: if isHeroOwner();
 
-      allow delete: if authed() && request.auth.uid == resource.data.ownerUid;
+      // edição pública: só se allowPublicEdit==true e sem mexer nos campos de controle
+      allow update: if authed()
+        && resource.data.visibility == "public"
+        && resource.data.allowPublicEdit == true
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.visibility == resource.data.visibility
+        && request.resource.data.allowPublicEdit == resource.data.allowPublicEdit
+        && request.resource.data.id == resource.data.id;
+
+      allow delete: if isHeroOwner();
 
       match /presence/{puid} {
         allow read: if authed();
-        allow create, update, delete: if authed() && request.auth.uid == puid;
+        allow write: if authed() && request.auth.uid == puid;
       }
     }
 
-    // SHARES
+    // ================= SHARES =================
     match /shares/{token} {
       allow list: if false;
       allow get: if authed();
-
-      allow create: if authed()
-        && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.mode in ["read","edit"]
-        && request.resource.data.sourceHid is string
-        && request.resource.data.sourceHid.size() <= 80;
-
-      allow update: if authed() && (
-        resource.data.ownerUid == request.auth.uid
-        ||
-        (
-          resource.data.mode == "edit"
-          && request.resource.data.ownerUid == resource.data.ownerUid
-          && request.resource.data.mode == resource.data.mode
-          && request.resource.data.sourceHid == resource.data.sourceHid
-        )
-      );
-
-      allow delete: if authed() && resource.data.ownerUid == request.auth.uid;
+      allow create, update, delete: if authed();
 
       match /presence/{puid} {
         allow read: if authed();
-        allow create, update, delete: if authed() && request.auth.uid == puid;
+        allow write: if authed() && request.auth.uid == puid;
       }
     }
   }

@@ -35,12 +35,11 @@
       const appMod  = await import(CDN + "firebase-app.js");
       const authMod = await import(CDN + "firebase-auth.js");
       const fsMod   = await import(CDN + "firebase-firestore.js");
-      let stMod = null;
       const { initializeApp } = appMod;
       const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } = authMod;
-      // Storage é opcional (pode não existir em projetos Spark / sem bucket)
-      let storage = null;
-      let fbStorage = null;
+      // Storage propositalmente desativado (Firestore-only)
+      const storage = null;
+      const fbStorage = null;
       const {
         getFirestore, enableIndexedDbPersistence,
         doc, setDoc, getDoc, updateDoc,
@@ -53,13 +52,13 @@
       const app = initializeApp(CFG);
       this.auth = getAuth(app);
       this.db = getFirestore(app);
+      // (Firestore-only) — não usamos Firebase Storage.
+      // Se um dia precisarmos de uploads, terá que ser via URL externa ou outro provedor.
+      this.storage = null;
+      this.fbStorage = null;
 
-      // Storage desabilitado (Firestore-only). Use bannerUrl/bannerData.
-      storage = null;
-      fbStorage = null;
-
-      this.storage = storage;
-      this.fbStorage = fbStorage;
+      // Resolve resultado de redirect (login Google em mobile/popup bloqueado)
+      try { await getRedirectResult(this.auth); } catch(e) {}
 
       try { await enableIndexedDbPersistence(this.db); } catch(e){}
 
@@ -68,32 +67,17 @@
         this._authCbs.forEach(fn => { try{ fn(this.user); }catch{} });
       });
 
-      // Finaliza login por redirect (caso tenha caído do popup).
-      this.processRedirectResult = async () => {
-        try{
-          const res = await getRedirectResult(this.auth);
-          if(res && res.user) return res.user;
-        }catch(e){
-          console.warn("[VGCloud] getRedirectResult falhou:", e);
-        }
-        return null;
-      };
-      // dispara uma vez (não bloqueia)
-      try{ this.processRedirectResult(); }catch(e){}
-
       this.signInGoogle = async () => {
         const prov = new GoogleAuthProvider();
         try{
           const res = await signInWithPopup(this.auth, prov);
           return res.user;
         }catch(err){
-          const code = String(err && (err.code || err.message) || err || "");
-          // fallback automático quando popup é bloqueado/indisponível (mobile / navegador)
-          if(code.includes("auth/popup-blocked") || code.includes("auth/operation-not-supported-in-this-environment")){
-            await signInWithRedirect(this.auth, prov);
-            return null; // vai redirecionar
-          }
-          throw err;
+          // Mobile/popup-blockers: cai para redirect automaticamente
+          const code = String(err && (err.code || err.message) || err);
+          console.warn("[VGCloud] popup falhou, tentando redirect:", code);
+          await signInWithRedirect(this.auth, prov);
+          return null; // fluxo continua após reload
         }
       };
 
@@ -180,14 +164,11 @@
         const miniPayload = {};
         if(miniProfile && typeof miniProfile === "object"){
           const mp = {};
-          const bUrl = (typeof miniProfile.bannerUrl === "string" ? miniProfile.bannerUrl : (typeof miniProfile.bannerURL === "string" ? miniProfile.bannerURL : "")).trim();
-          const bData = (typeof miniProfile.bannerData === "string" ? miniProfile.bannerData : "").trim();
-          if(bUrl){
-            mp.bannerUrl = bUrl;
-            mp.bannerURL = bUrl; // compat
+          if(typeof miniProfile.bannerURL === "string" && miniProfile.bannerURL.trim()){
+            mp.bannerURL = miniProfile.bannerURL.trim();
           }
-          if(bData){
-            mp.bannerData = bData.slice(0, 30000);
+          if(typeof miniProfile.bannerData === "string" && miniProfile.bannerData.startsWith("data:") && miniProfile.bannerData.length <= 90000){
+            mp.bannerData = miniProfile.bannerData;
           }
           if(miniProfile.favorite && typeof miniProfile.favorite === "object"){
             const fv = {};
@@ -228,21 +209,7 @@
 
 
     async uploadUserBanner(file){
-      if(!this.user) throw new Error("NOT_AUTH");
-      if(!this.storage || !this.fbStorage) throw new Error("NO_STORAGE_BUCKET");
-      const { ref, uploadBytes, getDownloadURL } = this.fbStorage;
-
-      const f = file;
-      const ext = (String(f?.name||"banner").split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,6);
-      const name = Date.now() + "_" + Math.random().toString(36).slice(2,8) + "." + (ext || "png");
-      const path = `users/${this.user.uid}/mini_profile/${name}`;
-      const r = ref(this.storage, path);
-
-      const meta = {};
-      if(f && f.type) meta.contentType = f.type;
-
-      const snap = await uploadBytes(r, f, meta);
-      return await getDownloadURL(snap.ref);
+      throw new Error("NO_STORAGE");
     },
 
     async listUsers(){
@@ -261,7 +228,69 @@
       });
     },
 
-    // ---------- HEROES (GLOBAL) ----------
+    
+    subscribeUsers(cb){
+      if(!this.user) return ()=>{};
+      const { collection, onSnapshot } = this.fb;
+      try{
+        return onSnapshot(collection(this.db, "users"), (snap)=>{
+          const arr = snap.docs.map(d => {
+            const v = d.data() || {};
+            return {
+              uid: v.uid,
+              displayName: v.displayName || null,
+              nick: v.nick || null,
+              photoURL: v.photoURL || null,
+              miniProfile: v.miniProfile || null,
+            };
+          });
+          try{ cb(arr); }catch{}
+        }, (err)=>console.warn("[VGCloud] subscribeUsers failed", err));
+      }catch(err){
+        console.warn("[VGCloud] subscribeUsers exception", err);
+        return ()=>{};
+      }
+    },
+
+    subscribePublicHeroes(cb){
+      if(!this.user) return ()=>{};
+      const { collection, query, where, onSnapshot } = this.fb;
+      try{
+        const q = query(collection(this.db, "heroes"), where("visibility","==","public"));
+        return onSnapshot(q, (snap)=>{
+          const arr = snap.docs.map(d => d.data());
+          // sort client-side (evita index composto)
+          arr.sort((a,b)=>(b?.clientUpdatedAt||0)-(a?.clientUpdatedAt||0));
+          try{ cb(arr); }catch{}
+        }, (err)=>console.warn("[VGCloud] subscribePublicHeroes failed", err));
+      }catch(err){
+        console.warn("[VGCloud] subscribePublicHeroes exception", err);
+        return ()=>{};
+      }
+    },
+
+    subscribeMyShared(cb){
+      if(!this.user) return ()=>{};
+      const { collection, onSnapshot } = this.fb;
+      try{
+        const c = collection(this.db, "users", this.user.uid, "shared");
+        return onSnapshot(c, (snap)=>{
+          const arr = snap.docs.map(d => ({ id: d.id, ...(d.data()||{}) }));
+          try{ cb(arr); }catch{}
+        }, (err)=>console.warn("[VGCloud] subscribeMyShared failed", err));
+      }catch(err){
+        console.warn("[VGCloud] subscribeMyShared exception", err);
+        return ()=>{};
+      }
+    },
+
+    async deleteHero(heroId){
+      if(!this.user) throw new Error("NOT_AUTH");
+      const { deleteDoc } = this.fb;
+      await deleteDoc(this.heroRef(heroId));
+    },
+
+// ---------- HEROES (GLOBAL) ----------
     heroRef(heroId){
       const { doc } = this.fb;
       return doc(this.db, "heroes", heroId);

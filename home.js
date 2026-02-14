@@ -57,6 +57,7 @@
   let tempCharImg = null;
   let tempProfileImg = null;
   let tempMiniBannerUrl = "";
+  let tempMiniBannerData = null; // base64 pequeno (Firestore-only)
   let tempMiniBannerFile = null;
 
   function initials(s){
@@ -75,7 +76,106 @@
     }
   }
 
-  function boot(){
+  
+  // =========================================================
+  // Image helpers (evita banners/fotos gigantes travarem o site)
+  // - converte arquivos em dataURL pequeno (canvas + compress)
+  // =========================================================
+  function readFileAsDataURL(file){
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ""));
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function loadImage(src){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  async function compressDataURL(dataUrl, {
+    targetW = 256,
+    targetH = 256,
+    mode = "cover",          // cover (corta) | contain (sem cortar)
+    mime = "image/webp",
+    quality = 0.82,
+    minQuality = 0.45,
+    maxChars = 90000,        // limite do base64 (string)
+    maxIters = 8,
+  } = {}){
+    const src = String(dataUrl || "");
+    if(!src.startsWith("data:")) return src;
+
+    let img;
+    try { img = await loadImage(src); }
+    catch { return src; }
+
+    const iw = img.naturalWidth || img.width || 1;
+    const ih = img.naturalHeight || img.height || 1;
+
+    // área de recorte (cover) ou encaixe (contain)
+    let sx=0, sy=0, sw=iw, sh=ih;
+
+    if(mode === "cover"){
+      const srcAR = iw / ih;
+      const dstAR = targetW / targetH;
+      if(srcAR > dstAR){
+        // imagem mais larga: corta laterais
+        sh = ih;
+        sw = Math.round(ih * dstAR);
+        sx = Math.round((iw - sw) / 2);
+        sy = 0;
+      }else{
+        // imagem mais alta: corta topo/baixo
+        sw = iw;
+        sh = Math.round(iw / dstAR);
+        sx = 0;
+        sy = Math.round((ih - sh) / 2);
+      }
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext("2d", { alpha: true });
+
+    ctx.clearRect(0,0,targetW,targetH);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+
+    let q = quality;
+    let out = "";
+    for(let i=0;i<maxIters;i++){
+      try{
+        out = canvas.toDataURL(mime, q);
+      }catch{
+        out = canvas.toDataURL("image/jpeg", q);
+      }
+      if(out.length <= maxChars || q <= minQuality) break;
+      q -= 0.07;
+    }
+    return out || src;
+  }
+
+  async function compressImageFile(file, opts){
+    const f = file;
+    if(!f) return null;
+    // evita travar com arquivos absurdos
+    if(f.size && f.size > 12 * 1024 * 1024){
+      alert("Essa imagem é grande demais. Use uma menor (até ~12MB).");
+      return null;
+    }
+    const data = await readFileAsDataURL(f);
+    return await compressDataURL(data, opts);
+  }
+
+
+function boot(){
     renderHeader();
     renderHeroes();
     bindEvents();
@@ -98,9 +198,9 @@
     return v || 1;
   }
 
-  function setMiniBanner(url){
-    tempMiniBannerUrl = url || "";
+  function setMiniBanner(src){
     if(!miniBannerPreview) return;
+    const url = String(src || "").trim();
     if(url){
       miniBannerPreview.classList.add("has-img");
       miniBannerPreview.style.backgroundImage = `url(${url})`;
@@ -253,19 +353,19 @@
     modalCreate.addEventListener("click", (e) => { if(e.target === modalCreate) closeModal(modalCreate); });
 
     charPhotoBtn.addEventListener("click", () => charFile.click());
-    charFile.addEventListener("change", () => {
+    charFile.addEventListener("change", async () => {
       const file = charFile.files && charFile.files[0];
       if(!file) return;
-      const r = new FileReader();
-      r.onload = (ev) => {
-        tempCharImg = ev.target.result;
-        charPreview.style.backgroundImage = `url(${tempCharImg})`;
-        charPreview.innerHTML = "";
-      };
-      r.readAsDataURL(file);
-    });
 
-    btnCreateConfirm.addEventListener("click", () => {
+      // reduz para não travar (quadrado)
+      const small = await compressImageFile(file, { targetW: 640, targetH: 640, maxChars: 140000, quality: 0.84 });
+      if(!small) return;
+
+      tempCharImg = small;
+      charPreview.style.backgroundImage = `url(${tempCharImg})`;
+      charPreview.innerHTML = "";
+    });
+btnCreateConfirm.addEventListener("click", () => {
       const nm = newName.value.trim() || "Novo Herói";
       const pl = newPlayer.value.trim();
       const cp = newCampaign.value.trim();
@@ -306,11 +406,11 @@
       // Mini perfil (ONLINE → Amigos)
       tempMiniBannerFile = null;
       const mini = u.miniProfile || {};
-      const _bannerUrl = (mini.bannerUrl || mini.bannerURL || "").trim();
-      const _bannerData = (mini.bannerData || "").trim();
-      if(miniBannerUrl) miniBannerUrl.value = _bannerUrl;
-      
-      setMiniBanner(_bannerData || _bannerUrl || "");
+      tempMiniBannerUrl = (mini.bannerURL || "").trim();
+      tempMiniBannerData = (typeof mini.bannerData === "string" && mini.bannerData.startsWith("data:")) ? mini.bannerData : null;
+
+      if(miniBannerUrl) miniBannerUrl.value = tempMiniBannerUrl || "";
+      setMiniBanner(tempMiniBannerUrl || tempMiniBannerData || "");
       populateFavHeroSelect();
       if(miniFavHero){
         // tenta selecionar por índice salvo, senão por nome
@@ -335,45 +435,55 @@
       btnMiniBanner.addEventListener("click", () => miniBannerFile.click());
     }
     if(miniBannerFile){
-      miniBannerFile.addEventListener("change", () => {
+      miniBannerFile.addEventListener("change", async () => {
         const f = miniBannerFile.files && miniBannerFile.files[0];
         if(!f) return;
+
+        // GIF via upload vira só 1 frame (canvas) e tende a ficar pesado — use URL para GIF
+        if(String(f.type||"").toLowerCase() === "image/gif"){
+          alert("Para GIF, use a opção de URL do banner (upload de GIF não é recomendado).");
+          miniBannerFile.value = "";
+          return;
+        }
+
         tempMiniBannerFile = f;
-        // preview imediata (local)
-        const reader = new FileReader();
-        reader.onload = () => {
-          const url = String(reader.result || "");
-          if(miniBannerUrl) miniBannerUrl.value = "";
-          setMiniBanner(url);
-        };
-        reader.readAsDataURL(f);
+
+        // comprime para banner retangular (Firestore-only)
+        const small = await compressImageFile(f, { targetW: 980, targetH: 240, maxChars: 90000, quality: 0.82 });
+        if(!small) return;
+
+        tempMiniBannerData = small;
+        tempMiniBannerUrl = "";
+        if(miniBannerUrl) miniBannerUrl.value = "";
+
+        setMiniBanner(tempMiniBannerData);
       });
-    }
+}
     if(miniBannerUrl){
       let tmr = null;
       miniBannerUrl.addEventListener("input", () => {
         clearTimeout(tmr);
         tmr = setTimeout(() => {
           tempMiniBannerFile = null;
-          const url = miniBannerUrl.value.trim();
-          setMiniBanner(url);
+          tempMiniBannerData = null; // URL vence o base64
+          tempMiniBannerUrl = miniBannerUrl.value.trim();
+          setMiniBanner(tempMiniBannerUrl);
         }, 120);
       });
-    }
+}
 
-    profileFile.addEventListener("change", () => {
+    profileFile.addEventListener("change", async () => {
       const file = profileFile.files && profileFile.files[0];
       if(!file) return;
-      const r = new FileReader();
-      r.onload = (ev) => {
-        tempProfileImg = ev.target.result;
-        profilePreview.style.backgroundImage = `url(${tempProfileImg})`;
-        profilePreview.innerHTML = "";
-      };
-      r.readAsDataURL(file);
-    });
 
-    btnProfileSave.addEventListener("click", async () => {
+      const small = await compressImageFile(file, { targetW: 256, targetH: 256, maxChars: 90000, quality: 0.82 });
+      if(!small) return;
+
+      tempProfileImg = small;
+      profilePreview.style.backgroundImage = `url(${tempProfileImg})`;
+      profilePreview.innerHTML = "";
+    });
+btnProfileSave.addEventListener("click", async () => {
       const btn = btnProfileSave;
       const oldTxt = btn.textContent;
       btn.disabled = true;
@@ -395,26 +505,19 @@
           }
         }
 
-        const localRaw = (tempMiniBannerUrl || "").trim();
-        const localIsData = localRaw.startsWith("data:");
-        const localUrl = localIsData ? "" : localRaw;
-        const localData = localIsData ? localRaw : "";
+        const bannerURL = (tempMiniBannerUrl || "").trim();
+        let bannerData = tempMiniBannerData;
 
-        // Cloud é Firestore-only: guarda URL externa (bannerUrl) e, opcionalmente, bannerData pequeno.
-        let cloudUrl = localUrl;
-        let cloudData = "";
-        if(localData){
-          if(localData.length <= 30000){
-            cloudData = localData;
-          }else{
-            // mantém apenas local; no cloud exige URL
-            cloudUrl = "";
-            cloudData = "";
-            alert("Esse banner é grande demais para salvar no Cloud. Use um link (URL) no campo Banner.");
-          }
+        // Se tiver URL, ela vence (evita base64 pesado)
+        if(bannerURL) bannerData = null;
+
+        // safety: se algo escapou do compress e ficou gigante, bloqueia
+        if(bannerData && String(bannerData).length > 140000){
+          alert("Banner muito pesado. Use uma imagem menor ou cole um link (URL).");
+          bannerData = null;
         }
 
-        const miniLocal = { bannerUrl: localUrl, bannerData: localData || null, bannerURL: localUrl, favorite: fav, favIndex };
+        const miniLocal = { bannerURL, bannerData, favorite: fav, favIndex };
         const patch = {
           nome: profileName.value.trim(),
           apelido: profileNick.value.trim(),
@@ -430,7 +533,7 @@
 
         // Sync cloud (se logado)
         if(window.VGCloud && VGCloud.enabled && VGCloud.user){
-          const miniCloud = { bannerUrl: cloudUrl, bannerData: cloudData || null, bannerURL: cloudUrl, favorite: fav, favIndex };
+          const miniCloud = { bannerURL, bannerData, favorite: fav, favIndex };
           await VGCloud.upsertMyProfile({
             name: patch.nome,
             nick: patch.apelido,

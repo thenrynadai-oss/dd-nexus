@@ -178,3 +178,63 @@
   overflow:hidden;
   text-overflow:ellipsis;
 }
+
+
+/* Update ping (imperceptível) */
+.vg-upd{
+  animation: vgUpd .22s ease-out;
+}
+@keyframes vgUpd{
+  from{ transform: translateY(1px) scale(.992); filter: brightness(1.06); }
+  to{ transform: translateY(0) scale(1); filter: brightness(1); }
+}
+
+/* Danger button (delete) */
+.btn-danger{
+  border-radius:14px;
+  border:1px solid rgba(255,80,80,.35);
+  background:rgba(255,80,80,.16);
+  color:rgba(255,255,255,.92);
+  padding:9px 10px;
+  cursor:pointer;
+}
+.btn-danger:hover{ filter: brightness(1.06); }
+
+/* Confirm modal */
+.vg-confirm{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+.vg-confirm.show{ display:flex; }
+.vg-confirm-box{
+  width:min(520px, calc(100% - 28px));
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.30);
+  box-shadow: 0 25px 80px rgba(0,0,0,.45);
+  padding:16px;
+}
+.vg-confirm-title{
+  font-weight:900;
+  letter-spacing:.02em;
+  color:rgba(255,255,255,.95);
+  margin-bottom:8px;
+}
+.vg-confirm-msg{
+  color:rgba(255,255,255,.70);
+  font-size:13px;
+  line-height:1.35;
+  margin-bottom:14px;
+}
+.vg-confirm-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+}

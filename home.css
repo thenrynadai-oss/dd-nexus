@@ -446,6 +446,29 @@
   font-size:11px;
 }
 
+.mini-profile-box select{
+  width:100%;
+  margin-top:6px;
+  border-radius:16px;
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color:rgba(255,255,255,.86);
+  outline:none;
+  -webkit-appearance:none;
+  appearance:none;
+}
+.mini-profile-box select:focus{
+  border-color: rgba(0,170,255,.45);
+  box-shadow: 0 0 0 3px rgba(0,170,255,.12);
+}
+.mini-profile-box option{
+  background:#0f0f12;
+  color:#ffffff;
+}
+
 @media (max-width: 560px){
   .mini-banner-row{ flex-direction:column; }
   .mini-banner-preview{ flex:0 0 auto; width:100%; height:104px; }
