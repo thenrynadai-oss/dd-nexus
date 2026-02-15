@@ -1095,13 +1095,17 @@
 
   function destroyFlipbook(){
     var $ = state.$;
-    if(!$) return;
-    var $fb = $('#vg-flipbook');
-    if($fb.length && $fb.data('turn')){
+    var el0 = document.getElementById('vg-flipbook');
+    if(!$){
+      if(el0) el0.innerHTML = '';
+      return;
+    }
+
+    var $fb = $(el0);
+    if($fb && $fb.length && $fb.data && $fb.data('turn')){
       try{ $fb.turn('destroy'); }catch(e){}
     }
-    var el = document.getElementById('vg-flipbook');
-    if(el) el.innerHTML = '';
+    if(el0) el0.innerHTML = '';
   }
 
   function makePageEl(pageNum){
@@ -1166,6 +1170,15 @@
     fbEl.style.width = Math.round(sizes.bookW) + 'px';
     fbEl.style.height = Math.round(sizes.bookH) + 'px';
 
+    // Turn.js pode “ficar vazio” se depender apenas do evento `missing`.
+    // Para garantir que sempre exista algo renderizável, inserimos as
+    // primeiras páginas antes do .turn().
+    var initialCount = (sizes.display === 'double') ? 6 : 3;
+    var maxInitial = Math.min(initialCount, pdf.numPages);
+    for(var pi=1; pi<=maxInitial; pi++){
+      fbEl.appendChild(makePageEl(pi));
+    }
+
     var $fb = $(fbEl);
 
     // turn.js: cria com num total de páginas e usa missing() pra lazy add
@@ -1177,6 +1190,7 @@
       acceleration: true,
       display: sizes.display,
       pages: pdf.numPages,
+      page: 1,
       when: {
         missing: function(e, pages){
           for(var i=0; i<pages.length; i++){
@@ -1204,12 +1218,15 @@
     // força carregar páginas iniciais
     $fb.turn('page', 1);
 
-    // renderiza já a capa rapidamente
+    // renderiza páginas iniciais rapidamente
     await wait(30);
-    var el1 = fbEl.querySelector('.page[data-page="1"]');
-    if(el1){
-      var c1 = el1.querySelector('canvas');
-      if(c1) await renderPageToCanvas(pdf, 1, c1, sizes.pageW, sizes.pageH);
+    for(var pj=1; pj<=maxInitial; pj++){
+      var elp = fbEl.querySelector('.page[data-page="'+pj+'"]');
+      if(!elp) continue;
+      var cc = elp.querySelector('canvas');
+      if(cc) {
+        try{ await renderPageToCanvas(pdf, pj, cc, sizes.pageW, sizes.pageH); }catch(e){}
+      }
     }
 
     hideLoading();
