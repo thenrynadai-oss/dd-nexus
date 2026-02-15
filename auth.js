@@ -25,6 +25,55 @@
 
   function makeUID(){
     return "u_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+
+// -----------------------------
+// Cloud sync (Firestore) - debounce para não martelar
+// -----------------------------
+let __vgCloudTimer = null;
+let __vgCloudQueue = {};
+
+function __isRemoteMirrorId(id){
+  const s = String(id || "");
+  return s.startsWith("remote_hero_") || s.startsWith("remote_share_") || s.startsWith("remote_");
+}
+
+function __scheduleCloudUpsert(heroObj){
+  try{
+    if(!window.VGCloud || !VGCloud.enabled || !VGCloud.user) return;
+    const id = heroObj?.id || heroObj?.heroId;
+    if(!id || __isRemoteMirrorId(id)) return;
+    __vgCloudQueue[id] = heroObj;
+
+    clearTimeout(__vgCloudTimer);
+    __vgCloudTimer = setTimeout(async ()=>{
+      const batch = __vgCloudQueue;
+      __vgCloudQueue = {};
+      for(const k in batch){
+        try{ await VGCloud.upsertHero(batch[k]); }catch(e){}
+      }
+    }, 400);
+  }catch(e){}
+}
+
+function __scheduleCloudDelete(heroId){
+  try{
+    if(!window.VGCloud || !VGCloud.enabled || !VGCloud.user) return;
+    if(!heroId || __isRemoteMirrorId(heroId)) return;
+
+    // prefer deep delete (shares + listas)
+    if(typeof VGCloud.deleteHeroDeep === "function"){
+      VGCloud.deleteHeroDeep(String(heroId)).catch(()=>{});
+      return;
+    }
+
+    // fallback
+    if(typeof VGCloud.deleteHero === "function"){
+      VGCloud.deleteHero(String(heroId)).catch(()=>{});
+    }
+  }catch(e){}
+}
+
   }
 
   function safeJSONParse(raw, fallback){
@@ -330,6 +379,10 @@
     users[idxU].heroes[heroIndex] = heroObj;
     users[idxU].updatedAt = nowISO();
     saveDB(users);
+
+    // Cloud autosync (debounced)
+    __scheduleCloudUpsert(heroObj);
+
     return { ok:true };
   }
 
@@ -341,9 +394,14 @@
     if(idxU === -1) return { ok:false, msg:"Conta não encontrada." };
 
     if(!users[idxU].heroes) users[idxU].heroes = [];
+    const heroObj = users[idxU].heroes[heroIndex] || null;
     users[idxU].heroes.splice(heroIndex, 1);
     users[idxU].updatedAt = nowISO();
     saveDB(users);
+
+    // Cloud delete cascade (best-effort)
+    __scheduleCloudDelete(heroObj && (heroObj.id || heroObj.heroId));
+
     return { ok:true };
   }
 

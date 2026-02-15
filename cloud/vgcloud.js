@@ -270,25 +270,81 @@
     },
 
     subscribeMyShared(cb){
-      if(!this.user) return ()=>{};
-      const { collection, onSnapshot } = this.fb;
+  if(!this.user) return ()=>{};
+  const { collection, onSnapshot } = this.fb;
+  try{
+    const c = collection(this.db, "users", this.user.uid, "shared");
+    return onSnapshot(c, async ()=>{
+      // revalida e faz auto-limpeza de tokens/heróis mortos
       try{
-        const c = collection(this.db, "users", this.user.uid, "shared");
-        return onSnapshot(c, (snap)=>{
-          const arr = snap.docs.map(d => ({ id: d.id, ...(d.data()||{}) }));
-          try{ cb(arr); }catch{}
-        }, (err)=>console.warn("[VGCloud] subscribeMyShared failed", err));
-      }catch(err){
-        console.warn("[VGCloud] subscribeMyShared exception", err);
-        return ()=>{};
+        const arr = await this.listMyShared();
+        cb(arr);
+      }catch(e){
+        cb([]);
       }
-    },
+    }, (err)=>console.warn("[VGCloud] subscribeMyShared failed", err));
+  }catch(err){
+    console.warn("[VGCloud] subscribeMyShared exception", err);
+    return ()=>{};
+  }
+},
 
-    async deleteHero(heroId){
-      if(!this.user) throw new Error("NOT_AUTH");
-      const { deleteDoc } = this.fb;
-      await deleteDoc(this.heroRef(heroId));
-    },
+async deleteHero(heroId){
+  // Mantém compat (chamadas antigas). Agora faz limpeza completa.
+  return this.deleteHeroDeep(heroId);
+},
+
+// Apaga o herói e limpa TUDO ligado a ele:
+// - some do Público (heroes/{hid})
+// - apaga shares que apontam pra esse herói
+// - remove tokens da lista /users/{uid}/shared do próprio usuário
+// Observação: não dá pra apagar a lista shared dentro de OUTRAS contas sem functions;
+// então a UI faz auto-limpeza quando esses usuários abrirem a aba Shared.
+async deleteHeroDeep(heroId){
+  if(!this.user) throw new Error("NOT_AUTH");
+  if(!heroId) return;
+
+  const { deleteDoc, doc, collection, getDocs, query, where } = this.fb;
+
+  const hid = String(heroId);
+  const tokens = new Set();
+
+  // shares novos
+  try{
+    const q1 = query(collection(this.db, "shares"), where("heroId","==", hid));
+    const s1 = await getDocs(q1);
+    s1.forEach(x => tokens.add(x.id));
+  }catch(e){}
+
+  try{
+    const q2 = query(collection(this.db, "shares"), where("sourceHid","==", hid));
+    const s2 = await getDocs(q2);
+    s2.forEach(x => tokens.add(x.id));
+  }catch(e){}
+
+  // compat: shares antigos (sem heroId/sourceHid)
+  try{
+    const q3 = query(collection(this.db, "shares"), where("data.id","==", hid));
+    const s3 = await getDocs(q3);
+    s3.forEach(x => tokens.add(x.id));
+  }catch(e){}
+
+  try{
+    const q4 = query(collection(this.db, "shares"), where("data.heroId","==", hid));
+    const s4 = await getDocs(q4);
+    s4.forEach(x => tokens.add(x.id));
+  }catch(e){}
+
+  // apaga shares (isso remove do Shared e mata os links)
+  for(const t of tokens){
+    try{ await deleteDoc(this.shareRef(t)); }catch(e){}
+    // remove da MINHA lista (os outros usuários limpam no próximo load)
+    try{ await deleteDoc(doc(this.db, "users", this.user.uid, "shared", t)); }catch(e){}
+  }
+
+  // apaga o herói (remove do Público e do dono)
+  try{ await deleteDoc(this.heroRef(hid)); }catch(e){}
+},
 
 // ---------- HEROES (GLOBAL) ----------
     heroRef(heroId){
@@ -455,11 +511,80 @@
     },
 
     async listMyShared(){
-      if(!this.user) return [];
-      const { collection, getDocs } = this.fb;
-      const snap = await getDocs(collection(this.db, "users", this.user.uid, "shared"));
-      return snap.docs.map(d => ({ id: d.id, ...(d.data()||{}) }));
-    },
+  if(!this.user) return [];
+  const { collection, getDocs, getDoc, doc, deleteDoc } = this.fb;
+
+  const snap = await getDocs(collection(this.db, "users", this.user.uid, "shared"));
+
+  const out = [];
+  for(const d of snap.docs){
+    const v = d.data() || {};
+    const kind = (v.kind || (String(d.id||"").startsWith("hero_") ? "hero" : "share")).toLowerCase();
+
+    // -------- PUBLIC HERO SAVED --------
+    if(kind === "hero"){
+      const hid = (v.hid || String(d.id||"").replace(/^hero_/, "")).trim();
+      if(!hid) continue;
+
+      try{
+        const hs = await getDoc(this.heroRef(hid));
+        if(!hs.exists()){
+          // herói apagado -> remove entrada do usuário
+          try{ await deleteDoc(doc(this.db, "users", this.user.uid, "shared", d.id)); }catch(e){}
+          continue;
+        }
+      }catch(e){
+        // se falhar o fetch, não apaga (evita falsos positivos)
+      }
+
+      out.push({
+        id: d.id,
+        kind: "hero",
+        hid,
+        name: v.name || null,
+        ownerUid: v.ownerUid || null,
+        ownerName: v.ownerName || null,
+        ownerPhotoURL: v.ownerPhotoURL || null,
+        addedAt: v.addedAt || null,
+        updatedAt: 0
+      });
+      continue;
+    }
+
+    // -------- SHARE TOKEN --------
+    const token = v.token || v.sid || d.id;
+    if(!token) continue;
+
+    try{
+      const sh = await getDoc(this.shareRef(token));
+      if(!sh.exists()){
+        // share apagado -> remove da lista do usuário automaticamente
+        try{ await deleteDoc(doc(this.db, "users", this.user.uid, "shared", d.id)); }catch(e){}
+        continue;
+      }
+      const sd = sh.data() || {};
+      out.push({
+        id: d.id,
+        kind: "share",
+        token,
+        mode: sd.mode || "read",
+        title: sd.title || "Ficha compartilhada",
+        ownerUid: sd.ownerUid || null,
+        ownerName: sd.ownerName || null,
+        ownerPhotoURL: sd.ownerPhotoURL || null,
+        heroId: sd.heroId || sd.sourceHid || null,
+        addedAt: v.addedAt || null,
+        updatedAt: sd.clientUpdatedAt || 0,
+      });
+    }catch(err){
+      out.push({ id:d.id, kind:"share", token, mode:"read", title:"Ficha compartilhada", ownerUid:null, ownerName:null, ownerPhotoURL:null, heroId:null, addedAt:v.addedAt||null, updatedAt:0 });
+    }
+  }
+
+  // ordena: shares mais recentes primeiro; heróis salvos ficam depois
+  out.sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0));
+  return out;
+},
 
     // ---------- PRESENCE ----------
     async joinPresence(kind, id, profile){
