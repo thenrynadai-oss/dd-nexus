@@ -175,7 +175,30 @@
   }
 
 
+
+  function cleanupRemoteClones(){
+    // remove clones antigos de fichas públicas/share (não devem aparecer em "Meus personagens")
+    try{
+      const u = Auth.getCurrentUser?.();
+      const heroes = u?.heroes || [];
+      const idxs = [];
+      for(let i=0;i<heroes.length;i++){
+        const id = heroes[i]?.id;
+        if(typeof id === "string" && (id.startsWith("remote_hero_") || id.startsWith("remote_share_"))){
+          idxs.push(i);
+        }
+      }
+      if(idxs.length){
+        idxs.sort((a,b)=>b-a).forEach(i=>{
+          try{ Auth.deleteHero(i); }catch{}
+        });
+      }
+    }catch{}
+  }
+
+
 function boot(){
+    cleanupRemoteClones();
     renderHeader();
     renderHeroes();
     bindEvents();
@@ -358,7 +381,7 @@ function boot(){
       if(!file) return;
 
       // reduz para não travar (quadrado)
-      const small = await compressImageFile(file, { targetW: 640, targetH: 640, maxChars: 140000, quality: 0.84 });
+      const small = await compressImageFile(file, { targetW: 640, targetH: 640, maxChars: 120000, quality: 0.84 });
       if(!small) return;
 
       tempCharImg = small;
@@ -476,7 +499,7 @@ btnCreateConfirm.addEventListener("click", () => {
       const file = profileFile.files && profileFile.files[0];
       if(!file) return;
 
-      const small = await compressImageFile(file, { targetW: 256, targetH: 256, maxChars: 90000, quality: 0.82 });
+      const small = await compressImageFile(file, { targetW: 256, targetH: 256, maxChars: 70000, quality: 0.82 });
       if(!small) return;
 
       tempProfileImg = small;

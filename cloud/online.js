@@ -495,13 +495,33 @@
             </div>
           `;
 
-          card.querySelector('button[data-open="read"]').addEventListener("click", ()=>{
+          card.querySelector('button[data-open="read"]').addEventListener("click", async ()=>{
+            try{
+              if(!isOwner && typeof VGCloud.addPublicHeroToMyShared === "function"){
+                await VGCloud.addPublicHeroToMyShared(h.id, {
+                  name: nm,
+                  ownerUid: h.ownerUid,
+                  ownerName: h.ownerName,
+                  ownerPhotoURL: h.ownerPhotoURL
+                });
+              }
+            }catch{}
             window.location.href = `ficha.html?hid=${encodeURIComponent(h.id)}&mode=read`;
           });
 
-          card.querySelector('button[data-open="edit"]').addEventListener("click", ()=>{
+          card.querySelector('button[data-open="edit"]').addEventListener("click", async ()=>{
             const b = card.querySelector('button[data-open="edit"]');
             if(b && b.disabled) return;
+            try{
+              if(!isOwner && typeof VGCloud.addPublicHeroToMyShared === "function"){
+                await VGCloud.addPublicHeroToMyShared(h.id, {
+                  name: nm,
+                  ownerUid: h.ownerUid,
+                  ownerName: h.ownerName,
+                  ownerPhotoURL: h.ownerPhotoURL
+                });
+              }
+            }catch{}
             window.location.href = `ficha.html?hid=${encodeURIComponent(h.id)}&mode=edit`;
           });
 
@@ -566,6 +586,43 @@
       const frag = document.createDocumentFragment();
 
       for(const it of entries){
+        const kind = (it.kind || (String(it.id||"").startsWith("hero_") ? "hero" : "share")).toLowerCase();
+
+        // -------- PUBLIC HERO SAVED --------
+        if(kind === "hero"){
+          const hid = it.hid || String(it.id||"").replace(/^hero_/, "");
+          if(!hid) continue;
+          const key = `hero_${hid}`;
+          keep.add(key);
+
+          let card = state.sharedCards.get(key);
+          if(!card){
+            card = document.createElement("div");
+            card.className = "vg-card";
+            card.innerHTML = `
+              <h4 class="vg-sh-title">Personagem público</h4>
+              <p class="vg-sh-meta"></p>
+              <div class="vg-actions">
+                <button class="primary">ABRIR</button>
+              </div>
+            `;
+            card.querySelector("button").addEventListener("click", ()=>{
+              window.location.href = `ficha.html?hid=${encodeURIComponent(hid)}&mode=read`;
+            });
+            state.sharedCards.set(key, card);
+            frag.appendChild(card);
+          }
+
+          const title = esc(it.name || "Personagem público");
+          const owner = esc(it.ownerName || "—");
+          card.querySelector(".vg-sh-title").textContent = title;
+          card.querySelector(".vg-sh-meta").textContent = `Dono: ${owner} • ID: ${hid}`;
+
+          if(!card.isConnected) frag.appendChild(card);
+          continue;
+        }
+
+        // -------- SHARE TOKEN --------
         const token = it.token || it.sid || it.id;
         if(!token) continue;
         keep.add(token);

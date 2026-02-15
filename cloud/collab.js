@@ -11,9 +11,15 @@
   const qs = (s)=>document.querySelector(s);
   const qsa = (s)=>Array.from(document.querySelectorAll(s));
 
+  function canonicalOrigin(){
+    try{
+      if(location && location.hostname === "dd-nexus.vercel.app") return location.origin;
+    }catch{}
+    return "https://dd-nexus.vercel.app";
+  }
+
   function buildShareLink(token){
-    const base = (location.href || "").split("?")[0].split("#")[0];
-    return `${base}?share=${encodeURIComponent(token)}`;
+    return `${canonicalOrigin()}/ficha.html?share=${encodeURIComponent(token)}`;
   }
 
 
@@ -512,11 +518,28 @@ function ensurePencilToggle(){
 
       let currentHero = null;
       let warned = false;
+      let addedShared = false;
 
       VGCloud.watchHero(heroId, (hero) => {
         currentHero = hero;
 
         const isOwner = (hero.ownerUid === VGCloud.user.uid);
+
+        // salva automaticamente em ONLINE → SHARED (para não poluir "Meus personagens")
+        if(!isOwner && !addedShared){
+          addedShared = true;
+          try{
+            if(typeof VGCloud.addPublicHeroToMyShared === "function"){
+              const title = (hero.nome || hero.dados?.["c-name"] || "Personagem público").toString();
+              VGCloud.addPublicHeroToMyShared(heroId, {
+                name: title,
+                ownerUid: hero.ownerUid,
+                ownerName: hero.ownerName,
+                ownerPhotoURL: hero.ownerPhotoURL
+              }).catch(()=>{});
+            }
+          }catch{}
+        }
         const canEdit = (mode === "edit") && (isOwner || hero.allowPublicEdit === true);
 
         if(mode === "edit" && !canEdit && !warned){
@@ -573,9 +596,20 @@ function ensurePencilToggle(){
       const heroes = u?.heroes || [];
       const h = (idx!=null && heroes[idx]) ? heroes[idx] : null;
       if(h && h.id){
-        await VGCloud.upsertHero(h);
-        setOwnerButton({ uid: VGCloud.user.uid, name: VGCloud.user.displayName, photoURL: VGCloud.user.photoURL });
+        try{ await VGCloud.upsertHero(h); }catch{}
       }
+
+      setOwnerButton({ uid: VGCloud.user.uid, name: VGCloud.user.displayName, photoURL: VGCloud.user.photoURL });
+
+      // Share precisa funcionar também na ficha LOCAL (owner)
+      const shareBtn = qs("#vg-menu-share");
+      if(shareBtn) shareBtn.style.display = "";
+
+      wireShareButtons(async (m) => {
+        const snap = collectHeroFromUI();
+        const token = await VGCloud.createShareRoom(snap, m);
+        qs("#vg-share-link").value = buildShareLink(token);
+      });
     }catch{}
   });
 })();

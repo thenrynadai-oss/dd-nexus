@@ -423,8 +423,28 @@
     async addToMyShared(token){
       if(!this.user) throw new Error("Sem auth");
       const { doc, setDoc, serverTimestamp } = this.fb;
-      await setDoc(doc(this.db, "users", this.user.uid, "shared", token), {
-        token,
+      const t = String(token||"").trim();
+      if(!t) return;
+      await setDoc(doc(this.db, "users", this.user.uid, "shared", t), {
+        kind: "share",
+        token: t,
+        addedAt: serverTimestamp()
+      }, { merge:true });
+    },
+
+    async addPublicHeroToMyShared(hid, meta={}){
+      if(!this.user) throw new Error("Sem auth");
+      const { doc, setDoc, serverTimestamp } = this.fb;
+      const id = String(hid||"").trim();
+      if(!id) return;
+      const docId = `hero_${id}`;
+      await setDoc(doc(this.db, "users", this.user.uid, "shared", docId), {
+        kind: "hero",
+        hid: id,
+        name: meta?.name || meta?.title || null,
+        ownerUid: meta?.ownerUid || null,
+        ownerName: meta?.ownerName || null,
+        ownerPhotoURL: meta?.ownerPhotoURL || null,
         addedAt: serverTimestamp()
       }, { merge:true });
     },
@@ -433,16 +453,7 @@
       if(!this.user) return [];
       const { collection, getDocs } = this.fb;
       const snap = await getDocs(collection(this.db, "users", this.user.uid, "shared"));
-      return snap.docs.map(d => {
-        const v = d.data() || {};
-        return {
-          uid: v.uid,
-          displayName: v.displayName || null,
-          nick: v.nick || null,
-          photoURL: v.photoURL || null,
-          miniProfile: v.miniProfile || null,
-        };
-      });
+      return snap.docs.map(d => ({ id: d.id, ...(d.data()||{}) }));
     },
 
     // ---------- PRESENCE ----------
