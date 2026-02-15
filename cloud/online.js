@@ -75,6 +75,10 @@
       heroList.parentElement.appendChild(panel);
     }
 
+    // Segurança: mesmo se o CSS não carregar (GitHub upload faltando),
+    // garante que ONLINE não fica "vazando" para outras abas.
+    panel.style.display = "none";
+
     // LIBRARY panel container (after heroList)
     let lib = document.getElementById("library-panel");
     if(!lib){
@@ -88,10 +92,27 @@
             <input id="vg-lib-search" placeholder="Buscar livro..." />
           </div>
         </div>
-        <div id="vg-lib-shelf" class="vg-lib-shelf"></div>
+        <div id="vg-lib-shelf" class="vg-lib-shelf">
+          <!-- Fallback: se o library.js/PDF libs não carregarem, pelo menos aparece algo -->
+          <div class="vg-book" data-book-id="dd5e" title="D&D 5e sistema">
+            <div class="spine"></div>
+            <div class="page-edges"></div>
+            <div class="peek"><div class="loading">Carregando…</div><div class="pages"><canvas></canvas><canvas></canvas></div></div>
+            <div class="cover"><div class="title">D&D 5e sistema</div><div class="sub">Livro do Jogador</div><div class="hint">Clique para abrir</div></div>
+          </div>
+          <div class="vg-book" data-book-id="valdas" title="Valda's Spire of Secrets">
+            <div class="spine"></div>
+            <div class="page-edges"></div>
+            <div class="peek"><div class="loading">Carregando…</div><div class="pages"><canvas></canvas><canvas></canvas></div></div>
+            <div class="cover"><div class="title">Valda's Spire of Secrets</div><div class="sub">Livro</div><div class="hint">Clique para abrir</div></div>
+          </div>
+        </div>
       `;
       heroList.parentElement.appendChild(lib);
     }
+
+    // Segurança: mesmo se o CSS não carregar, esconde a biblioteca por padrão.
+    lib.style.display = "none";
 
     // show/hide panels (FIX: restore display original do hero-grid)
     function showHub(which){
@@ -102,14 +123,19 @@
       panel.classList.remove("show");
       lib.classList.remove("show");
 
+      panel.style.display = "none";
+      lib.style.display = "none";
+
       if(which === "online"){
         btnOnline.classList.add("active");
         panel.classList.add("show");
+        panel.style.display = "";
         return;
       }
       if(which === "library"){
         btnLibrary && btnLibrary.classList.add("active");
         lib.classList.add("show");
+        lib.style.display = "";
         try{ window.dispatchEvent(new CustomEvent('vg:show-library')); }catch(e){}
         return;
       }
@@ -118,9 +144,20 @@
       heroBtn && heroBtn.classList.add("active");
       heroList.style.display = "";     // <<< FIX PRINCIPAL (não "block")
     }
-    heroBtn?.addEventListener("click", ()=>showHub("heroes"));
-    btnOnline.addEventListener("click", ()=>showHub("online"));
-    btnLibrary?.addEventListener("click", ()=>showHub("library"));
+
+    // Qualquer clique em aba que NÃO seja ONLINE/BIBLIOTECA volta para heróis
+    // (evita a biblioteca ficar "por cima" quando você clica em abas "Em breve").
+    nav.querySelectorAll('button.nav-btn').forEach((b)=>{
+      b.addEventListener('click', ()=>{
+        const id = b.id || '';
+        if(id === 'nav-online') return showHub('online');
+        if(id === 'nav-library') return showHub('library');
+        return showHub('heroes');
+      });
+    });
+
+    // Estado inicial
+    showHub('heroes');
 
     // ----- Add “Privado/Público” + “Edição pública” to create modal -----
     const modal = document.getElementById("modal-create");
