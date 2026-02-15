@@ -823,12 +823,23 @@
   function loadScriptOnce(key, src){
     return new Promise(function(resolve, reject){
       var url = resolveUrl(src);
-      if(document.querySelector('script[data-vg-lib="'+key+'"]')) return resolve();
+      var existing = document.querySelector('script[data-vg-lib="'+key+'"]');
+      if(existing){
+        if(existing.getAttribute('data-loaded') === '1') return resolve();
+        if(existing.readyState === 'complete' || existing.readyState === 'loaded'){
+          existing.setAttribute('data-loaded','1');
+          return resolve();
+        }
+        existing.addEventListener('load', function(){ existing.setAttribute('data-loaded','1'); resolve(); }, { once:true });
+        existing.addEventListener('error', function(){ reject(new Error('Falha ao carregar: '+url)); }, { once:true });
+        return;
+      }
       var s = document.createElement('script');
       s.src = url;
-      s.async = true;
+      s.async = false;
+      s.defer = false;
       s.setAttribute('data-vg-lib', key);
-      s.onload = function(){ resolve(); };
+      s.onload = function(){ s.setAttribute('data-loaded','1'); resolve(); };
       s.onerror = function(){ reject(new Error('Falha ao carregar: '+url)); };
       document.head.appendChild(s);
     });
@@ -840,7 +851,7 @@
     // CSS
     loadStyleOnce(LOCAL.CSS);
 
-    // pdf.js
+    // pdf.js (local)
     if(!window.pdfjsLib){
       await loadScriptOnce('pdfjs', LOCAL.PDFJS);
     }
@@ -849,30 +860,29 @@
     // worker local (mesma origem)
     try{
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = resolveUrl(LOCAL.PDFJS_WORKER);
-    }catch(e){ /* ignore */ }
+    }catch(e){}
 
-    // jQuery + turn.js
+    // Reaproveita instância já pronta
+    if(window.__VG_JQ && window.__VG_JQ.fn && window.__VG_JQ.fn.turn){
+      return { pdfjsLib: window.pdfjsLib, $: window.__VG_JQ };
+    }
+
+    // jQuery (local)
     if(!window.jQuery || !window.jQuery.fn){
       await loadScriptOnce('jquery', LOCAL.JQUERY);
     }
-    if(!window.jQuery || !window.jQuery.fn) throw new Error('jQuery não carregou');
+    var jq = window.jQuery || window.$;
+    if(!jq || !jq.fn) throw new Error('jQuery não carregou');
 
-    if(!window.jQuery.fn.turn){
+    // turn.js (local)
+    if(!jq.fn.turn){
       await loadScriptOnce('turn', LOCAL.TURN);
     }
+    if(!jq.fn.turn) throw new Error('Turn.js não carregou');
 
-    // isola jQuery do resto do site
-    try{
-      var jq = window.jQuery.noConflict(true);
-      window.__VG_JQ = jq; // guarda para reuso
-    }catch(e){
-      // se noConflict falhar, ainda dá pra usar
-      window.__VG_JQ = window.jQuery;
-    }
-
-    if(!window.__VG_JQ || !window.__VG_JQ.fn || !window.__VG_JQ.fn.turn){
-      throw new Error('Turn.js não carregou');
-    }
+    // Guarda e mantém global (não removemos window.jQuery,
+    // porque isso quebra próximas aberturas)
+    window.__VG_JQ = jq;
 
     return { pdfjsLib: window.pdfjsLib, $: window.__VG_JQ };
   }
