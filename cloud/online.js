@@ -942,62 +942,177 @@
 
     await ensureLibs();
 
-    function attachProgress(task, touch){
-      if(task && task.onProgress){
-        task.onProgress = function(evt){
-          try{ touch(); }catch(e){}
-          try{ if(onProgress) onProgress(evt); }catch(e){}
-        };
+    var url = resolveUrl(book.file);
+
+    function emit(evt){
+      try{ if(onProgress) onProgress(evt); }catch(e){}
+    }
+
+    function fmtBytes(n){
+      try{
+        if(!(n > 0)) return '';
+        var mb = n / 1024 / 1024;
+        if(mb < 1) return (Math.round(n/1024) + ' KB');
+        return (mb < 10 ? mb.toFixed(1) : mb.toFixed(0)) + ' MB';
+      }catch(e){ return ''; }
+    }
+
+    function raceTimeout(promise, ms, onTimeout){
+      return new Promise(function(resolve, reject){
+        var done = false;
+        var t = setTimeout(function(){
+          if(done) return;
+          done = true;
+          try{ if(onTimeout) onTimeout(); }catch(e){}
+          reject(new Error('timeout'));
+        }, ms);
+        promise.then(function(v){
+          if(done) return;
+          done = true;
+          clearTimeout(t);
+          resolve(v);
+        }).catch(function(err){
+          if(done) return;
+          done = true;
+          clearTimeout(t);
+          reject(err);
+        });
+      });
+    }
+
+    async function fetchPdfArrayBuffer(timeoutMs){
+      // Baixa o PDF inteiro e passa via {data: ArrayBuffer}.
+      // Isso evita travas de Range/Stream que às vezes ocorrem no deploy.
+      var controller = new AbortController();
+      var timer = setTimeout(function(){ try{ controller.abort(); }catch(e){} }, timeoutMs || 240000);
+      try{
+        var resp = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+        if(!resp || !resp.ok) throw new Error('HTTP ' + (resp ? resp.status : '0'));
+
+        var total = 0;
+        try{ total = parseInt(resp.headers.get('content-length') || '0', 10) || 0; }catch(e){}
+
+        if(resp.body && resp.body.getReader){
+          var reader = resp.body.getReader();
+          var chunks = [];
+          var received = 0;
+          while(true){
+            var r = await reader.read();
+            if(r.done) break;
+            if(r.value){
+              chunks.push(r.value);
+              received += r.value.length;
+              emit({ loaded: received, total: total || null, prettyLoaded: fmtBytes(received) });
+            }
+          }
+          var out = new Uint8Array(received);
+          var off = 0;
+          for(var i=0;i<chunks.length;i++){
+            out.set(chunks[i], off);
+            off += chunks[i].length;
+          }
+          return out.buffer;
+        }
+
+        var buf = await resp.arrayBuffer();
+        emit({ loaded: buf.byteLength, total: buf.byteLength, prettyLoaded: fmtBytes(buf.byteLength) });
+        return buf;
+      } finally {
+        clearTimeout(timer);
       }
     }
 
-    async function loadAttempt(opts){
+    async function openByUrl(opts){
+      // Tentativa rápida usando {url}. Ainda pode travar em alguns casos, então colocamos timeout real.
       var controller = new AbortController();
-      var lastProgressAt = Date.now();
+      var lastTouch = Date.now();
       var startedAt = Date.now();
-      function touch(){ lastProgressAt = Date.now(); }
+      function touch(){ lastTouch = Date.now(); }
 
       var task = state.pdfjs.getDocument(Object.assign({
-        url: resolveUrl(book.file),
+        url: url,
         disableStream: true,
         disableRange: true,
         disableAutoFetch: false,
         signal: controller.signal
       }, opts || {}));
 
-      attachProgress(task, touch);
+      if(task && task.onProgress){
+        task.onProgress = function(evt){
+          touch();
+          emit(evt);
+        };
+      }
 
-      var timer = setInterval(function(){
+      var kill = setInterval(function(){
         var now = Date.now();
-        if((now - lastProgressAt) > 20000) { try{ controller.abort(); }catch(e){} }
-        if((now - startedAt) > 240000) { try{ controller.abort(); }catch(e){} }
-      }, 1200);
+        if((now - lastTouch) > 15000) { try{ controller.abort(); }catch(e){} }
+        if((now - startedAt) > 180000) { try{ controller.abort(); }catch(e){} }
+      }, 900);
 
       try{
-        var pdf = await task.promise;
-        clearInterval(timer);
+        var pdf = await raceTimeout(task.promise, 185000, function(){ try{ controller.abort(); }catch(e){} });
+        clearInterval(kill);
         return pdf;
       }catch(e){
-        clearInterval(timer);
+        clearInterval(kill);
+        try{ controller.abort(); }catch(_e){}
+        try{ if(task && task.destroy) task.destroy(); }catch(_e2){}
+        throw e;
+      }
+    }
+
+    async function openByData(opts){
+      emit({ stage: 'downloading' });
+      var buf = await fetchPdfArrayBuffer(240000);
+      emit({ stage: 'processing' });
+
+      var task = state.pdfjs.getDocument(Object.assign({
+        data: buf,
+        disableStream: true,
+        disableRange: true,
+        disableAutoFetch: false
+      }, opts || {}));
+
+      try{
+        var pdf = await raceTimeout(task.promise, 185000, function(){ try{ if(task && task.destroy) task.destroy(); }catch(e){} });
+        return pdf;
+      }catch(e){
+        try{ if(task && task.destroy) task.destroy(); }catch(_e){}
         throw e;
       }
     }
 
     var p = (async function(){
       try{
-        var pdf = await loadAttempt({ disableWorker: false });
+        var pdf = await openByUrl({ disableWorker: false });
         var out = { pdf: pdf, pages: pdf.numPages };
         state.bookCache.set(book.id, out);
         return out;
-      }catch(err){
+      }catch(err1){
         try{
-          var pdf2 = await loadAttempt({ disableWorker: true });
+          var pdf2 = await openByUrl({ disableWorker: true });
           var out2 = { pdf: pdf2, pages: pdf2.numPages };
           state.bookCache.set(book.id, out2);
           return out2;
         }catch(err2){
-          state.bookCache.delete(book.id);
-          throw err2;
+          // Fallback definitivo: baixa inteiro e abre por {data}
+          try{
+            var pdf3 = await openByData({ disableWorker: false });
+            var out3 = { pdf: pdf3, pages: pdf3.numPages };
+            state.bookCache.set(book.id, out3);
+            return out3;
+          }catch(err3){
+            try{
+              var pdf4 = await openByData({ disableWorker: true });
+              var out4 = { pdf: pdf4, pages: pdf4.numPages };
+              state.bookCache.set(book.id, out4);
+              return out4;
+            }catch(err4){
+              state.bookCache.delete(book.id);
+              throw err4;
+            }
+          }
         }
       }
     })();
@@ -1005,6 +1120,7 @@
     state.bookCache.set(book.id, { promise: p });
     return await p;
   }
+
 
   /* =========================
      SHELF (cards)
@@ -1095,6 +1211,16 @@
     return Math.max(0, Math.min(100, Math.round((evt.loaded/evt.total)*100)));
   }
 
+  function fmtLoaded(evt){
+    if(!evt) return "";
+    if(evt.prettyLoaded) return String(evt.prettyLoaded);
+    if(!evt.loaded) return "";
+    var n = evt.loaded;
+    var mb = n/1024/1024;
+    if(mb < 1) return (Math.round(n/1024) + " KB");
+    return ((mb < 10 ? mb.toFixed(1) : mb.toFixed(0)) + " MB");
+  }
+
   async function runPeek(card, book){
     if(!card || !card.isConnected) return;
     var peek = $('.peek', card);
@@ -1107,8 +1233,21 @@
 
     try{
       var cached = await getPdf(book, function(evt){
+        if(!loading) return;
+        if(evt && evt.stage === "processing"){
+          loading.textContent = "processando…";
+          return;
+        }
         var p = pct(evt);
-        if(p != null && loading) loading.textContent = 'baixando… ' + p + '%';
+        if(p != null){
+          loading.textContent = "baixando… " + p + "%";
+          return;
+        }
+        if(evt && evt.loaded){
+          loading.textContent = "baixando… " + fmtLoaded(evt);
+          return;
+        }
+        loading.textContent = "carregando…";
       });
       var pdf = cached.pdf;
       var pages = cached.pages;
@@ -1221,7 +1360,31 @@
     $('#vg-lib-page', ov).textContent = 'carregando…';
 
     var host = document.getElementById('vg-lib-flip');
-    if(host) host.innerHTML = '<div class="vg-lib-error"><strong>Carregando livro…</strong><div style="opacity:.8;margin-top:6px">Se demorar muito, é porque o navegador travou o leitor (CDN/worker) ou o PDF é muito pesado.</div></div>';
+    if(host){
+      var rawUrl = resolveUrl(book.file);
+      host.innerHTML =
+        '<div class="vg-lib-error">'
+        + '<strong>Carregando livro…</strong>'
+        + '<div style="opacity:.85;margin-top:6px">Se demorar muito, tente abrir o PDF direto (às vezes o leitor trava no deploy).</div>'
+        + '<div class="actions" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
+        +   '<button class="icon-btn" id="vg-lib-openraw-loading">Abrir PDF</button>'
+        +   '<button class="icon-btn" id="vg-lib-cancel-loading">Fechar</button>'
+        + '</div>'
+        + '</div>';
+
+      var bR = document.getElementById('vg-lib-openraw-loading');
+      if(bR) bR.addEventListener('click', function(e){
+        e.stopPropagation();
+        try{ window.open(rawUrl, '_blank'); }catch(_e){}
+      });
+
+      var bC = document.getElementById('vg-lib-cancel-loading');
+      if(bC) bC.addEventListener('click', function(e){
+        e.stopPropagation();
+        closeViewer();
+      });
+    }
+
 
     try{
       await ensureLibs();
@@ -1232,8 +1395,22 @@
 
     try{
       var cached = await getPdf(book, function(evt){
+        var el = $('#vg-lib-page', ov);
+        if(!el) return;
+        if(evt && evt.stage === "processing"){
+          el.textContent = "processando…";
+          return;
+        }
         var p = pct(evt);
-        if(p != null) $('#vg-lib-page', ov).textContent = 'baixando… ' + p + '%';
+        if(p != null){
+          el.textContent = "baixando… " + p + "%";
+          return;
+        }
+        if(evt && evt.loaded){
+          el.textContent = "baixando… " + fmtLoaded(evt);
+          return;
+        }
+        el.textContent = "carregando…";
       });
 
       state.viewer.pdf = cached.pdf;
