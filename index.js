@@ -142,6 +142,19 @@
           return;
         }
 
+        // Email já existe? (Google/password)
+        if(typeof VGCloud.signInMethodsForEmail === "function"){
+          const methods = await VGCloud.signInMethodsForEmail(contact);
+          if(methods && methods.length){
+            if(methods.includes("google.com")){
+              showMsg("Esse email já está vinculado a uma conta Google. Use 'Entrar com Google' (ou faça login) — não dá pra criar uma segunda conta com o mesmo email.", "err");
+            }else{
+              showMsg("Já existe uma conta com esse email. Faça login em vez de criar outra.", "err");
+            }
+            return;
+          }
+        }
+
         await VGCloud.registerEmail(contact, payload.pass, {
           displayName: payload.nome,
           nick: payload.apelido,
@@ -168,6 +181,13 @@
         }
 
         window.Auth.setSessionUID(fbUid);
+
+        // garante cache local alinhado com o Cloud
+        try{
+          const cloudHeroes = await VGCloud.myHeroes();
+          if(window.Auth.mergeHeroesFromCloud) window.Auth.mergeHeroesFromCloud(cloudHeroes);
+        }catch(e){}
+
         showMsg("Conta Cloud criada! Indo para o HUB…");
         setTimeout(() => window.location.href = "home.html", 350);
         return;
@@ -175,6 +195,17 @@
       }catch(e){
         console.warn(e);
         const code = (e && (e.code || e.message)) ? String(e.code || e.message) : "";
+
+        if(code.includes("auth/email-already-in-use")){
+          const methods = (e && e.methods) ? e.methods : null;
+          if(methods && Array.isArray(methods) && methods.includes("google.com")){
+            showMsg("Esse email já está vinculado a uma conta Google. Use 'Entrar com Google' (ou faça login) — não dá pra criar outra conta com o mesmo email.", "err");
+          }else{
+            showMsg("Já existe uma conta com esse email. Faça login em vez de criar outra.", "err");
+          }
+          return;
+        }
+
         showMsg("Falha ao criar conta no Cloud. " + (code ? ("Detalhe: " + code) : "Verifique email/senha e as rules do Firebase."), "err");
         return;
       }
@@ -224,6 +255,12 @@
           provider,
         });
         window.Auth.setSessionUID(fbUser.uid);
+
+        // puxa fichas do Cloud (cross-device) antes de ir pro HUB
+        try{
+          const cloudHeroes = await VGCloud.myHeroes();
+          if(window.Auth.mergeHeroesFromCloud) window.Auth.mergeHeroesFromCloud(cloudHeroes);
+        }catch(e){}
 
         showMsg("Conectado no Cloud! Indo para o HUB…");
         setTimeout(() => window.location.href = "home.html", 250);

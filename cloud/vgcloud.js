@@ -36,7 +36,7 @@
       const authMod = await import(CDN + "firebase-auth.js");
       const fsMod   = await import(CDN + "firebase-firestore.js");
       const { initializeApp } = appMod;
-      const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } = authMod;
+      const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, fetchSignInMethodsForEmail } = authMod;
       // Storage propositalmente desativado (Firestore-only)
       const storage = null;
       const fbStorage = null;
@@ -92,6 +92,20 @@
       this.registerEmail = async (email, pass, { displayName, photoURL, nick } = {}) => {
         const e = String(email||"").trim().toLowerCase();
         const p = String(pass||"");
+        // se já existe (Google/password), retorna erro amigável
+        try{
+          const methods = await fetchSignInMethodsForEmail(this.auth, e);
+          if(methods && methods.length){
+            const err = new Error("email-already-in-use");
+            err.code = "auth/email-already-in-use";
+            err.methods = methods;
+            throw err;
+          }
+        }catch(err){
+          // se fetch falhar, deixa o createUser lidar
+          if(err && err.code === "auth/email-already-in-use") throw err;
+        }
+
         const res = await createUserWithEmailAndPassword(this.auth, e, p);
         if(displayName || photoURL){
           try{ await updateProfile(res.user, { displayName: displayName || res.user.displayName || null, photoURL: photoURL || res.user.photoURL || null }); }catch(e){}
@@ -99,6 +113,11 @@
         // cria/garante perfil no Firestore + índice de nick
         await this.ensureUserProfile({ nick, displayName, photoURL });
         return res.user;
+      };
+
+      this.signInMethodsForEmail = async (email) => {
+        const e = String(email||"").trim().toLowerCase();
+        try{ return await fetchSignInMethodsForEmail(this.auth, e); }catch(err){ return []; }
       };
 
       this.resolveNickToEmail = async (nick) => {
@@ -368,6 +387,26 @@ async deleteHeroDeep(heroId){
       }catch(err){
         console.warn("[VGCloud] myHeroes() failed", err);
         return [];
+      }
+    },
+
+    subscribeMyHeroes(cb){
+      if(!this.user) return () => {};
+      const { collection, query, where, onSnapshot } = this.fb;
+      try{
+        const q = query(
+          collection(this.db, "heroes"),
+          where("ownerUid","==", this.user.uid)
+        );
+        const unsub = onSnapshot(q, (snap)=>{
+          const arr = snap.docs.map(d => d.data());
+          arr.sort((a,b)=>(b?.clientUpdatedAt||0)-(a?.clientUpdatedAt||0));
+          try{ cb(arr); }catch(e){}
+        }, (err)=>{ console.warn("[VGCloud] subscribeMyHeroes error", err); });
+        return unsub;
+      }catch(err){
+        console.warn("[VGCloud] subscribeMyHeroes failed", err);
+        return () => {};
       }
     },
 

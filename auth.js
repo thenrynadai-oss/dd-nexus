@@ -25,55 +25,65 @@
 
   function makeUID(){
     return "u_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  }
 
+  // -----------------------------
+  // IDs
+  // -----------------------------
+  function makeHeroId(){
+    return "h_" + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+  }
 
-// -----------------------------
-// Cloud sync (Firestore) - debounce para não martelar
-// -----------------------------
-let __vgCloudTimer = null;
-let __vgCloudQueue = {};
+  // -----------------------------
+  // Cloud sync (Firestore) - debounce para não martelar
+  // -----------------------------
+  let __vgCloudTimer = null;
+  let __vgCloudQueue = {};
 
-function __isRemoteMirrorId(id){
-  const s = String(id || "");
-  return s.startsWith("remote_hero_") || s.startsWith("remote_share_") || s.startsWith("remote_");
-}
+  function __isRemoteMirrorId(id){
+    const s = String(id || "");
+    return s.startsWith("remote_hero_") || s.startsWith("remote_share_") || s.startsWith("remote_");
+  }
 
-function __scheduleCloudUpsert(heroObj){
-  try{
-    if(!window.VGCloud || !VGCloud.enabled || !VGCloud.user) return;
-    const id = heroObj?.id || heroObj?.heroId;
-    if(!id || __isRemoteMirrorId(id)) return;
-    __vgCloudQueue[id] = heroObj;
+  function __scheduleCloudUpsert(heroObj){
+    try{
+      if(!window.VGCloud || !VGCloud.enabled) return;
+      // garante init (no-op se já estiver pronto)
+      if(typeof VGCloud.init === "function") VGCloud.init().catch(()=>{});
 
-    clearTimeout(__vgCloudTimer);
-    __vgCloudTimer = setTimeout(async ()=>{
-      const batch = __vgCloudQueue;
-      __vgCloudQueue = {};
-      for(const k in batch){
-        try{ await VGCloud.upsertHero(batch[k]); }catch(e){}
+      const id = heroObj?.id || heroObj?.heroId;
+      if(!id || __isRemoteMirrorId(id)) return;
+
+      __vgCloudQueue[id] = heroObj;
+
+      clearTimeout(__vgCloudTimer);
+      __vgCloudTimer = setTimeout(async ()=> {
+        const batch = __vgCloudQueue;
+        __vgCloudQueue = {};
+        for(const k in batch){
+          try{
+            if(VGCloud.user) await VGCloud.upsertHero(batch[k]);
+          }catch(e){}
+        }
+      }, 420);
+    }catch(e){}
+  }
+
+  function __scheduleCloudDelete(heroId){
+    try{
+      if(!window.VGCloud || !VGCloud.enabled) return;
+      if(typeof VGCloud.init === "function") VGCloud.init().catch(()=>{});
+      if(!heroId || __isRemoteMirrorId(heroId)) return;
+      if(!VGCloud.user) return;
+
+      if(typeof VGCloud.deleteHeroDeep === "function"){
+        VGCloud.deleteHeroDeep(String(heroId)).catch(()=>{});
+        return;
       }
-    }, 400);
-  }catch(e){}
-}
-
-function __scheduleCloudDelete(heroId){
-  try{
-    if(!window.VGCloud || !VGCloud.enabled || !VGCloud.user) return;
-    if(!heroId || __isRemoteMirrorId(heroId)) return;
-
-    // prefer deep delete (shares + listas)
-    if(typeof VGCloud.deleteHeroDeep === "function"){
-      VGCloud.deleteHeroDeep(String(heroId)).catch(()=>{});
-      return;
-    }
-
-    // fallback
-    if(typeof VGCloud.deleteHero === "function"){
-      VGCloud.deleteHero(String(heroId)).catch(()=>{});
-    }
-  }catch(e){}
-}
-
+      if(typeof VGCloud.deleteHero === "function"){
+        VGCloud.deleteHero(String(heroId)).catch(()=>{});
+      }
+    }catch(e){}
   }
 
   function safeJSONParse(raw, fallback){
@@ -341,7 +351,95 @@ function __scheduleCloudDelete(heroId){
     return u?.heroes || [];
   }
 
-  function setCurrentHeroIndex(idx){
+  
+
+  // -----------------------------
+  // Cloud -> Local heroes sync
+  // -----------------------------
+  function _normalizeHeroLocal(h){
+    if(!h || typeof h !== "object") return null;
+    const hero = { ...h };
+    hero.dados = hero.dados || {};
+    hero.id = hero.id || hero.heroId || makeHeroId();
+    hero.heroId = hero.heroId || hero.id;
+    hero.visibility = hero.visibility || "private";
+    if(hero.visibility !== "public") hero.allowPublicEdit = false;
+    if(typeof hero.allowPublicEdit !== "boolean") hero.allowPublicEdit = false;
+    if(!Number.isFinite(hero.clientUpdatedAt)) hero.clientUpdatedAt = Date.now();
+    return hero;
+  }
+
+  function setHeroesFromCloud(cloudHeroes){
+    const users = loadDB();
+    const u = getCurrentUser();
+    if(!u) return { ok:false, msg:"Sem sessão." };
+    const idxU = users.findIndex(x => x.uid === u.uid);
+    if(idxU === -1) return { ok:false, msg:"Conta não encontrada." };
+
+    const arr = Array.isArray(cloudHeroes) ? cloudHeroes : [];
+    const normalized = [];
+    for(const h of arr){
+      const nh = _normalizeHeroLocal(h);
+      if(nh && !__isRemoteMirrorId(nh.id)) normalized.push(nh);
+    }
+
+    users[idxU].heroes = normalized;
+    users[idxU].updatedAt = nowISO();
+    saveDB(users);
+    return { ok:true, count: normalized.length };
+  }
+
+  function mergeHeroesFromCloud(cloudHeroes){
+    const users = loadDB();
+    const u = getCurrentUser();
+    if(!u) return { ok:false, msg:"Sem sessão." };
+    const idxU = users.findIndex(x => x.uid === u.uid);
+    if(idxU === -1) return { ok:false, msg:"Conta não encontrada." };
+
+    const localArr = Array.isArray(users[idxU].heroes) ? users[idxU].heroes : [];
+    const cloudArr = Array.isArray(cloudHeroes) ? cloudHeroes : [];
+
+    const cloudMap = {};
+    cloudArr.forEach(h=>{
+      const nh = _normalizeHeroLocal(h);
+      if(!nh) return;
+      cloudMap[nh.id] = nh;
+    });
+
+    const mergedMap = { ...cloudMap };
+
+    // merge local
+    for(const lh0 of localArr){
+      const lh = _normalizeHeroLocal(lh0);
+      if(!lh) continue;
+      if(__isRemoteMirrorId(lh.id)) continue;
+
+      const ch = mergedMap[lh.id];
+      if(!ch){
+        // herói local ainda não existe no cloud (offline / migração) -> sobe
+        mergedMap[lh.id] = lh;
+        __scheduleCloudUpsert(lh);
+      }else{
+        // resolve conflito pela data do cliente
+        const lc = Number(lh.clientUpdatedAt||0);
+        const cc = Number(ch.clientUpdatedAt||0);
+        if(lc > cc){
+          mergedMap[lh.id] = lh;
+          __scheduleCloudUpsert(lh);
+        }
+      }
+    }
+
+    const merged = Object.values(mergedMap);
+    merged.sort((a,b)=>(b.clientUpdatedAt||0)-(a.clientUpdatedAt||0));
+
+    users[idxU].heroes = merged;
+    users[idxU].updatedAt = nowISO();
+    saveDB(users);
+    return { ok:true, count: merged.length };
+  }
+
+function setCurrentHeroIndex(idx){
     localStorage.setItem("nexus_current_hero_idx", String(idx));
   }
 
@@ -359,10 +457,28 @@ function __scheduleCloudDelete(heroId){
     const idxU = users.findIndex(x => x.uid === u.uid);
     if(idxU === -1) return { ok:false, msg:"Conta não encontrada." };
 
+    if(!heroObj || typeof heroObj !== "object") return { ok:false, msg:"Herói inválido." };
+    if(!heroObj.dados) heroObj.dados = {};
+
+    // garante ID estável (cloud precisa disso)
+    heroObj.id = heroObj.id || heroObj.heroId || makeHeroId();
+    heroObj.heroId = heroObj.heroId || heroObj.id;
+
+    // defaults de visibilidade
+    heroObj.visibility = heroObj.visibility || "private";
+    if(heroObj.visibility !== "public") heroObj.allowPublicEdit = false;
+    if(typeof heroObj.allowPublicEdit !== "boolean") heroObj.allowPublicEdit = false;
+
+    heroObj.clientUpdatedAt = Date.now();
+
     if(!users[idxU].heroes) users[idxU].heroes = [];
     users[idxU].heroes.push(heroObj);
     users[idxU].updatedAt = nowISO();
     saveDB(users);
+
+    // Cloud autosync (debounced)
+    __scheduleCloudUpsert(heroObj);
+
     return { ok:true };
   }
 
@@ -375,6 +491,19 @@ function __scheduleCloudDelete(heroId){
 
     if(!users[idxU].heroes) users[idxU].heroes = [];
     if(heroIndex < 0 || heroIndex >= users[idxU].heroes.length) return { ok:false, msg:"Herói inválido." };
+    if(!heroObj || typeof heroObj !== "object") return { ok:false, msg:"Herói inválido." };
+    if(!heroObj.dados) heroObj.dados = {};
+
+    // garante ID estável
+    heroObj.id = heroObj.id || heroObj.heroId || users[idxU].heroes[heroIndex]?.id || makeHeroId();
+    heroObj.heroId = heroObj.heroId || heroObj.id;
+
+    // defaults de visibilidade
+    heroObj.visibility = heroObj.visibility || users[idxU].heroes[heroIndex]?.visibility || "private";
+    if(heroObj.visibility !== "public") heroObj.allowPublicEdit = false;
+    if(typeof heroObj.allowPublicEdit !== "boolean") heroObj.allowPublicEdit = false;
+
+    heroObj.clientUpdatedAt = Date.now();
 
     users[idxU].heroes[heroIndex] = heroObj;
     users[idxU].updatedAt = nowISO();
@@ -504,6 +633,8 @@ function __scheduleCloudDelete(heroId){
     setSessionUID,
     // heroes
     getHeroes,
+    setHeroesFromCloud,
+    mergeHeroesFromCloud,
     addHero,
     updateHero,
     deleteHero,

@@ -6,12 +6,78 @@
 (() => {
   "use strict";
 
+  let __cloudMyHeroesUnsub = null;
+
+  async function _bootstrapCloudSession(){
+    if(!(window.VGCloud && VGCloud.enabled)) return false;
+    try{
+      await VGCloud.init();
+      // espera ao menos 1 tick do onAuth
+      await new Promise(res=>{
+        let done=false;
+        VGCloud.onAuth(()=>{ if(done) return; done=true; res(); });
+        setTimeout(()=>{ if(!done){ done=true; res(); } }, 700);
+      });
+      if(!VGCloud.user) return false;
+
+      try{ await VGCloud.ensureUserProfile({}); }catch(e){}
+      const prof = await VGCloud.getMyProfile().catch(()=>null);
+      const fb = VGCloud.user;
+      const provider = (fb.providerData && fb.providerData[0] && fb.providerData[0].providerId) || "password";
+      Auth.upsertCloudUser({
+        uid: fb.uid,
+        nome: prof?.displayName || fb.displayName || "Agente",
+        apelido: prof?.nick || (fb.email ? fb.email.split("@")[0] : "agente"),
+        email: fb.email || null,
+        profileImg: prof?.photoURL || fb.photoURL || null,
+        provider,
+      });
+      Auth.setSessionUID(fb.uid);
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+
+  async function _initCloudHeroesSync(){
+    if(!(window.VGCloud && VGCloud.enabled)) return;
+
+    try{
+      await VGCloud.init();
+      if(!VGCloud.user) return;
+
+      // sync inicial (merge: sobe local offline se precisar)
+      try{
+        const cloudHeroes = await VGCloud.myHeroes();
+        if(window.Auth.mergeHeroesFromCloud) window.Auth.mergeHeroesFromCloud(cloudHeroes);
+      }catch(e){}
+
+      // subscribe realtime
+      if(__cloudMyHeroesUnsub) return;
+      if(typeof VGCloud.subscribeMyHeroes === "function"){
+        __cloudMyHeroesUnsub = VGCloud.subscribeMyHeroes((cloudHeroes)=>{
+          try{
+            if(window.Auth.setHeroesFromCloud) window.Auth.setHeroesFromCloud(cloudHeroes);
+            renderHeader();
+            renderHeroes();
+          }catch(e){}
+        });
+      }
+    }catch(e){}
+  }
+
+
   // Require session
-  window.addEventListener("load", () => {
+  window.addEventListener("load", async () => {
+    // Se não tiver sessão local (localStorage limpo), tenta restaurar pelo Firebase (cross-device)
+    if(!window.Auth.requireSession({})){
+      await _bootstrapCloudSession();
+    }
     if(!window.Auth.requireSession({ redirectTo:"index.html" })) return;
     if(window.Theme && Theme.applySavedTheme) Theme.applySavedTheme();
     if(window.BG && BG.mount) BG.mount();
 
+    await _initCloudHeroesSync();
     boot();
   });
 
