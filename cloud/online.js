@@ -863,6 +863,9 @@
       .vg-page{ display:flex; align-items:center; justify-content:center; background:#111; }
       .vg-page canvas{ display:block; }
       .vg-page .ph{ font-size:12px; opacity:.85; padding:10px 14px; border-radius:12px; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.12); }
+
+      .vg-lib-error{ max-width:920px; margin:0 auto; padding:16px 16px; border-radius:18px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.26); color:rgba(255,255,255,.92); backdrop-filter: blur(10px); }
+      .vg-lib-error strong{ display:block; font-size:14px; }
     `;
     document.head.appendChild(css);
   }
@@ -939,25 +942,56 @@
 
     await ensureLibs();
 
-    var p = (async function(){
-      var url = resolveUrl(book.file);
-      var task;
+    function attachProgress(task, touch){
+      if(task && task.onProgress){
+        task.onProgress = function(evt){
+          try{ touch(); }catch(e){}
+          try{ if(onProgress) onProgress(evt); }catch(e){}
+        };
+      }
+    }
+
+    async function loadAttempt(opts){
+      var controller = new AbortController();
+      var lastProgressAt = Date.now();
+      var startedAt = Date.now();
+      function touch(){ lastProgressAt = Date.now(); }
+
+      var task = state.pdfjs.getDocument(Object.assign({
+        url: resolveUrl(book.file),
+        disableStream: true,
+        disableRange: true,
+        disableAutoFetch: false,
+        signal: controller.signal
+      }, opts || {}));
+
+      attachProgress(task, touch);
+
+      var timer = setInterval(function(){
+        var now = Date.now();
+        if((now - lastProgressAt) > 20000) { try{ controller.abort(); }catch(e){} }
+        if((now - startedAt) > 240000) { try{ controller.abort(); }catch(e){} }
+      }, 1200);
+
       try{
-        task = state.pdfjs.getDocument({ url: url, disableWorker: false });
-        if(onProgress && task && task.onProgress){
-          task.onProgress = function(evt){ try{ onProgress(evt); }catch(e){} };
-        }
         var pdf = await task.promise;
+        clearInterval(timer);
+        return pdf;
+      }catch(e){
+        clearInterval(timer);
+        throw e;
+      }
+    }
+
+    var p = (async function(){
+      try{
+        var pdf = await loadAttempt({ disableWorker: false });
         var out = { pdf: pdf, pages: pdf.numPages };
         state.bookCache.set(book.id, out);
         return out;
       }catch(err){
         try{
-          task = state.pdfjs.getDocument({ url: url, disableWorker: true });
-          if(onProgress && task && task.onProgress){
-            task.onProgress = function(evt){ try{ onProgress(evt); }catch(e){} };
-          }
-          var pdf2 = await task.promise;
+          var pdf2 = await loadAttempt({ disableWorker: true });
           var out2 = { pdf: pdf2, pages: pdf2.numPages };
           state.bookCache.set(book.id, out2);
           return out2;
@@ -1177,7 +1211,6 @@
   }
 
   async function openViewer(book){
-    await ensureLibs();
     var ov = ensureViewerShell();
 
     ov.classList.add('show');
@@ -1187,15 +1220,58 @@
     $('#vg-lib-title', ov).textContent = book.title;
     $('#vg-lib-page', ov).textContent = 'carregando…';
 
-    var cached = await getPdf(book, function(evt){
-      var p = pct(evt);
-      if(p != null) $('#vg-lib-page', ov).textContent = 'baixando… ' + p + '%';
-    });
+    var host = document.getElementById('vg-lib-flip');
+    if(host) host.innerHTML = '<div class="vg-lib-error"><strong>Carregando livro…</strong><div style="opacity:.8;margin-top:6px">Se demorar muito, é porque o navegador travou o leitor (CDN/worker) ou o PDF é muito pesado.</div></div>';
 
-    state.viewer.pdf = cached.pdf;
-    state.viewer.pages = cached.pages;
+    try{
+      await ensureLibs();
+    }catch(e){
+      showViewerError(book, 'Falha ao carregar o leitor (scripts externos bloqueados).', e);
+      return;
+    }
 
-    buildFlip();
+    try{
+      var cached = await getPdf(book, function(evt){
+        var p = pct(evt);
+        if(p != null) $('#vg-lib-page', ov).textContent = 'baixando… ' + p + '%';
+      });
+
+      state.viewer.pdf = cached.pdf;
+      state.viewer.pages = cached.pages;
+
+      buildFlip();
+    }catch(e2){
+      showViewerError(book, 'Não consegui abrir o PDF. Pode ser Range/Stream do deploy ou download travado.', e2);
+    }
+  }
+
+  function showViewerError(book, msg, err){
+    var ov = document.getElementById('vg-lib-viewer');
+    var host = document.getElementById('vg-lib-flip');
+    var url = resolveUrl(book.file);
+    if(ov){
+      $('#vg-lib-title', ov).textContent = book.title;
+      $('#vg-lib-page', ov).textContent = 'erro';
+    }
+    if(host){
+      var details = '';
+      try{ details = (err && err.message) ? String(err.message) : String(err||''); }catch(e){}
+      host.innerHTML =
+        '<div class="vg-lib-error">'
+        + '<strong>'+esc(msg)+'</strong>'
+        + '<div style="opacity:.85;margin-top:8px">Teste abrindo o PDF direto no navegador. Se abrir, o problema é só no leitor.</div>'
+        + '<div class="actions" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
+        +   '<button class="icon-btn" id="vg-lib-openraw">Abrir PDF</button>'
+        +   '<button class="icon-btn" id="vg-lib-retry">Tentar de novo</button>'
+        + '</div>'
+        + (details ? ('<div style="opacity:.6;margin-top:10px;font-size:12px">'+esc(details)+'</div>') : '')
+        + '</div>';
+
+      var b1 = document.getElementById('vg-lib-openraw');
+      if(b1) b1.addEventListener('click', function(e){ e.stopPropagation(); try{ window.open(url, '_blank'); }catch(_e){} });
+      var b2 = document.getElementById('vg-lib-retry');
+      if(b2) b2.addEventListener('click', function(e){ e.stopPropagation(); openViewer(book); });
+    }
   }
 
   function closeViewer(){

@@ -1,0 +1,296 @@
+/* =========================================================
+   VASTERIA GATE — BIBLIOTECA (AnyFlip-like)
+   - Card 3D abre como livro
+   - Preview (duas páginas) dentro do card
+   - Viewer fullscreen flipbook
+   ========================================================= */
+
+.vg-library-wrap{ display:none; }
+.vg-library-wrap.show{ display:block; }
+
+.vg-library-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:10px 0 14px;
+}
+
+.vg-library-title{
+  padding:12px 16px;
+  border-radius:18px;
+  font-weight:900;
+  letter-spacing:.8px;
+}
+
+.vg-library-search{ flex:1; display:flex; justify-content:flex-end; }
+.vg-library-search input{
+  width:min(520px, 100%);
+  padding:12px 14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.22);
+  color:rgba(255,255,255,.92);
+  outline:none;
+  backdrop-filter: blur(8px);
+}
+.vg-library-search input::placeholder{ color:rgba(255,255,255,.55); }
+
+.vg-lib-shelf{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
+  gap:14px;
+}
+
+/* =========================
+   BOOK CARD (3D)
+========================= */
+
+.vg-book{
+  position:relative;
+  border-radius:22px;
+  overflow:hidden;
+  min-height:280px;
+  cursor:pointer;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(0,0,0,.18);
+  box-shadow:0 16px 60px rgba(0,0,0,.38);
+  transform:translateZ(0);
+  perspective: 1000px;
+}
+
+.vg-book::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(1200px 520px at 20% 10%, rgba(255,255,255,.16), transparent 55%),
+    linear-gradient(135deg, rgba(255,255,255,.08), rgba(0,0,0,.22));
+  pointer-events:none;
+}
+
+.vg-book:hover{
+  transform: translateY(-2px);
+  border-color: rgba(0,170,255,.35);
+  box-shadow:0 22px 70px rgba(0,0,0,.48);
+}
+
+.vg-book .spine{
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.30));
+  z-index:3;
+}
+
+/* “folhas” na borda direita */
+.vg-book .page-edges{
+  position:absolute;
+  top:14px;
+  bottom:14px;
+  right:10px;
+  width:14px;
+  border-radius:12px;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255,255,255,.20) 0px,
+      rgba(255,255,255,.06) 2px,
+      rgba(0,0,0,.00) 4px
+    );
+  opacity:.35;
+  filter: blur(.2px);
+  z-index:1;
+}
+
+/* COVER — abre como livro */
+.vg-book .cover{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  padding:16px;
+  gap:8px;
+
+  border-left: 1px solid rgba(255,255,255,.10);
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.30)),
+    radial-gradient(900px 420px at 30% 10%, rgba(255,255,255,.10), transparent 55%);
+
+  transform-origin:left center;
+  transform-style: preserve-3d;
+  backface-visibility:hidden;
+  transition: transform .35s ease, filter .35s ease;
+  z-index:2;
+}
+
+.vg-book:hover .cover{
+  transform: perspective(1000px) rotateY(-118deg);
+  filter: brightness(.95);
+}
+
+.vg-book .cover .title{
+  font-weight:950;
+  font-size:16px;
+  line-height:1.15;
+  color:rgba(255,255,255,.95);
+  text-shadow:0 12px 30px rgba(0,0,0,.6);
+}
+
+.vg-book .cover .sub{
+  font-size:12px;
+  color:rgba(255,255,255,.72);
+}
+
+.vg-book .cover .hint{
+  margin-top:6px;
+  font-size:11px;
+  color:rgba(255,255,255,.55);
+}
+
+/* PREVIEW (duas páginas) — aparece quando a capa abre */
+.vg-book .peek{
+  position:absolute;
+  left:14px;
+  right:22px;
+  top:14px;
+  height:165px;
+  border-radius:18px;
+  overflow:hidden;
+
+  opacity:0;
+  transform:perspective(900px) rotateY(-12deg) scale(.96);
+  transform-origin:left center;
+  transition:opacity .18s ease, transform .30s ease;
+
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.18);
+  z-index:0;
+}
+
+.vg-book:hover .peek{
+  opacity:1;
+  transform:perspective(900px) rotateY(0deg) scale(1);
+}
+
+.vg-book .peek .pages{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  height:100%;
+}
+
+.vg-book .peek canvas{
+  width:100%;
+  height:100%;
+  display:block;
+  background:rgba(255,255,255,.04);
+}
+
+.vg-book .peek .loading{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  color:rgba(255,255,255,.78);
+  backdrop-filter:blur(10px);
+  background:rgba(0,0,0,.22);
+}
+
+/* =========================
+   VIEWER FULLSCREEN
+========================= */
+
+.vg-lib-viewer-overlay{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:none;
+  background:rgba(0,0,0,.72);
+  backdrop-filter:blur(10px);
+}
+.vg-lib-viewer-overlay.show{ display:block; }
+
+.vg-lib-viewer-top{
+  position:absolute;
+  left:14px; right:14px; top:14px;
+  border-radius:20px;
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.vg-lib-viewer-top .left{ display:flex; align-items:center; gap:10px; }
+.vg-lib-viewer-top .meta{ display:flex; flex-direction:column; line-height:1.1; }
+.vg-lib-viewer-top .meta strong{ font-size:14px; }
+.vg-lib-viewer-top .meta span{ font-size:12px; opacity:.85; }
+
+.vg-lib-flip-wrap{
+  position:absolute;
+  left:0; right:0;
+  top:72px; bottom:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+/* animação de entrada tipo AnyFlip */
+.vg-lib-flip-wrap.animate-in{
+  animation: vgLibIn .32s ease both;
+}
+@keyframes vgLibIn{
+  from{ opacity:0; transform: scale(.965); }
+  to{ opacity:1; transform: scale(1); }
+}
+
+#vg-lib-flip{
+  width:min(1100px, calc(100vw - 36px));
+  height:min(760px, calc(100vh - 110px));
+}
+
+.vg-page{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(255,255,255,.03);
+}
+
+.vg-page canvas{
+  width:100%;
+  height:100%;
+  display:block;
+  background:rgba(255,255,255,.02);
+}
+
+.vg-page .ph{
+  font-size:12px;
+  color:rgba(255,255,255,.72);
+}
+
+/* Erros / fallback */
+.vg-lib-error{
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 16px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.26);
+  color: rgba(255,255,255,.92);
+  backdrop-filter: blur(10px);
+}
+
+.vg-lib-error strong{ display:block; font-size:14px; }
+
+
+@media (max-width: 700px){
+  #vg-lib-flip{ height: calc(100vh - 140px); }
+  .vg-library-top{ flex-direction:column; align-items:stretch; }
+  .vg-library-search{ justify-content:stretch; }
+}
