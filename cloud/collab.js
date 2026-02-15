@@ -31,14 +31,64 @@
   }
 
   function setReadOnly(ro){
+    // Modo leitura: nada pode alterar dados (inputs + steppers + modais de edição)
+    document.documentElement.classList.toggle("vg-readonly", !!ro);
+
+    // Inputs principais
     qsa(".save-field").forEach(el=>{
+      const tag = (el.tagName || "").toUpperCase();
+      const isCheck = (el.type === "checkbox");
+
       if(ro){
         el.setAttribute("data-prev-disabled", el.disabled ? "1":"0");
-        el.disabled = true;
+        el.setAttribute("data-prev-readonly", el.readOnly ? "1":"0");
+        el.setAttribute("data-prev-pe", el.style.pointerEvents || "");
+        el.style.pointerEvents = "none";
+
+        if(isCheck || tag === "SELECT") el.disabled = true;
+        else el.readOnly = true;
       }else{
-        const prev = el.getAttribute("data-prev-disabled");
-        if(prev === "0") el.disabled = false;
+        const prevD = el.getAttribute("data-prev-disabled");
+        const prevR = el.getAttribute("data-prev-readonly");
+        const prevPE = el.getAttribute("data-prev-pe");
+
+        el.style.pointerEvents = (prevPE != null) ? prevPE : "";
+        if(prevD === "0") el.disabled = false;
+        if(prevR === "0") el.readOnly = false;
       }
+    });
+
+    // Botões de +/- (atributos, perícias e steppers)
+    qsa("button.step-btn, .glass-stepper .step-down, .glass-stepper .step-up").forEach(btn=>{
+      if(ro){
+        btn.setAttribute("data-prev-disabled", btn.disabled ? "1":"0");
+        btn.disabled = true;
+        btn.style.pointerEvents = "none";
+      }else{
+        const prev = btn.getAttribute("data-prev-disabled");
+        if(prev === "0") btn.disabled = false;
+        btn.style.pointerEvents = "";
+      }
+    });
+
+    // Bloqueia edição do personagem (lápis) quando em leitura
+    ["#btn-edit-character", "#btn-edit-char-save", "#btn-edit-char-pick", "#btn-edit-char-remove"].forEach(sel=>{
+      const b = qs(sel);
+      if(!b) return;
+      if(ro){
+        b.setAttribute("data-prev-disabled", b.disabled ? "1":"0");
+        b.disabled = true;
+        b.style.pointerEvents = "none";
+      }else{
+        const prev = b.getAttribute("data-prev-disabled");
+        if(prev === "0") b.disabled = false;
+        b.style.pointerEvents = "";
+      }
+    });
+
+    // Qualquer contenteditable
+    qsa('[contenteditable="true"]').forEach(el=>{
+      if(ro) el.setAttribute("contenteditable","false");
     });
   }
 
@@ -498,10 +548,27 @@ function ensurePencilToggle(){
       bindOutbound((patch) => {
         if(!current || current.mode !== "edit") return;
         VGCloud.patchShare(shareId, patch).catch(()=>{});
+
+        // Se o share estiver ligado a um hero (heroId), tenta manter conectado também
+        // (isso funciona quando o hero é público e/ou o usuário tem permissão de update)
+        const linkedHeroId = current.heroId || current.sourceHid;
+        if(linkedHeroId){
+          const hp = {};
+          Object.keys(patch||{}).forEach(k=>{
+            if(k.startsWith("data.")) hp[k.slice(5)] = patch[k];
+          });
+          // share tem campos extras (title etc)
+          delete hp.title;
+          if(Object.keys(hp).length){
+            VGCloud.patchHero(linkedHeroId, hp).catch(()=>{});
+          }
+        }
       }, "data.");
 
       wireShareButtons(async (m) => {
         const snap = collectHeroFromUI();
+        // carrega o id original se existir
+        if(current?.heroId) snap.id = current.heroId;
         const token = await VGCloud.createShareRoom(snap, m);
         qs("#vg-share-link").value = buildShareLink(token);
       });
@@ -517,11 +584,16 @@ function ensurePencilToggle(){
       try{ await VGCloud.joinPresence("hero", heroId, localProfile); }catch{}
 
       let currentHero = null;
+      let shareTokens = [];
       let warned = false;
       let addedShared = false;
 
       VGCloud.watchHero(heroId, (hero) => {
         currentHero = hero;
+
+        shareTokens = Array.isArray(hero?.shareTokens)
+          ? hero.shareTokens
+          : (hero?.shareTokens ? Object.keys(hero.shareTokens) : []);
 
         const isOwner = (hero.ownerUid === VGCloud.user.uid);
 
@@ -562,12 +634,24 @@ function ensurePencilToggle(){
         const canEdit = (mode === "edit") && (isOwner || currentHero.allowPublicEdit === true);
         if(!canEdit) return;
         VGCloud.patchHero(heroId, patch).catch(()=>{});
+
+        // Se o dono editar aqui, espelha nos shares desse hero também
+        if(isOwner && shareTokens && shareTokens.length){
+          const sp = {};
+          Object.keys(patch||{}).forEach(k=>{ sp[`data.${k}`] = patch[k]; });
+          if(patch.nome) sp.title = patch.nome;
+          if(patch['dados.c-name']) sp.title = patch['dados.c-name'];
+          shareTokens.forEach(tok => VGCloud.patchShare(tok, sp).catch(()=>{}));
+        }
       }, "");
 
       wireShareButtons(async (m) => {
         if(!currentHero || currentHero.ownerUid !== VGCloud.user.uid) return;
         const snap = collectHeroFromUI();
+        snap.id = heroId; // garante conexão do share com o hero
         const token = await VGCloud.createShareRoom(snap, m);
+        // registra token no hero para espelhar updates do perfil -> share
+        try{ await VGCloud.patchHero(heroId, { [`shareTokens.${token}`]: true }); }catch{}
         qs("#vg-share-link").value = buildShareLink(token);
       });
 
@@ -588,28 +672,100 @@ function ensurePencilToggle(){
     }
 
     // -------- Local hero sync (owner) --------
-    // Se usuário está no cloud, mantém backup do hero atual também.
-    // Não força realtime aqui, mas permite publicar e manter atualização.
+    // Aqui é onde a ficha do PERFIL precisa ficar 100% conectada com o Firestore
+    // para que o público/shared recebam alterações em tempo real.
     try{
       const u = Auth.getCurrentUser?.();
       const idx = Auth.getCurrentHeroIndex?.();
       const heroes = u?.heroes || [];
       const h = (idx!=null && heroes[idx]) ? heroes[idx] : null;
-      if(h && h.id){
-        try{ await VGCloud.upsertHero(h); }catch{}
-      }
+      const localHeroId = h?.id || h?.heroId || null;
 
       setOwnerButton({ uid: VGCloud.user.uid, name: VGCloud.user.displayName, photoURL: VGCloud.user.photoURL });
 
-      // Share precisa funcionar também na ficha LOCAL (owner)
+      // Share visível no perfil
       const shareBtn = qs("#vg-menu-share");
       if(shareBtn) shareBtn.style.display = "";
 
+      if(!h || !localHeroId){
+        // Sem hero id -> não tem como conectar com o cloud
+        wireShareButtons(async ()=> alert("Esta ficha não tem ID. Crie um personagem novo pelo PERFIL."));
+        return;
+      }
+
+      // Garante que o doc exista
+      try{ await VGCloud.upsertHero(h); }catch{}
+
+      // Presence do dono conta como 1 usuário (bubbles aparecem só com 2+)
+      try{ await VGCloud.joinPresence("hero", localHeroId, localProfile); }catch{}
+
+      let currentHero = null;
+      let shareTokens = [];
+
+      // Inbound: atualiza UI + mantém o localStorage alinhado
+      VGCloud.watchHero(localHeroId, (hero)=>{
+        currentHero = hero || null;
+        shareTokens = Array.isArray(hero?.shareTokens)
+          ? hero.shareTokens
+          : (hero?.shareTokens ? Object.keys(hero.shareTokens) : []);
+
+        applyHeroToUI(hero || {});
+        setOwnerButton({
+          uid: hero?.ownerUid || VGCloud.user.uid,
+          name: hero?.ownerName || VGCloud.user.displayName,
+          photoURL: hero?.ownerPhotoURL || VGCloud.user.photoURL
+        });
+
+        // Mantém o hero local sincronizado (para Home/Perfil sempre mostrar o estado atual)
+        try{
+          const uu = Auth.getCurrentUser?.();
+          const ii = Auth.getCurrentHeroIndex?.();
+          if(uu && ii!=null && uu.heroes && uu.heroes[ii]){
+            const merged = { ...uu.heroes[ii], ...hero };
+            Auth.updateHero(ii, merged);
+          }
+        }catch{}
+      });
+
+      // Outbound: qualquer alteração na UI vira patch no hero doc
+      bindOutbound((patch)=>{
+        if(!localHeroId) return;
+        VGCloud.patchHero(localHeroId, patch).catch(()=>{});
+
+        // Espelha no(s) share(s) já existentes desse hero, para manter conexão
+        if(shareTokens && shareTokens.length){
+          const sp = {};
+          Object.keys(patch||{}).forEach(k=>{ sp[`data.${k}`] = patch[k]; });
+          // mantém título do share atualizado
+          if(patch.nome) sp.title = patch.nome;
+          if(patch['dados.c-name']) sp.title = patch['dados.c-name'];
+          shareTokens.forEach(tok => VGCloud.patchShare(tok, sp).catch(()=>{}));
+        }
+      }, "");
+
+      // Share links (e registra o token dentro do hero doc)
       wireShareButtons(async (m) => {
         const snap = collectHeroFromUI();
+        snap.id = localHeroId;
         const token = await VGCloud.createShareRoom(snap, m);
+        try{ await VGCloud.patchHero(localHeroId, { [`shareTokens.${token}`]: true }); }catch{}
         qs("#vg-share-link").value = buildShareLink(token);
       });
-    }catch{}
+
+      // Toggle dentro do lápis (somente dono + ficha pública)
+      wirePencilToggle(
+        ()=>({
+          show: !!(currentHero && currentHero.visibility === "public"),
+          value: !!(currentHero && currentHero.allowPublicEdit)
+        }),
+        async (val)=>{
+          if(!localHeroId) return;
+          await VGCloud.patchHero(localHeroId, { allowPublicEdit: !!val });
+        }
+      );
+
+    }catch(err){
+      console.warn("[VGCollab] local sync failed", err);
+    }
   });
 })();

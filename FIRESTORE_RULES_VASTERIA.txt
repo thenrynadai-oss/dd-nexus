@@ -2,100 +2,220 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    /* =========================
+       Helpers
+    ========================== */
     function authed() { return request.auth != null; }
-    function isOwnerUid(uid) { return authed() && request.auth.uid == uid; }
-    function isHeroOwner() { return authed() && request.auth.uid == resource.data.ownerUid; }
+    function uid() { return request.auth.uid; }
 
-    function strMax(v, n){ return !(v is string) || v.size() <= n; }
-    function mapOrNull(v){ return (v == null) || (v is map); }
-
-    function validFavorite(fv){
-      return mapOrNull(fv)
-        && (!('name' in fv) || (fv.name is string && fv.name.size() <= 60))
-        && (!('img'  in fv) || (fv.img  is string && fv.img.size()  <= 140000));
+    function strBetween(x, min, max) {
+      return x is string && x.size() >= min && x.size() <= max;
     }
 
-    function validMiniProfile(mp){
-      return mapOrNull(mp)
-        && (!('bannerURL'  in mp) || (mp.bannerURL  is string && mp.bannerURL.size()  <= 600))
-        && (!('bannerData' in mp) || (mp.bannerData is string && mp.bannerData.size() <= 90000))
-        && (!('favorite'   in mp) || validFavorite(mp.favorite))
-        && (!('favIndex'   in mp) || (mp.favIndex is int && mp.favIndex >= -1 && mp.favIndex <= 5000));
+    function strMax(x, max) {
+      return x == null || (x is string && x.size() <= max);
     }
 
-    function validUserDoc(){
-      return strMax(request.resource.data.displayName, 80)
-        && strMax(request.resource.data.nick, 22)
-        && strMax(request.resource.data.email, 140)
-        && strMax(request.resource.data.photoURL, 90000)
+    function isNickId(n) {
+      return n is string
+        && n.size() >= 3
+        && n.size() <= 20
+        && n.matches('^[a-zA-Z0-9_.-]+$');
+    }
+
+    function isHttpUrl(x, maxLen) {
+      return x is string
+        && x.size() <= maxLen
+        && x.matches('^https?://');
+    }
+
+    function isDataImage(x, maxLen) {
+      return x is string
+        && x.size() <= maxLen
+        && x.matches('^data:image\/(png|jpeg|jpg|webp);base64,');
+    }
+
+    function okUrlOrDataImage(x, urlMax, dataMax) {
+      return x == null
+        || isHttpUrl(x, urlMax)
+        || isDataImage(x, dataMax);
+    }
+
+    function validFavorite(fv) {
+      return fv == null
+        || (fv is map
+          && (!('name' in fv) || strMax(fv.name, 60))
+          && (!('img'  in fv) || okUrlOrDataImage(fv.img, 2048, 100000))
+        );
+    }
+
+    function validMiniProfile(mp) {
+      return mp == null
+        || (mp is map
+          // aceita bannerURL (legado) e bannerUrl
+          && (!('bannerURL'  in mp) || okUrlOrDataImage(mp.bannerURL, 2048, 100000))
+          && (!('bannerUrl'  in mp) || okUrlOrDataImage(mp.bannerUrl, 2048, 100000))
+          && (!('bannerData' in mp) || isDataImage(mp.bannerData, 100000))
+          && (!('favorite'   in mp) || validFavorite(mp.favorite))
+          && (!('favIndex'   in mp) || (mp.favIndex is int && mp.favIndex >= -1 && mp.favIndex <= 99999))
+        );
+    }
+
+    function validUserDoc(userId) {
+      return authed()
+        && userId == uid()
+        && (!('uid' in request.resource.data) || request.resource.data.uid == uid())
+        && (!('nick' in request.resource.data) || isNickId(request.resource.data.nick))
+        && (!('displayName' in request.resource.data) || strBetween(request.resource.data.displayName, 1, 80))
+        && strMax(request.resource.data.email, 254)
+        && (!('photoURL' in request.resource.data) || okUrlOrDataImage(request.resource.data.photoURL, 2048, 100000))
         && (!('miniProfile' in request.resource.data) || validMiniProfile(request.resource.data.miniProfile));
     }
 
-    // ================= USERS =================
-    match /users/{uid} {
+    function tokenOk(t) {
+      return t is string
+        && t.size() >= 6
+        && t.size() <= 80
+        && t.matches('^sh_[a-z0-9]+$');
+    }
+
+    /* =========================
+       USERS
+       - leitura pública ok (ONLINE → Amigos)
+       - cada um escreve só no seu doc
+    ========================== */
+    match /users/{userId} {
       allow read: if true;
-      allow create, update, delete: if isOwnerUid(uid) && validUserDoc();
+      allow create, update, delete: if validUserDoc(userId);
 
       match /shared/{sid} {
-        allow read, write: if isOwnerUid(uid);
+        allow read, write: if authed() && userId == uid();
       }
     }
 
-    // ================= NICKS =================
-    // login por apelido precisa de GET público.
+    /* =========================
+       NICKS (apelido -> uid/email)
+       - get público ok
+       - list bloqueado
+       - create/update/delete só pelo dono do nick
+    ========================== */
     match /nicks/{nick} {
       allow get: if true;
       allow list: if false;
 
       allow create: if authed()
-        && request.resource.data.uid == request.auth.uid
+        && isNickId(nick)
+        && request.resource.data.uid == uid()
         && request.resource.data.nick == nick
-        && strMax(request.resource.data.email, 140);
+        && strMax(request.resource.data.email, 254)
+        && (!exists(/databases/$(database)/documents/nicks/$(nick))
+            || get(/databases/$(database)/documents/nicks/$(nick)).data.uid == uid());
 
       allow update: if authed()
-        && resource.data.uid == request.auth.uid
+        && resource.data.uid == uid()
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.nick == nick
-        && strMax(request.resource.data.email, 140);
+        && strMax(request.resource.data.email, 254);
 
-      allow delete: if authed() && resource.data.uid == request.auth.uid;
+      allow delete: if authed() && resource.data.uid == uid();
     }
 
-    // ================= HEROES =================
+    /* =========================
+       HEROES (fichas)
+       - read: público se visibility="public" ou dono
+       - update: dono pode tudo
+         outros só se allowPublicEdit=true e sem alterar campos de controle
+       - presence: cada um só escreve no próprio doc
+    ========================== */
     match /heroes/{hid} {
 
-      allow read: if resource.data.visibility == "public" || isHeroOwner();
-      allow create: if authed() && request.resource.data.ownerUid == request.auth.uid;
+      function isOwner() { return authed() && resource.data.ownerUid == uid(); }
+      function isPublic() { return resource.data.visibility == "public"; }
 
-      // dono pode tudo
-      allow update: if isHeroOwner();
+      allow read: if isPublic() || isOwner();
 
-      // edição pública: só se allowPublicEdit==true e sem mexer nos campos de controle
+      allow create: if authed()
+        && request.resource.data.ownerUid == uid()
+        && request.resource.data.visibility in ["public","private"]
+        && request.resource.data.allowPublicEdit is bool
+        && (request.resource.data.visibility == "public" || request.resource.data.allowPublicEdit == false);
+
+      // dono pode tudo, mas mantém coerência public/private
+      allow update: if authed() && isOwner()
+        && (!('visibility' in request.resource.data) || request.resource.data.visibility in ["public","private"])
+        && (!('allowPublicEdit' in request.resource.data)
+            || (request.resource.data.allowPublicEdit is bool
+                && (request.resource.data.visibility == "public" || request.resource.data.allowPublicEdit == false)));
+
+      // edição pública (não-dono)
       allow update: if authed()
-        && resource.data.visibility == "public"
+        && !isOwner()
+        && isPublic()
         && resource.data.allowPublicEdit == true
-        && request.resource.data.ownerUid == resource.data.ownerUid
-        && request.resource.data.visibility == resource.data.visibility
-        && request.resource.data.allowPublicEdit == resource.data.allowPublicEdit
-        && request.resource.data.id == resource.data.id;
+        && !request.resource.data.diff(resource.data).changedKeys().hasAny([
+          "ownerUid","ownerName","ownerPhotoURL",
+          "visibility","allowPublicEdit",
+          "id","heroId",
+          "createdAt","createdBy",
+          "shareTokens" // apenas dono gerencia shares
+        ]);
 
-      allow delete: if isHeroOwner();
+      allow delete: if authed() && resource.data.ownerUid == uid();
 
       match /presence/{puid} {
         allow read: if authed();
-        allow write: if authed() && request.auth.uid == puid;
+        allow create, update, delete: if authed() && puid == uid()
+          && (!('uid' in request.resource.data) || request.resource.data.uid == uid())
+          && (!('name' in request.resource.data) || strBetween(request.resource.data.name, 1, 80))
+          && (!('photoURL' in request.resource.data) || okUrlOrDataImage(request.resource.data.photoURL, 2048, 100000));
       }
     }
 
-    // ================= SHARES =================
+    /* =========================
+       SHARES (salas via token)
+       - sem list
+       - get: autenticado
+       - create/update: autenticado
+         * dono pode tudo
+         * outros só se mode="edit" e sem alterar campos de controle
+       - presence: cada um só escreve no próprio doc
+    ========================== */
     match /shares/{token} {
       allow list: if false;
       allow get: if authed();
-      allow create, update, delete: if authed();
+
+      allow create: if authed()
+        && tokenOk(token)
+        && request.resource.data.token == token
+        && request.resource.data.ownerUid == uid()
+        && request.resource.data.mode in ["read","edit"]
+        && strMax(request.resource.data.heroId, 120)
+        && strMax(request.resource.data.sourceHid, 120);
+
+      // dono pode tudo (inclusive mudar mode)
+      allow update: if authed() && resource.data.ownerUid == uid();
+
+      // não-dono: só se for edit e sem mexer em controle
+      allow update: if authed()
+        && resource.data.ownerUid != uid()
+        && resource.data.mode == "edit"
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.token == resource.data.token
+        && request.resource.data.mode == resource.data.mode
+        && !request.resource.data.diff(resource.data).changedKeys().hasAny([
+          "ownerUid","ownerName","ownerPhotoURL",
+          "token","mode","createdAt",
+          "heroId","sourceHid"
+        ]);
+
+      allow delete: if authed() && resource.data.ownerUid == uid();
 
       match /presence/{puid} {
         allow read: if authed();
-        allow write: if authed() && request.auth.uid == puid;
+        allow create, update, delete: if authed() && puid == uid()
+          && (!('uid' in request.resource.data) || request.resource.data.uid == uid())
+          && (!('name' in request.resource.data) || strBetween(request.resource.data.name, 1, 80))
+          && (!('photoURL' in request.resource.data) || okUrlOrDataImage(request.resource.data.photoURL, 2048, 100000));
       }
     }
   }

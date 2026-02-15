@@ -386,9 +386,14 @@
 
       const { setDoc, serverTimestamp } = this.fb;
 
+      // Referência do herói original (para manter o share conectado)
+      const heroId = heroSnapshot?.id || heroSnapshot?.heroId || heroSnapshot?.hid || null;
+
       const payload = {
         token,
         mode, // "read" | "edit"
+        heroId,
+        sourceHid: heroId, // compat/legado
         ownerUid: this.user.uid,
         ownerName: this.user.displayName || "AGENTE",
         ownerPhotoURL: this.user.photoURL || null,
