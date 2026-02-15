@@ -952,6 +952,7 @@
           '</div>'+
         '</div>'+
         '<div id="vg-flipbook" class="vg-flipbook"></div>'+
+        '<div id="vg-lib-draglayer" aria-hidden="true"></div>'+
       '</div>';
 
     document.body.appendChild(ov);
@@ -1006,11 +1007,18 @@
     var p = document.getElementById('vg-lib-progress');
     if(box) box.style.display = '';
     if(p) p.textContent = text || '';
+
+    // Enquanto carrega, não deixa o usuário tentar virar páginas
+    var dl = document.getElementById('vg-lib-draglayer');
+    if(dl) dl.style.pointerEvents = 'none';
   }
 
   function hideLoading(){
     var box = document.getElementById('vg-lib-loading');
     if(box) box.style.display = 'none';
+
+    var dl = document.getElementById('vg-lib-draglayer');
+    if(dl) dl.style.pointerEvents = 'auto';
   }
 
   function withTimeout(promise, ms, label){
@@ -1108,6 +1116,101 @@
     if(el0) el0.innerHTML = '';
   }
 
+  // Drag anywhere (AnyFlip-like): segura e arrasta pro lado pra virar página
+  function bindDragLayer($fb){
+    var layer = document.getElementById('vg-lib-draglayer');
+    if(!layer) return;
+
+    // atualiza a instância atual do flipbook
+    layer.__vgTurn = $fb;
+
+    if(layer.__vgBound) return;
+    layer.__vgBound = true;
+
+    var down = false;
+    var moved = false;
+    var startX = 0;
+    var startY = 0;
+    var pid = null;
+    var threshold = 70;
+
+    function getTurn(){ return layer.__vgTurn; }
+
+    layer.addEventListener('pointerdown', function(e){
+      if(!state.open) return;
+      var loading = document.getElementById('vg-lib-loading');
+      if(loading && loading.style.display !== 'none') return;
+
+      // só responde se o clique/drag começou dentro do livro
+      var fb = document.getElementById('vg-flipbook');
+      if(fb){
+        var r = fb.getBoundingClientRect();
+        if(e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+      }
+
+      down = true;
+      moved = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      pid = e.pointerId;
+
+      layer.classList.add('vg-dragging');
+      try{ layer.setPointerCapture(pid); }catch(err){}
+      e.preventDefault();
+    }, { passive:false });
+
+    layer.addEventListener('pointermove', function(e){
+      if(!down || e.pointerId !== pid) return;
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
+
+      if(Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+
+      // só considera se for um arrasto horizontal de verdade
+      if(Math.abs(dx) > threshold && Math.abs(dx) > Math.abs(dy) * 1.2){
+        down = false;
+        layer.classList.remove('vg-dragging');
+        try{ layer.releasePointerCapture(pid); }catch(err){}
+        pid = null;
+
+        var t = getTurn();
+        try{
+          if(dx < 0) t.turn('next');
+          else t.turn('previous');
+        }catch(err){}
+      }
+      e.preventDefault();
+    }, { passive:false });
+
+    function end(e){
+      if(pid != null && e && e.pointerId !== pid) return;
+      if(!down) return;
+      down = false;
+      layer.classList.remove('vg-dragging');
+      try{ layer.releasePointerCapture(pid); }catch(err){}
+      pid = null;
+
+      // clique simples = vira página (direita -> próxima, esquerda -> anterior)
+      if(!moved){
+        var rect = layer.getBoundingClientRect();
+        var x = (e ? e.clientX : startX) - rect.left;
+        var t = getTurn();
+        try{
+          if(x < rect.width/2) t.turn('previous');
+          else t.turn('next');
+        }catch(err){}
+      }
+
+      e && e.preventDefault();
+    }
+
+    layer.addEventListener('pointerup', end, { passive:false });
+    layer.addEventListener('pointercancel', end, { passive:false });
+
+    // evita menu do botão direito atrapalhar
+    layer.addEventListener('contextmenu', function(e){ e.preventDefault(); }, { passive:false });
+  }
+
   function makePageEl(pageNum){
     var d = document.createElement('div');
     d.className = 'page';
@@ -1181,6 +1284,22 @@
 
     var $fb = $(fbEl);
 
+    // Em telas grandes, a capa (página 1) deve ficar centralizada.
+    // A forma mais estável no Turn.js é alternar display/size conforme a página.
+    function applyDisplayMode(targetPage){
+      if(sizes.display !== 'double') return;
+      var wantSingle = (targetPage === 1);
+      try{
+        if(wantSingle){
+          $fb.turn('display', 'single');
+          $fb.turn('size', Math.round(sizes.pageW), Math.round(sizes.pageH));
+        }else{
+          $fb.turn('display', 'double');
+          $fb.turn('size', Math.round(sizes.bookW), Math.round(sizes.bookH));
+        }
+      }catch(e){}
+    }
+
     // turn.js: cria com num total de páginas e usa missing() pra lazy add
     $fb.turn({
       width: Math.round(sizes.bookW),
@@ -1202,6 +1321,7 @@
           }
         },
         turning: function(e, page){
+          applyDisplayMode(page);
           // pré-render próximos
           var a = [page-2, page-1, page, page+1, page+2];
           a.forEach(function(p){
@@ -1211,9 +1331,16 @@
             var canvas = el.querySelector('canvas');
             if(canvas) renderPageToCanvas(pdf, p, canvas, sizes.pageW, sizes.pageH);
           });
+        },
+        turned: function(e, page){
+          applyDisplayMode(page);
         }
       }
     });
+
+    // centraliza a capa logo de cara
+    applyDisplayMode(1);
+    bindDragLayer($fb);
 
     // força carregar páginas iniciais
     $fb.turn('page', 1);

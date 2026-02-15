@@ -241,6 +241,20 @@
 .vg-flipbook{
   border-radius: 18px;
   box-shadow: 0 25px 45px rgba(0,0,0,.55);
+  transition: width .18s ease, height .18s ease, transform .18s ease;
+}
+
+/* Drag layer: segura e arrasta pra virar página (estilo AnyFlip) */
+#vg-lib-draglayer{
+  position:absolute;
+  inset:0;
+  z-index:35;
+  cursor:grab;
+  background:transparent;
+  touch-action:none;
+}
+#vg-lib-draglayer.vg-dragging{
+  cursor:grabbing;
 }
 
 .vg-flipbook .page{
