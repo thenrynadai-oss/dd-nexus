@@ -758,13 +758,11 @@
 
 
 /* =========================================================
+/* =========================================================
    BIBLIOTECA (AnyFlip-like)
-   - Mantida dentro do bundle principal (cloud/online.js) para
-     evitar 404 / case-sensitivity / upload parcial no GitHub.
-   - Requisitos:
-     * cards 3D que “abrem” como livro no hover
-     * abrir fullscreen com virada por drag
-     * usar PDFs locais (library/books/*.pdf)
+   - Sem CDN: usa libs locais (pdf.js + turn.js)
+   - Card 3D (capa real) + Viewer fullscreen com virada por drag
+   - PDFs locais (library/books/*.pdf)
    ========================================================= */
 
 (function(){
@@ -779,854 +777,513 @@
       title: "D&D 5e sistema",
       subtitle: "Livro do Jogador",
       file: "library/books/dd5e-sistema.pdf",
+      cover: "library/covers/dd5e.webp",
     },
     {
       id: "valdas",
       title: "Valda's Spire of Secrets",
       subtitle: "Livro",
       file: "library/books/valdas-spire-of-secrets.pdf",
+      cover: "library/covers/valdas.webp",
     }
   ];
 
-  // CDN libs
-  var PDFJS_SRC    = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js";
-  var PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
-  var PAGEFLIP_SRC = "https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js";
+  var LOCAL = {
+    PDFJS: "library/vendor/pdfjs/pdf.min.js",
+    PDFJS_WORKER: "library/vendor/pdfjs/pdf.worker.min.js",
+    JQUERY: "library/vendor/jquery/jquery.min.js",
+    TURN: "library/vendor/turn/turn.min.js",
+    CSS: "library/library.css",
+  };
 
-  // Resolve paths correctly both locally and in deploy (subpaths/case-sensitive servers)
+  function esc(s){
+    return String(s ?? "")
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/\"/g,"&quot;")
+      .replace(/'/g,"&#39;");
+  }
+
   function resolveUrl(rel){
     try{ return new URL(rel, document.baseURI).toString(); }
     catch(e){ return rel; }
   }
 
-  // Quick check if a file exists on the server (helps debug deploy vs local).
-  // We use a small ranged request so we don't download the whole PDF.
-  async function probeUrl(url){
-    try{
-      if(String(location.protocol || '').toLowerCase() === 'file:') return true;
-      var ctrl = new AbortController();
-      var t = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, 4500);
-      var resp = await fetch(url, {
-        method: 'GET',
-        headers: { 'Range': 'bytes=0-0' },
-        signal: ctrl.signal,
-        cache: 'no-store'
-      });
-      clearTimeout(t);
-      return resp && (resp.status === 206 || resp.status === 200);
-    }catch(e){
-      return false;
-    }
+  function loadStyleOnce(href){
+    var url = resolveUrl(href);
+    if(document.querySelector('link[data-vg-lib-css="1"][href="'+url+'"]')) return;
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = url;
+    link.setAttribute('data-vg-lib-css','1');
+    document.head.appendChild(link);
   }
 
-  // Hard guarantee: mesmo se o CSS do ONLINE estiver desatualizado no deploy,
-  // a Biblioteca continua com estilo correto.
-  function ensureLibraryCSS(){
-    if(document.getElementById('vg-lib-css')) return;
-    var css = document.createElement('style');
-    css.id = 'vg-lib-css';
-    css.textContent = `
-      .vg-library-wrap{ display:none; }
-      .vg-library-wrap.show{ display:block; }
-      .vg-library-top{ display:flex; align-items:center; gap:12px; justify-content:space-between; margin:4px 0 12px; }
-      .vg-library-title{ padding:10px 14px; border-radius:14px; font-weight:900; letter-spacing:.6px; }
-      .vg-library-search{ flex:1; display:flex; justify-content:flex-end; }
-      .vg-library-search input{ width:min(560px, 92vw); padding:12px 14px; border-radius:16px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.22); color:rgba(255,255,255,.92); outline:none; backdrop-filter: blur(8px); }
-      .vg-library-search input::placeholder{ color:rgba(255,255,255,.55); }
-      .vg-lib-shelf{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px; }
-
-      .vg-book{ position:relative; border-radius:22px; overflow:hidden; min-height:280px; cursor:pointer; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.18); box-shadow:0 16px 60px rgba(0,0,0,.38); transform:translateZ(0); perspective:1000px; }
-      .vg-book::before{ content:""; position:absolute; inset:0; background: radial-gradient(1200px 520px at 20% 10%, rgba(255,255,255,.16), transparent 55%), linear-gradient(135deg, rgba(255,255,255,.08), rgba(0,0,0,.22)); pointer-events:none; }
-      .vg-book:hover{ transform: translateY(-2px); border-color: rgba(0,170,255,.35); box-shadow:0 22px 70px rgba(0,0,0,.48); }
-      .vg-book .spine{ position:absolute; left:0; top:0; bottom:0; width:14px; background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.30)); z-index:3; }
-      .vg-book .page-edges{ position:absolute; top:14px; bottom:14px; right:10px; width:14px; border-radius:12px; background: repeating-linear-gradient(180deg, rgba(255,255,255,.20) 0px, rgba(255,255,255,.06) 2px, rgba(0,0,0,.00) 4px); opacity:.35; z-index:1; }
-      .vg-book .cover{ position:absolute; inset:0; display:flex; flex-direction:column; justify-content:flex-end; padding:16px; gap:8px; border-left:1px solid rgba(255,255,255,.10); background: linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.30)), radial-gradient(900px 420px at 30% 10%, rgba(255,255,255,.10), transparent 55%); transform-origin:left center; transform-style:preserve-3d; backface-visibility:hidden; transition: transform .35s ease, filter .35s ease; z-index:2; }
-      .vg-book:hover .cover{ transform: perspective(1000px) rotateY(-118deg); filter: brightness(.95); }
-      .vg-book .cover .title{ font-weight:950; font-size:16px; line-height:1.15; color:rgba(255,255,255,.95); text-shadow:0 12px 30px rgba(0,0,0,.6); }
-      .vg-book .cover .sub{ font-size:12px; opacity:.78; }
-      .vg-book .cover .hint{ font-size:12px; opacity:.70; }
-
-      .vg-book .peek{ position:absolute; inset:0; padding:14px 14px 14px 22px; display:flex; align-items:center; justify-content:center; z-index:1; pointer-events:none; }
-      .vg-book .peek .pages{ width:100%; height:100%; display:flex; gap:10px; align-items:center; justify-content:center; opacity:.0; transform: scale(.98); transition: opacity .25s ease, transform .25s ease; }
-      .vg-book.peek-ready .peek .pages{ opacity:1; transform: scale(1); }
-      .vg-book .peek canvas{ width:45%; height:auto; border-radius:10px; background:rgba(0,0,0,.22); border:1px solid rgba(255,255,255,.10); }
-      .vg-book .peek .loading{ position:absolute; left:16px; bottom:14px; font-size:12px; opacity:.78; }
-
-      .vg-book.vg-missing{ border-color: rgba(255,80,80,.40) !important; }
-      .vg-book.vg-missing .cover .hint{ color: rgba(255,160,160,.92); opacity:1; }
-
-      .vg-lib-viewer-overlay{ position:fixed; inset:0; z-index:99999; display:none; background:rgba(0,0,0,.65); backdrop-filter: blur(10px); }
-      .vg-lib-viewer-overlay.show{ display:block; }
-      .vg-lib-viewer-top{ position:fixed; left:16px; right:16px; top:16px; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 12px; border-radius:16px; z-index:2; }
-      .vg-lib-flip-wrap{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding-top:86px; }
-      #vg-lib-flip{ display:flex; align-items:center; justify-content:center; }
-      .vg-page{ display:flex; align-items:center; justify-content:center; background:#111; }
-      .vg-page canvas{ display:block; }
-      .vg-page .ph{ font-size:12px; opacity:.85; padding:10px 14px; border-radius:12px; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.12); }
-
-      .vg-lib-error{ max-width:920px; margin:0 auto; padding:16px 16px; border-radius:18px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.26); color:rgba(255,255,255,.92); backdrop-filter: blur(10px); }
-      .vg-lib-error strong{ display:block; font-size:14px; }
-    `;
-    document.head.appendChild(css);
-  }
-
-  var state = {
-    pdfjs: null,
-    PageFlip: null,
-    bookCache: new Map(),
-    hoverTimers: new Map(),
-    viewer: {
-      open: false,
-      book: null,
-      pdf: null,
-      pages: 0,
-      zoom: 1.0,
-      flip: null,
-      rendered: new Set()
-    }
-  };
-
-  function $(sel, root){ return (root||document).querySelector(sel); }
-  function $$(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
-
-  function esc(s){
-    s = String(s == null ? "" : s);
-    return s.replace(/[&<>"']/g, function(c){
-      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c] || c;
-    });
-  }
-
-  function loadScriptOnce(src, key){
+  function loadScriptOnce(key, src){
     return new Promise(function(resolve, reject){
-      var existing = document.querySelector('script[data-vg-lib="'+key+'"]');
-      if(existing){
-        if(existing.getAttribute('data-loaded') === '1') return resolve();
-        existing.addEventListener('load', function(){ resolve(); });
-        existing.addEventListener('error', function(){ reject(new Error('Falha ao carregar '+src)); });
-        return;
-      }
+      var url = resolveUrl(src);
+      if(document.querySelector('script[data-vg-lib="'+key+'"]')) return resolve();
       var s = document.createElement('script');
-      s.src = src;
+      s.src = url;
       s.async = true;
       s.setAttribute('data-vg-lib', key);
-      s.addEventListener('load', function(){ s.setAttribute('data-loaded','1'); resolve(); });
-      s.addEventListener('error', function(){ reject(new Error('Falha ao carregar '+src)); });
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){ reject(new Error('Falha ao carregar: '+url)); };
       document.head.appendChild(s);
     });
   }
 
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
   async function ensureLibs(){
-    if(!state.pdfjs){
-      await loadScriptOnce(PDFJS_SRC, 'pdfjs');
-      state.pdfjs = window.pdfjsLib;
-      try{ state.pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; }catch(e){}
+    // CSS
+    loadStyleOnce(LOCAL.CSS);
+
+    // pdf.js
+    if(!window.pdfjsLib){
+      await loadScriptOnce('pdfjs', LOCAL.PDFJS);
     }
-    if(!state.PageFlip){
-      await loadScriptOnce(PAGEFLIP_SRC, 'pageflip');
-      state.PageFlip = (window.St && window.St.PageFlip) ? window.St.PageFlip : null;
-      if(!state.PageFlip) throw new Error('PageFlip não carregou (St.PageFlip ausente)');
-    }
-  }
+    if(!window.pdfjsLib) throw new Error('pdfjsLib não carregou');
 
-  function getPdfCached(bookId){
-    var c = state.bookCache.get(bookId);
-    if(!c) return null;
-    if(c && c.pdf) return c;
-    return c;
-  }
-
-  async function getPdf(book, onProgress){
-    var cached = getPdfCached(book.id);
-    if(cached && cached.pdf) return cached;
-    if(cached && cached.promise) return await cached.promise;
-
-    await ensureLibs();
-
-    var url = resolveUrl(book.file);
-
-    function emit(evt){
-      try{ if(onProgress) onProgress(evt); }catch(e){}
-    }
-
-    function fmtBytes(n){
-      try{
-        if(!(n > 0)) return '';
-        var mb = n / 1024 / 1024;
-        if(mb < 1) return (Math.round(n/1024) + ' KB');
-        return (mb < 10 ? mb.toFixed(1) : mb.toFixed(0)) + ' MB';
-      }catch(e){ return ''; }
-    }
-
-    function raceTimeout(promise, ms, onTimeout){
-      return new Promise(function(resolve, reject){
-        var done = false;
-        var t = setTimeout(function(){
-          if(done) return;
-          done = true;
-          try{ if(onTimeout) onTimeout(); }catch(e){}
-          reject(new Error('timeout'));
-        }, ms);
-        promise.then(function(v){
-          if(done) return;
-          done = true;
-          clearTimeout(t);
-          resolve(v);
-        }).catch(function(err){
-          if(done) return;
-          done = true;
-          clearTimeout(t);
-          reject(err);
-        });
-      });
-    }
-
-    async function fetchPdfArrayBuffer(timeoutMs){
-      // Baixa o PDF inteiro e passa via {data: ArrayBuffer}.
-      // Isso evita travas de Range/Stream que às vezes ocorrem no deploy.
-      var controller = new AbortController();
-      var timer = setTimeout(function(){ try{ controller.abort(); }catch(e){} }, timeoutMs || 240000);
-      try{
-        var resp = await fetch(url, { signal: controller.signal, cache: 'no-store' });
-        if(!resp || !resp.ok) throw new Error('HTTP ' + (resp ? resp.status : '0'));
-
-        var total = 0;
-        try{ total = parseInt(resp.headers.get('content-length') || '0', 10) || 0; }catch(e){}
-
-        if(resp.body && resp.body.getReader){
-          var reader = resp.body.getReader();
-          var chunks = [];
-          var received = 0;
-          while(true){
-            var r = await reader.read();
-            if(r.done) break;
-            if(r.value){
-              chunks.push(r.value);
-              received += r.value.length;
-              emit({ loaded: received, total: total || null, prettyLoaded: fmtBytes(received) });
-            }
-          }
-          var out = new Uint8Array(received);
-          var off = 0;
-          for(var i=0;i<chunks.length;i++){
-            out.set(chunks[i], off);
-            off += chunks[i].length;
-          }
-          return out.buffer;
-        }
-
-        var buf = await resp.arrayBuffer();
-        emit({ loaded: buf.byteLength, total: buf.byteLength, prettyLoaded: fmtBytes(buf.byteLength) });
-        return buf;
-      } finally {
-        clearTimeout(timer);
-      }
-    }
-
-    async function openByUrl(opts){
-      // Tentativa rápida usando {url}. Ainda pode travar em alguns casos, então colocamos timeout real.
-      var controller = new AbortController();
-      var lastTouch = Date.now();
-      var startedAt = Date.now();
-      function touch(){ lastTouch = Date.now(); }
-
-      var task = state.pdfjs.getDocument(Object.assign({
-        url: url,
-        disableStream: true,
-        disableRange: true,
-        disableAutoFetch: false,
-        signal: controller.signal
-      }, opts || {}));
-
-      if(task && task.onProgress){
-        task.onProgress = function(evt){
-          touch();
-          emit(evt);
-        };
-      }
-
-      var kill = setInterval(function(){
-        var now = Date.now();
-        if((now - lastTouch) > 15000) { try{ controller.abort(); }catch(e){} }
-        if((now - startedAt) > 180000) { try{ controller.abort(); }catch(e){} }
-      }, 900);
-
-      try{
-        var pdf = await raceTimeout(task.promise, 185000, function(){ try{ controller.abort(); }catch(e){} });
-        clearInterval(kill);
-        return pdf;
-      }catch(e){
-        clearInterval(kill);
-        try{ controller.abort(); }catch(_e){}
-        try{ if(task && task.destroy) task.destroy(); }catch(_e2){}
-        throw e;
-      }
-    }
-
-    async function openByData(opts){
-      emit({ stage: 'downloading' });
-      var buf = await fetchPdfArrayBuffer(240000);
-      emit({ stage: 'processing' });
-
-      var task = state.pdfjs.getDocument(Object.assign({
-        data: buf,
-        disableStream: true,
-        disableRange: true,
-        disableAutoFetch: false
-      }, opts || {}));
-
-      try{
-        var pdf = await raceTimeout(task.promise, 185000, function(){ try{ if(task && task.destroy) task.destroy(); }catch(e){} });
-        return pdf;
-      }catch(e){
-        try{ if(task && task.destroy) task.destroy(); }catch(_e){}
-        throw e;
-      }
-    }
-
-    var p = (async function(){
-      try{
-        var pdf = await openByUrl({ disableWorker: false });
-        var out = { pdf: pdf, pages: pdf.numPages };
-        state.bookCache.set(book.id, out);
-        return out;
-      }catch(err1){
-        try{
-          var pdf2 = await openByUrl({ disableWorker: true });
-          var out2 = { pdf: pdf2, pages: pdf2.numPages };
-          state.bookCache.set(book.id, out2);
-          return out2;
-        }catch(err2){
-          // Fallback definitivo: baixa inteiro e abre por {data}
-          try{
-            var pdf3 = await openByData({ disableWorker: false });
-            var out3 = { pdf: pdf3, pages: pdf3.numPages };
-            state.bookCache.set(book.id, out3);
-            return out3;
-          }catch(err3){
-            try{
-              var pdf4 = await openByData({ disableWorker: true });
-              var out4 = { pdf: pdf4, pages: pdf4.numPages };
-              state.bookCache.set(book.id, out4);
-              return out4;
-            }catch(err4){
-              state.bookCache.delete(book.id);
-              throw err4;
-            }
-          }
-        }
-      }
-    })();
-
-    state.bookCache.set(book.id, { promise: p });
-    return await p;
-  }
-
-
-  /* =========================
-     SHELF (cards)
-  ========================== */
-
-  function mountShelf(panel){
-    var shelf = $('#vg-lib-shelf', panel);
-    if(!shelf) return;
-
-    shelf.innerHTML = '';
-
-    for(var i=0;i<BOOKS.length;i++){
-      (function(book){
-        var el = document.createElement('div');
-        el.className = 'vg-book panel-skin';
-        el.setAttribute('data-file', resolveUrl(book.file));
-        el.setAttribute('data-book-id', book.id);
-        el.innerHTML =
-          '<div class="spine"></div>'+
-          '<div class="page-edges"></div>'+
-          '<div class="peek">'+
-            '<div class="pages">'+
-              '<canvas class="l"></canvas>'+
-              '<canvas class="r"></canvas>'+
-            '</div>'+
-            '<div class="loading">passa o mouse…</div>'+
-          '</div>'+
-          '<div class="cover">'+
-            '<div class="title">'+esc(book.title)+'</div>'+
-            '<div class="sub">'+esc(book.subtitle || 'PDF')+'</div>'+
-            '<div class="hint">Clique para abrir</div>'+
-          '</div>';
-
-        el.addEventListener('mouseenter', function(){ schedulePeek(el, book); });
-        el.addEventListener('mouseleave', function(){ cancelPeek(el); });
-        el.addEventListener('click', function(){ openViewer(book); });
-
-        shelf.appendChild(el);
-        try{ var io = ensureObserver(); if(io) io.observe(el); }catch(e){}
-      })(BOOKS[i]);
-    }
-  }
-
-  // Preload leve: quando o card entra na tela, testamos se o PDF existe no deploy.
-  // Se não existir (muito comum quando o PDF não foi enviado pro GitHub por limite do upload web),
-  // mostramos uma mensagem clara no card.
-  var _io = null;
-  function ensureObserver(){
-    if(_io) return _io;
-    if(!('IntersectionObserver' in window)) return null;
-    _io = new IntersectionObserver(async function(entries){
-      for(var i=0;i<entries.length;i++){
-        var it = entries[i];
-        if(!it.isIntersecting) continue;
-        var card = it.target;
-        try{ _io.unobserve(card); }catch(e){}
-
-        var url = card.getAttribute('data-file') || '';
-        var ok = await probeUrl(url);
-        if(!ok){
-          card.classList.add('vg-missing');
-          var hint = card.querySelector('.cover .hint');
-          if(hint) hint.textContent = 'PDF não encontrado no deploy';
-          var sub = card.querySelector('.cover .sub');
-          if(sub) sub.textContent = 'Confere se o PDF foi enviado ao GitHub (upload web tem limite).';
-          var loading = card.querySelector('.peek .loading');
-          if(loading){ loading.textContent = 'arquivo ausente'; loading.style.display = ''; }
-        }
-      }
-    }, { root: null, threshold: 0.12 });
-    return _io;
-  }
-
-  function schedulePeek(card, book){
-    cancelPeek(card);
-    var t = setTimeout(function(){ runPeek(card, book); }, 220);
-    state.hoverTimers.set(card, t);
-  }
-
-  function cancelPeek(card){
-    var t = state.hoverTimers.get(card);
-    if(t) clearTimeout(t);
-    state.hoverTimers.delete(card);
-  }
-
-  function pct(evt){
-    if(!evt || !evt.loaded || !evt.total) return null;
-    return Math.max(0, Math.min(100, Math.round((evt.loaded/evt.total)*100)));
-  }
-
-  function fmtLoaded(evt){
-    if(!evt) return "";
-    if(evt.prettyLoaded) return String(evt.prettyLoaded);
-    if(!evt.loaded) return "";
-    var n = evt.loaded;
-    var mb = n/1024/1024;
-    if(mb < 1) return (Math.round(n/1024) + " KB");
-    return ((mb < 10 ? mb.toFixed(1) : mb.toFixed(0)) + " MB");
-  }
-
-  async function runPeek(card, book){
-    if(!card || !card.isConnected) return;
-    var peek = $('.peek', card);
-    if(!peek) return;
-    var loading = $('.loading', peek);
-    if(loading){
-      loading.textContent = 'carregando…';
-      loading.style.display = '';
-    }
-
+    // worker local (mesma origem)
     try{
-      var cached = await getPdf(book, function(evt){
-        if(!loading) return;
-        if(evt && evt.stage === "processing"){
-          loading.textContent = "processando…";
-          return;
-        }
-        var p = pct(evt);
-        if(p != null){
-          loading.textContent = "baixando… " + p + "%";
-          return;
-        }
-        if(evt && evt.loaded){
-          loading.textContent = "baixando… " + fmtLoaded(evt);
-          return;
-        }
-        loading.textContent = "carregando…";
-      });
-      var pdf = cached.pdf;
-      var pages = cached.pages;
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = resolveUrl(LOCAL.PDFJS_WORKER);
+    }catch(e){ /* ignore */ }
 
-      var max = Math.min(pages, 40);
-      var base = 2 + Math.floor(Math.random() * Math.max(1, (max - 2)));
-      var left = base;
-      var right = Math.min(pages, base + 1);
-
-      var cL = $('canvas.l', peek);
-      var cR = $('canvas.r', peek);
-      await renderThumb(pdf, left, cL);
-      await renderThumb(pdf, right, cR);
-
-      card.classList.add('peek-ready');
-      if(loading) loading.style.display = 'none';
-    }catch(e){
-      if(loading){
-        loading.textContent = 'falha ao carregar';
-        loading.style.display = '';
-      }
+    // jQuery + turn.js
+    if(!window.jQuery || !window.jQuery.fn){
+      await loadScriptOnce('jquery', LOCAL.JQUERY);
     }
+    if(!window.jQuery || !window.jQuery.fn) throw new Error('jQuery não carregou');
+
+    if(!window.jQuery.fn.turn){
+      await loadScriptOnce('turn', LOCAL.TURN);
+    }
+
+    // isola jQuery do resto do site
+    try{
+      var jq = window.jQuery.noConflict(true);
+      window.__VG_JQ = jq; // guarda para reuso
+    }catch(e){
+      // se noConflict falhar, ainda dá pra usar
+      window.__VG_JQ = window.jQuery;
+    }
+
+    if(!window.__VG_JQ || !window.__VG_JQ.fn || !window.__VG_JQ.fn.turn){
+      throw new Error('Turn.js não carregou');
+    }
+
+    return { pdfjsLib: window.pdfjsLib, $: window.__VG_JQ };
   }
 
-  async function renderThumb(pdf, pageNumber, canvas){
-    if(!canvas) return;
-    var page = await pdf.getPage(pageNumber);
-    var viewport = page.getViewport({ scale: 0.35 });
+  function getShelf(){ return document.getElementById('vg-lib-shelf'); }
+  function getSearch(){ return document.getElementById('vg-lib-search'); }
 
-    canvas.width = Math.floor(viewport.width);
-    canvas.height = Math.floor(viewport.height);
-
-    var ctx = canvas.getContext('2d', { alpha: false });
-    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+  function createBookCard(b){
+    var el = document.createElement('div');
+    el.className = 'vg-book';
+    el.setAttribute('data-book', b.id);
+    el.innerHTML = 
+      '<div class="spine"></div>'+
+      '<div class="page-edges"></div>'+
+      '<div class="peek"><div class="paper"></div></div>'+
+      '<div class="cover" style="background-image:url('+esc(resolveUrl(b.cover))+')">'+
+        '<div class="title">'+esc(b.title)+'</div>'+
+        '<div class="sub">'+esc(b.subtitle)+'</div>'+
+        '<div class="hint">Clique para abrir</div>'+
+      '</div>';
+    el.addEventListener('click', function(){ openViewer(b); });
+    return el;
   }
 
-  /* =========================
-     VIEWER (fullscreen flipbook)
-  ========================== */
+  function renderShelf(filter){
+    var shelf = getShelf();
+    if(!shelf) return;
+    shelf.innerHTML = '';
+    var q = String(filter || '').trim().toLowerCase();
+    BOOKS.forEach(function(b){
+      var hay = (b.title+' '+b.subtitle).toLowerCase();
+      if(q && !hay.includes(q)) return;
+      shelf.appendChild(createBookCard(b));
+    });
+  }
 
-  function ensureViewerShell(){
+  function ensureViewer(){
     var ov = document.getElementById('vg-lib-viewer');
     if(ov) return ov;
 
     ov = document.createElement('div');
     ov.id = 'vg-lib-viewer';
     ov.className = 'vg-lib-viewer-overlay';
-    ov.innerHTML =
+    ov.innerHTML = 
       '<div class="vg-lib-viewer-top panel-skin">'+
         '<div class="left">'+
-          '<button id="vg-lib-close" class="icon-btn" title="Fechar">✕</button>'+
+          '<button class="btn-ghost" id="vg-lib-close" title="Fechar">✕</button>'+
           '<div class="meta">'+
             '<strong id="vg-lib-title">Livro</strong>'+
-            '<span id="vg-lib-page">—</span>'+
+            '<span id="vg-lib-sub">carregando…</span>'+
           '</div>'+
         '</div>'+
         '<div class="right">'+
-          '<button id="vg-lib-full" class="icon-btn" title="Tela cheia">⛶</button>'+
-          '<button id="vg-lib-zoomout" class="icon-btn" title="Zoom -">−</button>'+
-          '<button id="vg-lib-zoomin" class="icon-btn" title="Zoom +">+</button>'+
+          '<button class="btn-ghost" id="vg-lib-zoomout" title="Diminuir">−</button>'+
+          '<button class="btn-ghost" id="vg-lib-zoomin" title="Aumentar">+</button>'+
         '</div>'+
       '</div>'+
       '<div class="vg-lib-flip-wrap">'+
-        '<div id="vg-lib-flip"></div>'+
+        '<div class="vg-lib-loading" id="vg-lib-loading">'+
+          '<div class="box">'+
+            '<div class="t">Carregando livro…</div>'+
+            '<div class="s" id="vg-lib-progress">Preparando leitor…</div>'+
+            '<div class="btns">'+
+              '<a class="btn-ghost" id="vg-lib-openpdf" target="_blank" rel="noopener">Abrir PDF</a>'+
+              '<button class="btn-blue" id="vg-lib-tryagain" type="button">Tentar de novo</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div id="vg-flipbook" class="vg-flipbook"></div>'+
       '</div>';
 
     document.body.appendChild(ov);
 
-    $('#vg-lib-close', ov).addEventListener('click', closeViewer);
-    ov.addEventListener('click', function(e){ if(e.target === ov) closeViewer(); });
-
-    $('#vg-lib-zoomin', ov).addEventListener('click', function(){ setZoom(state.viewer.zoom + 0.1); });
-    $('#vg-lib-zoomout', ov).addEventListener('click', function(){ setZoom(state.viewer.zoom - 0.1); });
-
-    $('#vg-lib-full', ov).addEventListener('click', function(){
-      try{ if(!document.fullscreenElement){ ov.requestFullscreen(); } else { document.exitFullscreen(); } }catch(e){}
-    });
-
-    window.addEventListener('keydown', function(e){
-      if(!state.viewer.open) return;
-      if(e.key === 'Escape') closeViewer();
-    });
-
-    window.addEventListener('resize', function(){
-      if(state.viewer.open) rebuildFlip();
+    ov.querySelector('#vg-lib-close').addEventListener('click', function(){ closeViewer(); });
+    ov.addEventListener('click', function(e){
+      if(e.target === ov) closeViewer();
     });
 
     return ov;
   }
 
-  function setZoom(z){
-    state.viewer.zoom = Math.max(0.7, Math.min(1.6, z));
-    rebuildFlip();
-  }
+  var state = {
+    open: false,
+    book: null,
+    pdf: null,
+    $: null,
+    pdfjsLib: null,
+    zoom: 1,
+    rendered: Object.create(null),
+    loadingTask: null,
+  };
 
-  function calcFlipSize(){
-    var w = Math.min(1100, window.innerWidth - 36);
-    var h = Math.min(760, window.innerHeight - 110);
-    return { w: w, h: h };
-  }
-
-  async function openViewer(book){
-    var ov = ensureViewerShell();
-
+  function showOverlay(){
+    var ov = ensureViewer();
     ov.classList.add('show');
-    state.viewer.open = true;
-    state.viewer.book = book;
-
-    $('#vg-lib-title', ov).textContent = book.title;
-    $('#vg-lib-page', ov).textContent = 'carregando…';
-
-    var host = document.getElementById('vg-lib-flip');
-    if(host){
-      var rawUrl = resolveUrl(book.file);
-      host.innerHTML =
-        '<div class="vg-lib-error">'
-        + '<strong>Carregando livro…</strong>'
-        + '<div style="opacity:.85;margin-top:6px">Se demorar muito, tente abrir o PDF direto (às vezes o leitor trava no deploy).</div>'
-        + '<div class="actions" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
-        +   '<button class="icon-btn" id="vg-lib-openraw-loading">Abrir PDF</button>'
-        +   '<button class="icon-btn" id="vg-lib-cancel-loading">Fechar</button>'
-        + '</div>'
-        + '</div>';
-
-      var bR = document.getElementById('vg-lib-openraw-loading');
-      if(bR) bR.addEventListener('click', function(e){
-        e.stopPropagation();
-        try{ window.open(rawUrl, '_blank'); }catch(_e){}
-      });
-
-      var bC = document.getElementById('vg-lib-cancel-loading');
-      if(bC) bC.addEventListener('click', function(e){
-        e.stopPropagation();
-        closeViewer();
-      });
-    }
-
-
-    try{
-      await ensureLibs();
-    }catch(e){
-      showViewerError(book, 'Falha ao carregar o leitor (scripts externos bloqueados).', e);
-      return;
-    }
-
-    try{
-      var cached = await getPdf(book, function(evt){
-        var el = $('#vg-lib-page', ov);
-        if(!el) return;
-        if(evt && evt.stage === "processing"){
-          el.textContent = "processando…";
-          return;
-        }
-        var p = pct(evt);
-        if(p != null){
-          el.textContent = "baixando… " + p + "%";
-          return;
-        }
-        if(evt && evt.loaded){
-          el.textContent = "baixando… " + fmtLoaded(evt);
-          return;
-        }
-        el.textContent = "carregando…";
-      });
-
-      state.viewer.pdf = cached.pdf;
-      state.viewer.pages = cached.pages;
-
-      buildFlip();
-    }catch(e2){
-      showViewerError(book, 'Não consegui abrir o PDF. Pode ser Range/Stream do deploy ou download travado.', e2);
-    }
-  }
-
-  function showViewerError(book, msg, err){
-    var ov = document.getElementById('vg-lib-viewer');
-    var host = document.getElementById('vg-lib-flip');
-    var url = resolveUrl(book.file);
-    if(ov){
-      $('#vg-lib-title', ov).textContent = book.title;
-      $('#vg-lib-page', ov).textContent = 'erro';
-    }
-    if(host){
-      var details = '';
-      try{ details = (err && err.message) ? String(err.message) : String(err||''); }catch(e){}
-      host.innerHTML =
-        '<div class="vg-lib-error">'
-        + '<strong>'+esc(msg)+'</strong>'
-        + '<div style="opacity:.85;margin-top:8px">Teste abrindo o PDF direto no navegador. Se abrir, o problema é só no leitor.</div>'
-        + '<div class="actions" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
-        +   '<button class="icon-btn" id="vg-lib-openraw">Abrir PDF</button>'
-        +   '<button class="icon-btn" id="vg-lib-retry">Tentar de novo</button>'
-        + '</div>'
-        + (details ? ('<div style="opacity:.6;margin-top:10px;font-size:12px">'+esc(details)+'</div>') : '')
-        + '</div>';
-
-      var b1 = document.getElementById('vg-lib-openraw');
-      if(b1) b1.addEventListener('click', function(e){ e.stopPropagation(); try{ window.open(url, '_blank'); }catch(_e){} });
-      var b2 = document.getElementById('vg-lib-retry');
-      if(b2) b2.addEventListener('click', function(e){ e.stopPropagation(); openViewer(book); });
-    }
+    state.open = true;
+    document.documentElement.style.overflow = 'hidden';
   }
 
   function closeViewer(){
     var ov = document.getElementById('vg-lib-viewer');
     if(ov) ov.classList.remove('show');
+    state.open = false;
+    document.documentElement.style.overflow = '';
 
-    try{ if(state.viewer.flip && state.viewer.flip.destroy) state.viewer.flip.destroy(); }catch(e){}
+    // limpa flipbook
+    try{ destroyFlipbook(); }catch(e){}
 
-    state.viewer.open = false;
-    state.viewer.book = null;
-    state.viewer.pdf = null;
-    state.viewer.pages = 0;
-    state.viewer.flip = null;
-    state.viewer.rendered = new Set();
+    // cancela loadingTask pdf.js se estiver carregando
+    try{ if(state.loadingTask) state.loadingTask.destroy(); }catch(e){}
+    state.loadingTask = null;
 
-    var host = document.getElementById('vg-lib-flip');
-    if(host) host.innerHTML = '';
+    state.book = null;
+    state.pdf = null;
+    state.rendered = Object.create(null);
+    state.zoom = 1;
   }
 
-  function buildPageDiv(n){
+  function setLoading(text){
+    var box = document.getElementById('vg-lib-loading');
+    var p = document.getElementById('vg-lib-progress');
+    if(box) box.style.display = '';
+    if(p) p.textContent = text || '';
+  }
+
+  function hideLoading(){
+    var box = document.getElementById('vg-lib-loading');
+    if(box) box.style.display = 'none';
+  }
+
+  function withTimeout(promise, ms, label){
+    var to;
+    var t = new Promise(function(_, rej){
+      to = setTimeout(function(){ rej(new Error(label || 'timeout')); }, ms);
+    });
+    return Promise.race([promise, t]).finally(function(){ clearTimeout(to); });
+  }
+
+  function fmtMB(bytes){
+    var mb = bytes / (1024*1024);
+    return mb.toFixed(mb >= 10 ? 0 : 1) + ' MB';
+  }
+
+  async function loadPdf(url){
+    var pdfjsLib = state.pdfjsLib;
+
+    // 1) Tenta streaming por URL (melhor pra PDFs grandes)
+    try{
+      var task = pdfjsLib.getDocument({
+        url: url,
+        // mitiga alertas de segurança em builds antigos
+        isEvalSupported: false,
+      });
+      state.loadingTask = task;
+
+      task.onProgress = function(p){
+        if(!p) return;
+        var loaded = p.loaded || 0;
+        var total = p.total || 0;
+        if(total){
+          setLoading('Baixando: '+fmtMB(loaded)+' / '+fmtMB(total));
+        }else{
+          setLoading('Baixando: '+fmtMB(loaded));
+        }
+      };
+
+      var pdf = await withTimeout(task.promise, 180000, 'Leitura do PDF demorou demais (timeout)');
+      state.loadingTask = null;
+      return pdf;
+    }catch(err){
+      try{ if(state.loadingTask) state.loadingTask.destroy(); }catch(e){}
+      state.loadingTask = null;
+
+      // 2) Fallback: baixa inteiro e abre por data
+      try{
+        setLoading('Baixando arquivo inteiro (fallback)…');
+        var resp = await withTimeout(fetch(url, { cache: 'no-store' }), 180000, 'Download demorou demais (timeout)');
+        if(!resp.ok) throw new Error('HTTP '+resp.status);
+        var buf = await withTimeout(resp.arrayBuffer(), 180000, 'Download demorou demais (timeout)');
+
+        var task2 = pdfjsLib.getDocument({ data: buf, isEvalSupported: false, disableWorker: true });
+        state.loadingTask = task2;
+        var pdf2 = await withTimeout(task2.promise, 180000, 'Parse do PDF demorou demais (timeout)');
+        state.loadingTask = null;
+        return pdf2;
+      }catch(err2){
+        throw err2 || err;
+      }
+    }
+  }
+
+  function calcBookSize(pageW, pageH){
+    // page ratio
+    var ratio = pageW / pageH;
+    var maxW = Math.min(window.innerWidth * 0.96, 1400);
+    var maxH = Math.min(window.innerHeight * 0.86, 900);
+
+    var doubleMode = window.innerWidth > 860;
+    var targetH = Math.min(maxH, doubleMode ? (maxW / (2*ratio)) : (maxW / ratio));
+    targetH = Math.max(360, targetH);
+
+    var pH = targetH;
+    var pW = pH * ratio;
+
+    if(!doubleMode){
+      return { display: 'single', pageW: pW, pageH: pH, bookW: pW, bookH: pH };
+    }
+    return { display: 'double', pageW: pW, pageH: pH, bookW: pW*2, bookH: pH };
+  }
+
+  function destroyFlipbook(){
+    var $ = state.$;
+    if(!$) return;
+    var $fb = $('#vg-flipbook');
+    if($fb.length && $fb.data('turn')){
+      try{ $fb.turn('destroy'); }catch(e){}
+    }
+    var el = document.getElementById('vg-flipbook');
+    if(el) el.innerHTML = '';
+  }
+
+  function makePageEl(pageNum){
     var d = document.createElement('div');
-    d.className = 'vg-page';
-    d.setAttribute('data-page', String(n));
-    d.innerHTML = '<div class="ph">carregando…</div>';
+    d.className = 'page';
+    d.setAttribute('data-page', String(pageNum));
+    d.innerHTML = '<div class="inner"><canvas></canvas><div class="ph">Carregando…</div></div>';
     return d;
   }
 
-  async function buildFlip(){
-    var host = document.getElementById('vg-lib-flip');
-    if(!host) return;
+  async function renderPageToCanvas(pdf, pageNum, canvas, targetW, targetH){
+    var key = String(pageNum);
+    if(state.rendered[key]) return state.rendered[key];
 
-    host.innerHTML = '';
+    state.rendered[key] = (async () => {
+      var page = await pdf.getPage(pageNum);
+      var viewport1 = page.getViewport({ scale: 1 });
+      var scale = targetW / viewport1.width;
+      var dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+      var viewport = page.getViewport({ scale: scale * dpr * state.zoom });
 
-    var pages = state.viewer.pages;
-    for(var i=1;i<=pages;i++) host.appendChild(buildPageDiv(i));
-
-    var size = calcFlipSize();
-    var w = size.w;
-    var h = size.h;
-
-    var flip = new state.PageFlip(host, {
-      width:  Math.floor((w/2) * state.viewer.zoom),
-      height: Math.floor(h * state.viewer.zoom),
-      size: 'stretch',
-      minWidth: 320,
-      minHeight: 420,
-      maxWidth: 1400,
-      maxHeight: 900,
-      showCover: true,
-      mobileScrollSupport: true,
-      useMouseEvents: true,
-      useTouchEvents: true,
-    });
-
-    flip.loadFromHTML($$('.vg-page', host));
-
-    flip.on('flip', function(e){
-      var page = ((e && e.data) ? e.data : 0) + 1;
-      updatePageLabel(page);
-      renderAround(page);
-    });
-
-    state.viewer.flip = flip;
-
-    updatePageLabel(1);
-    renderAround(1);
-
-    try{ host.parentElement.classList.add('animate-in'); setTimeout(function(){ host.parentElement.classList.remove('animate-in'); }, 350); }catch(e){}
-  }
-
-  function rebuildFlip(){
-    if(!state.viewer.open) return;
-    try{ if(state.viewer.flip && state.viewer.flip.destroy) state.viewer.flip.destroy(); }catch(e){}
-    state.viewer.flip = null;
-    state.viewer.rendered = new Set();
-    buildFlip();
-  }
-
-  function updatePageLabel(p){
-    var ov = document.getElementById('vg-lib-viewer');
-    if(!ov) return;
-    $('#vg-lib-page', ov).textContent = 'Página ' + p + ' / ' + state.viewer.pages;
-  }
-
-  async function renderAround(page){
-    var pdf = state.viewer.pdf;
-    if(!pdf) return;
-
-    var want = [page, page-1, page+1, page-2, page+2];
-    for(var i=0;i<want.length;i++){
-      var n = want[i];
-      if(n < 1 || n > state.viewer.pages) continue;
-      if(state.viewer.rendered.has(n)) continue;
-      state.viewer.rendered.add(n);
-      renderPageInto(n);
-    }
-  }
-
-  async function renderPageInto(pageNumber){
-    var host = document.getElementById('vg-lib-flip');
-    if(!host) return;
-
-    var pageEl = host.querySelector('.vg-page[data-page="'+pageNumber+'"]');
-    if(!pageEl) return;
-
-    var ph = $('.ph', pageEl);
-    if(ph){ ph.textContent = 'renderizando…'; ph.style.display = ''; }
-
-    try{
-      var pdf = state.viewer.pdf;
-      var page = await pdf.getPage(pageNumber);
-
-      var canvas = pageEl.querySelector('canvas');
-      if(!canvas){
-        canvas = document.createElement('canvas');
-        pageEl.insertBefore(canvas, pageEl.firstChild);
-      }
-
-      var size = calcFlipSize();
-      var targetW = Math.floor((size.w/2) * state.viewer.zoom);
-      var baseVp = page.getViewport({ scale: 1 });
-      var scale = targetW / baseVp.width;
-      var vp = page.getViewport({ scale: scale });
-
-      canvas.width = Math.floor(vp.width);
-      canvas.height = Math.floor(vp.height);
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
 
       var ctx = canvas.getContext('2d', { alpha: false });
-      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,canvas.width, canvas.height);
+      ctx.restore();
 
+      var renderTask = page.render({ canvasContext: ctx, viewport: viewport });
+      await renderTask.promise;
+
+      var ph = canvas.parentElement && canvas.parentElement.querySelector('.ph');
       if(ph) ph.style.display = 'none';
-    }catch(e){
-      if(ph){ ph.textContent = 'falha ao renderizar'; ph.style.display = ''; }
+    })().catch((e) => {
+      var ph = canvas.parentElement && canvas.parentElement.querySelector('.ph');
+      if(ph){ ph.style.display = ''; ph.textContent = 'Falha ao renderizar.'; }
+      throw e;
+    });
+
+    return state.rendered[key];
+  }
+
+  async function initFlipbook(pdf){
+    var $ = state.$;
+
+    // mede primeira página
+    setLoading('Preparando páginas…');
+    var p1 = await pdf.getPage(1);
+    var vp = p1.getViewport({ scale: 1 });
+
+    var sizes = calcBookSize(vp.width, vp.height);
+
+    destroyFlipbook();
+
+    var fbEl = document.getElementById('vg-flipbook');
+    if(!fbEl) throw new Error('Flipbook container não encontrado');
+
+    fbEl.style.width = Math.round(sizes.bookW) + 'px';
+    fbEl.style.height = Math.round(sizes.bookH) + 'px';
+
+    var $fb = $(fbEl);
+
+    // turn.js: cria com num total de páginas e usa missing() pra lazy add
+    $fb.turn({
+      width: Math.round(sizes.bookW),
+      height: Math.round(sizes.bookH),
+      autoCenter: true,
+      gradients: true,
+      acceleration: true,
+      display: sizes.display,
+      pages: pdf.numPages,
+      when: {
+        missing: function(e, pages){
+          for(var i=0; i<pages.length; i++){
+            var p = pages[i];
+            var pageEl = makePageEl(p);
+            $fb.turn('addPage', pageEl, p);
+            var canvas = pageEl.querySelector('canvas');
+            renderPageToCanvas(pdf, p, canvas, sizes.pageW, sizes.pageH);
+          }
+        },
+        turning: function(e, page){
+          // pré-render próximos
+          var a = [page-2, page-1, page, page+1, page+2];
+          a.forEach(function(p){
+            if(p < 1 || p > pdf.numPages) return;
+            var el = fbEl.querySelector('.page[data-page="'+p+'"]');
+            if(!el) return; // missing vai chamar
+            var canvas = el.querySelector('canvas');
+            if(canvas) renderPageToCanvas(pdf, p, canvas, sizes.pageW, sizes.pageH);
+          });
+        }
+      }
+    });
+
+    // força carregar páginas iniciais
+    $fb.turn('page', 1);
+
+    // renderiza já a capa rapidamente
+    await wait(30);
+    var el1 = fbEl.querySelector('.page[data-page="1"]');
+    if(el1){
+      var c1 = el1.querySelector('canvas');
+      if(c1) await renderPageToCanvas(pdf, 1, c1, sizes.pageW, sizes.pageH);
+    }
+
+    hideLoading();
+  }
+
+  async function openViewer(book){
+    showOverlay();
+
+    var ov = ensureViewer();
+    var title = document.getElementById('vg-lib-title');
+    var sub = document.getElementById('vg-lib-sub');
+    if(title) title.textContent = book.title;
+    if(sub) sub.textContent = 'carregando…';
+
+    // botão abrir pdf
+    var url = resolveUrl(book.file);
+    var openPdf = document.getElementById('vg-lib-openpdf');
+    if(openPdf) openPdf.href = url;
+
+    // actions
+    var tryAgainBtn = document.getElementById('vg-lib-tryagain');
+    if(tryAgainBtn){
+      tryAgainBtn.onclick = function(){
+        try{ destroyFlipbook(); }catch(e){}
+        // reabrir
+        openViewer(book);
+      };
+    }
+
+    var zoomIn = document.getElementById('vg-lib-zoomin');
+    var zoomOut = document.getElementById('vg-lib-zoomout');
+
+    if(zoomIn) zoomIn.onclick = function(){
+      state.zoom = Math.min(2, (state.zoom || 1) + 0.1);
+      if(state.pdf) initFlipbook(state.pdf).catch(function(){});
+    };
+    if(zoomOut) zoomOut.onclick = function(){
+      state.zoom = Math.max(0.8, (state.zoom || 1) - 0.1);
+      if(state.pdf) initFlipbook(state.pdf).catch(function(){});
+    };
+
+    // carrega libs + pdf
+    setLoading('Preparando leitor…');
+
+    try{
+      var libs = await ensureLibs();
+      state.pdfjsLib = libs.pdfjsLib;
+      state.$ = libs.$;
+
+      setLoading('Abrindo PDF…');
+      var pdf = await loadPdf(url);
+      state.pdf = pdf;
+      if(sub) sub.textContent = pdf.numPages + ' páginas';
+
+      await initFlipbook(pdf);
+    }catch(err){
+      console.error('[Biblioteca] erro:', err);
+      if(sub) sub.textContent = 'erro ao carregar';
+      setLoading('Erro: '+(err && err.message ? err.message : String(err)));
+      // mantém a caixa com Abrir PDF + Tentar de novo
     }
   }
 
-  /* =========================
-     SEARCH
-  ========================== */
+  // init on tab open
+  var inited = false;
+  function init(){
+    if(inited) return;
+    inited = true;
 
-  function mountSearch(panel){
-    var input = $('#vg-lib-search', panel);
-    if(!input) return;
+    loadStyleOnce(LOCAL.CSS);
 
-    input.addEventListener('input', function(){
-      var q = (input.value || '').trim().toLowerCase();
-      var cards = $$('.vg-book', panel);
-      cards.forEach(function(c){
-        var id = c.getAttribute('data-book-id');
-        var book = null;
-        for(var i=0;i<BOOKS.length;i++) if(BOOKS[i].id === id) book = BOOKS[i];
-        var hay = ((book ? book.title : '') + ' ' + (book ? (book.subtitle||'') : '')).toLowerCase();
-        c.style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
-      });
-    });
+    renderShelf('');
+    var inp = getSearch();
+    if(inp){
+      inp.addEventListener('input', function(){ renderShelf(inp.value); });
+    }
   }
 
-  function mountWhenReady(){
-    var panel = document.getElementById('library-panel');
-    if(!panel) return;
-
-    // garante estilo no deploy (mesmo se o CSS externo estiver cacheado/desatualizado)
-    try{ ensureLibraryCSS(); }catch(e){}
-
-    if(panel.getAttribute('data-vg-lib-mounted') === '1') return;
-    panel.setAttribute('data-vg-lib-mounted', '1');
-    mountShelf(panel);
-    mountSearch(panel);
-  }
+  window.addEventListener('vg:show-library', init);
 
   window.VGLibrary = {
-    mount: mountWhenReady,
+    init: init,
     open: openViewer,
-    books: BOOKS
+    list: function(){ return BOOKS.slice(); }
   };
-
-  window.addEventListener('vg:show-library', function(){ mountWhenReady(); });
-  window.addEventListener('load', function(){ mountWhenReady(); });
-  window.addEventListener('DOMContentLoaded', function(){ mountWhenReady(); });
 
 })();
