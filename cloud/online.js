@@ -110,6 +110,7 @@
       if(which === "library"){
         btnLibrary && btnLibrary.classList.add("active");
         lib.classList.add("show");
+        try{ window.dispatchEvent(new CustomEvent('vg:show-library')); }catch(e){}
         return;
       }
 
