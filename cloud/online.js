@@ -35,6 +35,19 @@
       nav.appendChild(btnOnline);
     }
 
+    // Enable/ensure BIBLIOTECA button
+    let btnLibrary = document.getElementById("nav-library");
+    if(!btnLibrary){
+      // tenta achar pelo texto (compat com versões antigas)
+      btnLibrary = Array.from(nav.querySelectorAll('button.nav-btn')).find(b => (b.textContent || '').toUpperCase().includes('BIBLIOTECA'));
+      if(btnLibrary){
+        btnLibrary.id = "nav-library";
+        btnLibrary.classList.remove('disabled');
+        btnLibrary.title = "";
+        btnLibrary.textContent = "BIBLIOTECA";
+      }
+    }
+
     // ONLINE panel container (after heroList)
     let panel = document.getElementById("online-panel");
     if(!panel){
@@ -62,22 +75,51 @@
       heroList.parentElement.appendChild(panel);
     }
 
+    // LIBRARY panel container (after heroList)
+    let lib = document.getElementById("library-panel");
+    if(!lib){
+      lib = document.createElement("div");
+      lib.id = "library-panel";
+      lib.className = "vg-library-wrap";
+      lib.innerHTML = `
+        <div class="vg-library-top">
+          <div class="vg-library-title panel-skin">BIBLIOTECA</div>
+          <div class="vg-library-search">
+            <input id="vg-lib-search" placeholder="Buscar livro..." />
+          </div>
+        </div>
+        <div id="vg-lib-shelf" class="vg-lib-shelf"></div>
+      `;
+      heroList.parentElement.appendChild(lib);
+    }
+
     // show/hide panels (FIX: restore display original do hero-grid)
     function showHub(which){
       nav.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
 
+      // hide all
+      heroList.style.display = "none";
+      panel.classList.remove("show");
+      lib.classList.remove("show");
+
       if(which === "online"){
         btnOnline.classList.add("active");
-        heroList.style.display = "none";
         panel.classList.add("show");
-      }else{
-        heroBtn && heroBtn.classList.add("active");
-        heroList.style.display = "";     // <<< FIX PRINCIPAL (não "block")
-        panel.classList.remove("show");
+        return;
       }
+      if(which === "library"){
+        btnLibrary && btnLibrary.classList.add("active");
+        lib.classList.add("show");
+        return;
+      }
+
+      // heroes
+      heroBtn && heroBtn.classList.add("active");
+      heroList.style.display = "";     // <<< FIX PRINCIPAL (não "block")
     }
     heroBtn?.addEventListener("click", ()=>showHub("heroes"));
     btnOnline.addEventListener("click", ()=>showHub("online"));
+    btnLibrary?.addEventListener("click", ()=>showHub("library"));
 
     // ----- Add “Privado/Público” + “Edição pública” to create modal -----
     const modal = document.getElementById("modal-create");
