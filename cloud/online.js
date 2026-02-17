@@ -1270,13 +1270,14 @@
     var fbEl = document.getElementById('vg-flipbook');
     if(!fbEl) throw new Error('Flipbook container não encontrado');
 
-    fbEl.style.width = Math.round(sizes.bookW) + 'px';
-    fbEl.style.height = Math.round(sizes.bookH) + 'px';
+    // começa com a capa (single) para evitar o bug do "flipbook vazio" no deploy
+    fbEl.style.width = Math.round(sizes.pageW) + 'px';
+    fbEl.style.height = Math.round(sizes.pageH) + 'px';
 
     // Turn.js pode “ficar vazio” se depender apenas do evento `missing`.
     // Para garantir que sempre exista algo renderizável, inserimos as
     // primeiras páginas antes do .turn().
-    var initialCount = (sizes.display === 'double') ? 6 : 3;
+    var initialCount = 4; // capa + 3 primeiras (suficiente para iniciar sem branco)
     var maxInitial = Math.min(initialCount, pdf.numPages);
     for(var pi=1; pi<=maxInitial; pi++){
       fbEl.appendChild(makePageEl(pi));
@@ -1286,9 +1287,12 @@
 
     // Em telas grandes, a capa (página 1) deve ficar centralizada.
     // A forma mais estável no Turn.js é alternar display/size conforme a página.
-    function applyDisplayMode(targetPage){
-      if(sizes.display !== 'double') return;
-      var wantSingle = (targetPage === 1);
+    
+function applyDisplayMode(targetPage){
+      // mobile = single sempre
+      var doubleMode = (window.innerWidth > 860);
+      var wantSingle = (!doubleMode) || (targetPage === 1);
+
       try{
         if(wantSingle){
           $fb.turn('display', 'single');
@@ -1300,36 +1304,53 @@
       }catch(e){}
     }
 
-    // turn.js: cria com num total de páginas e usa missing() pra lazy add
+    // Em desktop, Turn.js fica MUITO mais estável se iniciar como SINGLE (capa)
+    // e só trocar pra DOUBLE ao virar para a página 2.
+    var totalPages = pdf.numPages;
+    if(window.innerWidth > 860 && (totalPages % 2 !== 0)){
+      totalPages += 1; // adiciona uma página em branco no final para manter pares
+    }
+
+    // turn.js: cria com total de páginas e usa missing() pra lazy add
     $fb.turn({
-      width: Math.round(sizes.bookW),
-      height: Math.round(sizes.bookH),
+      width: Math.round(sizes.pageW),
+      height: Math.round(sizes.pageH),
       autoCenter: true,
       gradients: true,
       acceleration: true,
-      display: sizes.display,
-      pages: pdf.numPages,
+      display: 'single',
+      pages: totalPages,
       page: 1,
       when: {
         missing: function(e, pages){
           for(var i=0; i<pages.length; i++){
-            var p = pages[i];
-            var pageEl = makePageEl(p);
-            $fb.turn('addPage', pageEl, p);
-            var canvas = pageEl.querySelector('canvas');
-            renderPageToCanvas(pdf, p, canvas, sizes.pageW, sizes.pageH);
+            var pnum = pages[i];
+            var pageEl = makePageEl(pnum);
+            $fb.turn('addPage', pageEl, pnum);
+
+            // páginas “extras” (blank) não renderizam PDF
+            if(pnum <= pdf.numPages){
+              var canvas = pageEl.querySelector('canvas');
+              renderPageToCanvas(pdf, pnum, canvas, sizes.pageW, sizes.pageH);
+            }else{
+              // blank page
+              var ph = pageEl.querySelector('.ph');
+              if(ph){ ph.style.display='none'; }
+              pageEl.style.background = '#fff';
+            }
           }
         },
         turning: function(e, page){
           applyDisplayMode(page);
-          // pré-render próximos
+
+          // pré-render próximos (somente dentro do range real do PDF)
           var a = [page-2, page-1, page, page+1, page+2];
-          a.forEach(function(p){
-            if(p < 1 || p > pdf.numPages) return;
-            var el = fbEl.querySelector('.page[data-page="'+p+'"]');
+          a.forEach(function(pn){
+            if(pn < 1 || pn > pdf.numPages) return;
+            var el = fbEl.querySelector('.page[data-page="'+pn+'"]');
             if(!el) return; // missing vai chamar
             var canvas = el.querySelector('canvas');
-            if(canvas) renderPageToCanvas(pdf, p, canvas, sizes.pageW, sizes.pageH);
+            if(canvas) renderPageToCanvas(pdf, pn, canvas, sizes.pageW, sizes.pageH);
           });
         },
         turned: function(e, page){
@@ -1337,6 +1358,13 @@
         }
       }
     });
+
+    // centraliza a capa logo de cara
+    applyDisplayMode(1);
+    bindDragLayer($fb);
+
+    // força carregar páginas iniciais
+    $fb.turn('page', 1);
 
     // centraliza a capa logo de cara
     applyDisplayMode(1);

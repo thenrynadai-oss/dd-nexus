@@ -24,10 +24,12 @@
     }
   ];
 
-  // CDN libs (mantém simples; com fallback de worker)
-  var PDFJS_SRC    = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js";
-  var PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
-  var PAGEFLIP_SRC = "https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js";
+  // Libs locais (sem CDN — compatível com Vercel)
+  var PDFJS_SRC    = "library/vendor/pdfjs/pdf.min.js";
+  var PDFJS_WORKER = "library/vendor/pdfjs/pdf.worker.min.js";
+  var JQUERY_SRC   = "library/vendor/jquery/jquery.min.js";
+  var TURN_SRC     = "library/vendor/turn/turn.min.js";
+
 
   // Resolve paths correctly both locally and in deploy (subpaths/case-sensitive servers)
   function resolveUrl(rel){
@@ -57,7 +59,6 @@
 
   var state = {
     pdfjs: null,
-    PageFlip: null,
     // id -> { pdf, pages } OU { promise }
     bookCache: new Map(),
     hoverTimers: new Map(),
@@ -68,7 +69,8 @@
       pdf: null,
       pages: 0,
       zoom: 1.0,
-      flip: null,
+      $turn: null,
+      turn: null,
       rendered: new Set()
     }
   };
@@ -102,21 +104,29 @@
     });
   }
 
+  
   async function ensureLibs(){
+    // pdf.js
     if(!state.pdfjs){
-      await loadScriptOnce(PDFJS_SRC, 'pdfjs');
+      await loadScriptOnce(resolveUrl(PDFJS_SRC), 'pdfjs');
       state.pdfjs = window.pdfjsLib;
+      if(!state.pdfjs) throw new Error('pdfjsLib ausente');
       try{
-        // pode falhar em alguns browsers por CSP; a gente faz fallback depois
-        state.pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+        state.pdfjs.GlobalWorkerOptions.workerSrc = resolveUrl(PDFJS_WORKER);
       }catch(e){}
     }
-    if(!state.PageFlip){
-      await loadScriptOnce(PAGEFLIP_SRC, 'pageflip');
-      state.PageFlip = (window.St && window.St.PageFlip) ? window.St.PageFlip : null;
-      if(!state.PageFlip){
-        throw new Error('PageFlip não carregou (St.PageFlip ausente)');
-      }
+
+    // jQuery + turn.js (ordem importa)
+    if(!window.jQuery){
+      await loadScriptOnce(resolveUrl(JQUERY_SRC), 'jquery');
+    }
+    if(!window.jQuery) throw new Error('jQuery ausente');
+
+    if(!(window.jQuery.fn && window.jQuery.fn.turn)){
+      await loadScriptOnce(resolveUrl(TURN_SRC), 'turn');
+    }
+    if(!(window.jQuery.fn && window.jQuery.fn.turn)){
+      throw new Error('turn.js ausente');
     }
   }
 
@@ -640,18 +650,18 @@
     var ov = document.getElementById('vg-lib-viewer');
     if(ov) ov.classList.remove('show');
 
-    try{ if(state.viewer.flip && state.viewer.flip.destroy) state.viewer.flip.destroy(); }catch(e){}
+    try{ destroyTurn(); }catch(e){}
 
     state.viewer.open = false;
     state.viewer.book = null;
     state.viewer.pdf = null;
     state.viewer.pages = 0;
-    state.viewer.flip = null;
     state.viewer.rendered = new Set();
 
     var host = document.getElementById('vg-lib-flip');
     if(host) host.innerHTML = '';
   }
+
 
   function buildPageDiv(n){
     var d = document.createElement('div');
@@ -661,57 +671,121 @@
     return d;
   }
 
+  function destroyTurn(){
+    try{
+      if(state.viewer.turn && state.viewer.turn.destroy){
+        state.viewer.turn.destroy();
+      }else if(state.viewer.$turn){
+        try{ state.viewer.$turn.turn('destroy'); }catch(e){}
+      }
+    }catch(e){}
+    state.viewer.$turn = null;
+    state.viewer.turn = null;
+  }
+
+  function getDisplayForPage(p){
+    // capa sozinha (página 1) = single; a partir da 2 = double
+    return (p <= 1) ? 'single' : 'double';
+  }
+
   async function buildFlip(){
     var host = document.getElementById('vg-lib-flip');
     if(!host) return;
 
+    destroyTurn();
     host.innerHTML = '';
 
     var pages = state.viewer.pages;
-    for(var i=1;i<=pages;i++) host.appendChild(buildPageDiv(i));
+
+    // Turn.js funciona melhor com número par de páginas no modo double.
+    // Se o PDF tiver ímpar, adiciona 1 página em branco no final.
+    var needBlank = (pages % 2 !== 0);
+    var total = needBlank ? (pages + 1) : pages;
+
+    for(var i=1;i<=total;i++){
+      var pageDiv = buildPageDiv(i);
+      // capa e contracapa um pouco mais “duras”
+      if(i === 1 || i === total){
+        pageDiv.classList.add('hard');
+      }
+      host.appendChild(pageDiv);
+    }
 
     var size = calcFlipSize();
-    var w = size.w;
-    var h = size.h;
+    var w = Math.floor(size.w * state.viewer.zoom);
+    var h = Math.floor(size.h * state.viewer.zoom);
 
-    var flip = new state.PageFlip(host, {
-      width:  Math.floor((w/2) * state.viewer.zoom),
-      height: Math.floor(h * state.viewer.zoom),
-      size: 'stretch',
-      minWidth: 320,
-      minHeight: 420,
-      maxWidth: 1400,
-      maxHeight: 900,
-      showCover: true,
-      mobileScrollSupport: true,
-      useMouseEvents: true,
-      useTouchEvents: true,
-    });
+    // init turn.js (drag-to-flip nativo)
+    try{
+      if(!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.turn){
+        throw new Error('turn.js não carregou (jQuery.fn.turn ausente)');
+      }
 
-    flip.loadFromHTML($$('.vg-page', host));
+      state.viewer.$turn = window.jQuery(host);
 
-    flip.on('flip', function(e){
-      var page = ((e && e.data) ? e.data : 0) + 1;
-      updatePageLabel(page);
-      renderAround(page);
-    });
+      // sempre inicia em single (capa centralizada)
+      state.viewer.$turn.turn({
+        width: w,
+        height: h,
+        autoCenter: true,
+        display: 'single',
+        acceleration: true,
+        gradients: true,
+        elevation: 80,
+        duration: 650
+      });
 
-    state.viewer.flip = flip;
+      // navegação por teclado (opcional, não atrapalha drag)
+      try{
+        window.addEventListener('keydown', onKeyTurn);
+      }catch(e){}
 
-    updatePageLabel(1);
-    renderAround(1);
+      state.viewer.$turn.bind('turned', function(_e, page){
+        var p = page || 1;
+        updatePageLabel(p);
+        // troca single/double conforme regra da capa
+        var desired = getDisplayForPage(p);
+        try{
+          if(state.viewer.$turn.turn('display') !== desired){
+            // pequeno delay evita reflow bugado em alguns browsers
+            setTimeout(function(){
+              try{ state.viewer.$turn.turn('display', desired); }catch(e){}
+              try{ state.viewer.$turn.turn('size', w, h); }catch(e){}
+            }, 0);
+          }
+        }catch(e){}
+        renderAround(p);
+      });
 
-    // animação de “abrir livro”
-    try{ host.parentElement.classList.add('animate-in'); setTimeout(function(){ host.parentElement.classList.remove('animate-in'); }, 350); }catch(e){}
+      state.viewer.$turn.bind('turning', function(_e, page){
+        // pré-renderiza antes de completar a virada
+        var p = page || 1;
+        renderAround(p);
+      });
+
+      // página 1 label + render
+      updatePageLabel(1);
+      renderAround(1);
+
+      // animação de “abrir”
+      try{ host.parentElement.classList.add('animate-in'); setTimeout(function(){ host.parentElement.classList.remove('animate-in'); }, 350); }catch(e){}
+
+    }catch(err){
+      showViewerError(state.viewer.book || { title: 'Livro', file: '' }, 'Falha ao iniciar o flipbook.', err);
+    }
+  }
+
+  function onKeyTurn(e){
+    if(!state.viewer.open || !state.viewer.$turn) return;
+    if(e.key === 'ArrowRight'){
+      try{ state.viewer.$turn.turn('next'); }catch(_e){}
+    }else if(e.key === 'ArrowLeft'){
+      try{ state.viewer.$turn.turn('previous'); }catch(_e){}
+    }
   }
 
   function rebuildFlip(){
     if(!state.viewer.open) return;
-
-    try{ if(state.viewer.flip && state.viewer.flip.destroy) state.viewer.flip.destroy(); }catch(e){}
-    state.viewer.flip = null;
-    state.viewer.rendered = new Set();
-
     buildFlip();
   }
 
@@ -725,7 +799,7 @@
     var pdf = state.viewer.pdf;
     if(!pdf) return;
 
-    var want = [page, page-1, page+1, page-2, page+2];
+    var want = [page, page-1, page+1, page-2, page+2, page+3];
     for(var i=0;i<want.length;i++){
       var n = want[i];
       if(n < 1 || n > state.viewer.pages) continue;
@@ -747,17 +821,21 @@
 
     try{
       var pdf = state.viewer.pdf;
+      if(!pdf) return;
+
       var page = await pdf.getPage(pageNumber);
 
-      // cria canvas on-demand (bem mais leve)
+      // cria canvas on-demand
       var canvas = pageEl.querySelector('canvas');
       if(!canvas){
         canvas = document.createElement('canvas');
         pageEl.insertBefore(canvas, pageEl.firstChild);
       }
 
+      // target = metade do spread
       var size = calcFlipSize();
       var targetW = Math.floor((size.w/2) * state.viewer.zoom);
+
       var baseVp = page.getViewport({ scale: 1 });
       var scale = targetW / baseVp.width;
       var vp = page.getViewport({ scale: scale });
@@ -773,7 +851,6 @@
       if(ph){ ph.textContent = 'falha ao renderizar'; ph.style.display = ''; }
     }
   }
-
   /* =========================
      SEARCH
   ========================== */
