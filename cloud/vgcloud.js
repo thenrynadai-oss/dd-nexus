@@ -173,12 +173,27 @@
 
         const userPayload = {
           uid,
-          displayName: name,
           nick: safeNick,
-          email,
-          photoURL: photoURL || this.user.photoURL || null,
-          updatedAt: serverTimestamp(),
+          updatedAt: Date.now(),
         };
+
+        // Regras do Firestore exigem que campos opcionais sejam string VÁLIDA (não null/""),
+        // então só gravamos quando estiverem preenchidos.
+        if(typeof name === "string"){
+          const nm = name.trim();
+          if(nm.length >= 2){
+            userPayload.name = nm;
+            userPayload.displayName = nm; // extra (UI)
+          }
+        }
+
+        if(typeof email === "string"){
+          const em = email.trim().toLowerCase();
+          if(em.length >= 6) userPayload.email = em;
+        }
+
+        const purl = String(photoURL || this.user.photoURL || "").trim();
+        if(purl && purl.length >= 8) userPayload.photoURL = purl;
 
         const miniPayload = {};
         if(miniProfile && typeof miniProfile === "object"){
@@ -200,9 +215,11 @@
         }
 
         // user doc
-        await setDoc(doc(this.db,"users",uid), { ...userPayload, ...miniPayload, createdAt: serverTimestamp() }, { merge:true });
+        await setDoc(doc(this.db,"users",uid), { ...userPayload, ...miniPayload, createdAt: Date.now() }, { merge:true });
         // nick index
-        await setDoc(doc(this.db,"nicks",safeNick), { uid, email, nick: safeNick, updatedAt: serverTimestamp() }, { merge:true });
+        const nickDoc = { uid, nick: safeNick, updatedAt: Date.now() };
+        if(userPayload.email) nickDoc.email = userPayload.email;
+        await setDoc(doc(this.db,"nicks",safeNick), nickDoc, { merge:true });
 
         return userPayload;
       };
@@ -445,8 +462,8 @@ async deleteHeroDeep(heroId){
         visibility: hero.visibility || "private",
         allowPublicEdit: (hero.visibility === "public") ? !!hero.allowPublicEdit : false,
         clientUpdatedAt: Date.now(),
-        updatedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
+        updatedAt: Date.now(),
+        createdAt: Date.now(),
       };
 
       await setDoc(this.heroRef(heroId), payload, { merge:true });
@@ -465,7 +482,7 @@ async deleteHeroDeep(heroId){
       await updateDoc(this.heroRef(heroId), {
         ...patch,
         clientUpdatedAt: Date.now(),
-        updatedAt: serverTimestamp()
+        updatedAt: Date.now()
       });
     },
 
@@ -495,8 +512,8 @@ async deleteHeroDeep(heroId){
         title: (heroSnapshot?.nome || heroSnapshot?.dados?.["c-name"] || "Ficha"),
         data: heroSnapshot,
         clientUpdatedAt: Date.now(),
-        updatedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
+        updatedAt: Date.now(),
+        createdAt: Date.now(),
       };
 
       await setDoc(this.shareRef(token), payload, { merge:true });
@@ -516,7 +533,7 @@ async deleteHeroDeep(heroId){
       await updateDoc(this.shareRef(token), {
         ...patch,
         clientUpdatedAt: Date.now(),
-        updatedAt: serverTimestamp()
+        updatedAt: Date.now()
       });
     },
 
@@ -528,7 +545,7 @@ async deleteHeroDeep(heroId){
       await setDoc(doc(this.db, "users", this.user.uid, "shared", t), {
         kind: "share",
         token: t,
-        addedAt: serverTimestamp()
+        addedAt: Date.now()
       }, { merge:true });
     },
 
@@ -545,7 +562,7 @@ async deleteHeroDeep(heroId){
         ownerUid: meta?.ownerUid || null,
         ownerName: meta?.ownerName || null,
         ownerPhotoURL: meta?.ownerPhotoURL || null,
-        addedAt: serverTimestamp()
+        addedAt: Date.now()
       }, { merge:true });
     },
 
@@ -644,7 +661,7 @@ async deleteHeroDeep(heroId){
       const tick = async () => {
         if(!alive) return;
         try{
-          await setDoc(meRef, { ...basePayload, lastSeenAt: serverTimestamp(), lastSeenMs: Date.now() }, { merge:true });
+          await setDoc(meRef, { ...basePayload, lastSeenAt: Date.now(), lastSeenMs: Date.now() }, { merge:true });
         }catch(e){}
         setTimeout(tick, 15000);
       };

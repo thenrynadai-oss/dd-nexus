@@ -102,6 +102,25 @@
     return localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
   }
 
+
+  function getStoredMute(){
+    try{ return localStorage.getItem('vasteria_mute') === '1'; }catch(e){ return false; }
+  }
+
+  function setStoredMute(m){
+    try{ localStorage.setItem('vasteria_mute', m ? '1' : '0'); }catch(e){}
+    try{ window.dispatchEvent(new CustomEvent('vasteria:mute', { detail: { muted: !!m } })); }catch(e){}
+    try{ if(window.VasteriaBG && typeof window.VasteriaBG.setMuted === 'function') window.VasteriaBG.setMuted(!!m); }catch(e){}
+  }
+
+  function syncMuteBtn(modal){
+    const btn = qs('#theme-mute-btn', modal);
+    if(!btn) return;
+    const m = getStoredMute();
+    btn.textContent = m ? '🔇' : '🔊';
+    btn.title = m ? 'Desmutar áudio ambiente' : 'Mutar áudio ambiente';
+  }
+
   function getStoredKind(){
     return localStorage.getItem(STORAGE_KIND_KEY) || "minimal";
   }
@@ -192,6 +211,7 @@
           <div style="flex:1"></div>
           <div style="display:flex;gap:10px;align-items:center">
             <span class="current-theme-label" style="font-size:12px;color:rgba(255,255,255,0.65)"></span>
+            <button class="btn-ghost" id="theme-mute-btn" type="button" title="Mutar / desmutar áudio ambiente">🔇</button>
           </div>
         </div>
 
@@ -364,6 +384,8 @@
     // label tema atual
     qsa(".current-theme-label").forEach(el => el.textContent = getThemeName(getStoredTheme()));
 
+    syncMuteBtn(modal);
+
     // build cards (idempotente)
     buildThemeCards(modal);
 
@@ -393,6 +415,19 @@
     document.addEventListener("keydown", (e) => {
       if(e.key === "Escape" && modal.classList.contains("active")) closeModal();
     });
+    // mute button (áudio ambiente)
+    const muteBtn = qs('#theme-mute-btn', modal);
+    if(muteBtn){
+      syncMuteBtn(modal);
+      muteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const next = !getStoredMute();
+        setStoredMute(next);
+        syncMuteBtn(modal);
+      });
+    }
+
+
 
     // conexões: qualquer botão com [data-action="open-themes"] abre
     qsa('[data-action="open-themes"]').forEach(btn => btn.addEventListener("click", (e)=>{ e.preventDefault(); openModal(); }));

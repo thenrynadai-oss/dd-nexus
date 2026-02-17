@@ -1224,7 +1224,18 @@ const sceneMap = {
     state.sceneState = {};
   }
 
-  function init(){
+  
+
+  function setMuted(m){
+    try{ localStorage.setItem('vasteria_mute', m ? '1' : '0'); }catch(e){}
+    try{ audioEnsure(); if(AUDIO.ctx && AUDIO.ctx.state === 'suspended') AUDIO.ctx.resume().catch(()=>{}); }catch(e){}
+    try{ audioSetMuted(!!m); }catch(e){}
+  }
+
+  function isMuted(){
+    return !!AUDIO.muted;
+  }
+function init(){
     state.canvas = ensureCanvas();
     state.ctx = state.canvas.getContext("2d", { alpha:true, desynchronized:true });
     resize();
@@ -1239,6 +1250,12 @@ const sceneMap = {
       setTheme(e.detail?.theme || "");
     });
 
+    // recebe eventos do botão de mute (Themes)
+    window.addEventListener("vasteria:mute", (e) => {
+      setMuted(!!(e.detail && e.detail.muted));
+    });
+
+
     // pega tema atual no carregamento
     setTheme(document.documentElement.getAttribute("data-theme") || document.body.getAttribute("data-theme") || "");
 
@@ -1246,7 +1263,7 @@ const sceneMap = {
     requestAnimationFrame(tick);
   }
 
-  window.VasteriaBG = { init, setTheme };
+  window.VasteriaBG = { init, setTheme, setMuted, isMuted };
 
   // auto-init
   if(document.readyState === "loading"){
