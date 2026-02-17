@@ -10,7 +10,6 @@
   "use strict";
 
   const STORAGE_KEY = "vasteria_theme";
-  const MUTE_KEY = "vasteria_mute";
   // salva o "grupo" do tema para aplicar overlay/skin cedo (evita flicker ao trocar de aba)
   const STORAGE_KIND_KEY = "vasteria_theme_kind";
   const DEFAULT_THEME = "coffee_caramel";
@@ -143,24 +142,6 @@
     qsa(".current-theme-label").forEach(el => el.textContent = getThemeName(theme));
   }
 
-  // ---------------------------------------------------------
-  // Mute do som ambiente do tema (bg.js)
-  // ---------------------------------------------------------
-  function getMuted(){
-    return localStorage.getItem(MUTE_KEY) === "1";
-  }
-  function setMuted(m){
-    localStorage.setItem(MUTE_KEY, m ? "1" : "0");
-    window.dispatchEvent(new CustomEvent("vasteria:mute", { detail: { muted: !!m } }));
-  }
-  function syncMuteBtn(){
-    const btn = qs('#theme-mute-btn');
-    if(!btn) return;
-    const m = getMuted();
-    btn.textContent = m ? '🔇' : '🔊';
-    btn.title = m ? 'Som do tema: mutado' : 'Som do tema: ligado';
-  }
-
   function getThemeName(id){
     const t = VASTERIA_THEMES.find(x => x.id === id);
     return t ? t.name : "Tema";
@@ -211,7 +192,6 @@
           <div style="flex:1"></div>
           <div style="display:flex;gap:10px;align-items:center">
             <span class="current-theme-label" style="font-size:12px;color:rgba(255,255,255,0.65)"></span>
-            <button class="btn-ghost" id="theme-mute-btn" type="button" title="Som do tema">🔊</button>
           </div>
         </div>
 
@@ -254,7 +234,6 @@
       </div>
     `;
     document.body.appendChild(modal);
-    setTimeout(syncMuteBtn, 0);
     return modal;
   }
 
@@ -388,9 +367,6 @@
     // build cards (idempotente)
     buildThemeCards(modal);
 
-    // sincroniza mute
-    syncMuteBtn();
-
     // foco no input
     const search = qs("#theme-search", modal);
     if(search) setTimeout(() => search.focus(), 40);
@@ -430,18 +406,6 @@
 
     // classe comum
     qsa(".open-themes").forEach(btn => btn.addEventListener("click", (e)=>{ e.preventDefault(); openModal(); }));
-
-    // botão mute (som ambiente do tema)
-    const muteBtn = qs('#theme-mute-btn', modal);
-    if(muteBtn){
-      muteBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setMuted(!getMuted());
-        syncMuteBtn();
-      });
-      syncMuteBtn();
-    }
   }
 
   // =========================================================
