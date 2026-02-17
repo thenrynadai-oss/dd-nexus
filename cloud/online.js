@@ -985,6 +985,7 @@
     ov.classList.add('show');
     state.open = true;
     document.documentElement.style.overflow = 'hidden';
+    try{ document.body.classList.add('vg-lib-noselect'); }catch(e){}
   }
 
   function closeViewer(){
@@ -992,6 +993,7 @@
     if(ov) ov.classList.remove('show');
     state.open = false;
     document.documentElement.style.overflow = '';
+    try{ document.body.classList.remove('vg-lib-noselect'); }catch(e){}
 
     // limpa flipbook
     try{ destroyFlipbook(); }catch(e){}
@@ -1177,6 +1179,10 @@
       try{ layer.setPointerCapture(pid); }catch(err){}
       e.preventDefault();
     }, { passive:false });
+
+    // evita seleção/drag nativo do browser dentro do viewer
+    layer.addEventListener('dragstart', function(e){ e.preventDefault(); }, { passive:false });
+    layer.addEventListener('selectstart', function(e){ e.preventDefault(); }, { passive:false });
 
     layer.addEventListener('pointermove', function(e){
       if(!down || e.pointerId !== pid) return;

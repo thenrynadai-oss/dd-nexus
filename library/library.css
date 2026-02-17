@@ -248,10 +248,14 @@
 #vg-lib-draglayer{
   position:absolute;
   inset:0;
-  z-index:35;
+  /* precisa ficar SEMPRE acima do conteúdo do livro (captura drag e impede seleção) */
+  z-index:9999;
   cursor:grab;
   background:transparent;
   touch-action:none;
+  pointer-events: all;
+  user-select:none;
+  -webkit-user-select:none;
 }
 #vg-lib-draglayer.vg-dragging{
   cursor:grabbing;
@@ -281,6 +285,25 @@
   height:100%;
   display:none;
   object-fit:contain;
+  /* evita o browser “selecionar/arrastar” como conteúdo do site */
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-user-drag:none;
+  pointer-events:none;
+}
+
+/* Viewer deve se comportar como um app: sem seleção de texto/elementos */
+body.vg-lib-noselect, body.vg-lib-noselect *{
+  user-select:none !important;
+  -webkit-user-select:none !important;
+}
+
+/* Conteúdo do livro fica “passivo”; o drag layer controla o input */
+.vg-flipbook, .vg-flipbook *{
+  -webkit-user-drag:none;
+}
+.vg-flipbook canvas, .vg-flipbook img{
+  pointer-events:none;
 }
 
 .vg-flipbook .page .ph{
