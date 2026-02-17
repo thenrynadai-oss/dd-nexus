@@ -244,22 +244,13 @@
   transition: width .18s ease, height .18s ease, transform .18s ease;
 }
 
-/* Drag layer: segura e arrasta pra virar página (estilo AnyFlip) */
-#vg-lib-draglayer{
-  position:absolute;
-  inset:0;
-  /* precisa ficar SEMPRE acima do conteúdo do livro (captura drag e impede seleção) */
-  z-index:9999;
-  cursor:grab;
-  background:transparent;
-  touch-action:none;
-  pointer-events: all;
-  user-select:none;
-  -webkit-user-select:none;
-}
-#vg-lib-draglayer.vg-dragging{
-  cursor:grabbing;
-}
+/*
+  Drag nativo do Turn.js
+  - Para ter “página dobrando” durante o arrasto (efeito AnyFlip),
+    o input precisa chegar nas páginas.
+  - Mantemos o overlay no DOM apenas como compat, mas ele NÃO captura input.
+*/
+#vg-lib-draglayer{ position:absolute; inset:0; pointer-events:none; }
 
 .vg-flipbook .page{
   background: rgba(255,255,255,.98);
@@ -298,13 +289,86 @@ body.vg-lib-noselect, body.vg-lib-noselect *{
   -webkit-user-select:none !important;
 }
 
-/* Conteúdo do livro fica “passivo”; o drag layer controla o input */
-.vg-flipbook, .vg-flipbook *{
-  -webkit-user-drag:none;
-}
-.vg-flipbook canvas, .vg-flipbook img{
+/* Conteúdo do livro precisa receber pointer events para o drag do Turn.js */
+.vg-flipbook, .vg-flipbook *{ -webkit-user-drag:none; }
+.vg-flipbook canvas, .vg-flipbook img{ pointer-events:auto; }
+
+/* Lens (lupa) */
+.vg-lib-lens{
+  position:absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.25);
+  box-shadow: 0 18px 40px rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  background: rgba(0,0,0,.15);
+  overflow:hidden;
+  display:none;
+  z-index: 9998;
   pointer-events:none;
 }
+.vg-lib-lens.on{ display:block; }
+
+/* Pages picker modal */
+.vg-lib-pages-modal{
+  position:absolute;
+  inset: 86px 18px 18px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.26);
+  backdrop-filter: blur(14px);
+  display:none;
+  z-index: 9997;
+  overflow:hidden;
+}
+.vg-lib-pages-modal.show{ display:block; }
+.vg-lib-pages-modal .top{
+  padding: 12px 12px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+}
+.vg-lib-pages-modal input{
+  flex:1;
+  padding:10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  outline:none;
+  color: rgba(255,255,255,.92);
+  background: rgba(255,255,255,.06);
+}
+.vg-lib-pages-modal .grid{
+  padding: 12px;
+  height: calc(100% - 58px);
+  overflow:auto;
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+.vg-lib-thumb{
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05);
+  overflow:hidden;
+  cursor:pointer;
+}
+.vg-lib-thumb:hover{ background: rgba(255,255,255,.08); }
+.vg-lib-thumb .img{
+  width:100%;
+  aspect-ratio: 3 / 4;
+  background: rgba(255,255,255,.06);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.vg-lib-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.vg-lib-thumb .n{ padding:8px 8px; font-size:12px; opacity:.9; text-align:center; }
+.vg-lib-thumb.active{ outline: 2px solid rgba(60,180,255,.55); }
+
+/* primeira abertura do livro (efeito “abrindo”) */
+.vg-flipbook.vg-opening{ transform: scale(1.01); }
 
 .vg-flipbook .page .ph{
   position:absolute;

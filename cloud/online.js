@@ -936,6 +936,8 @@
           '</div>'+
         '</div>'+
         '<div class="right">'+
+          '<button class="btn-ghost" id="vg-lib-pages" title="Páginas">☰</button>'+
+          '<button class="btn-ghost" id="vg-lib-lens" title="Lupa">🔎</button>'+
           '<button class="btn-ghost" id="vg-lib-zoomout" title="Diminuir">−</button>'+
           '<button class="btn-ghost" id="vg-lib-zoomin" title="Aumentar">+</button>'+
         '</div>'+
@@ -953,6 +955,14 @@
         '</div>'+
         '<div id="vg-flipbook" class="vg-flipbook"></div>'+
         '<div id="vg-lib-draglayer" aria-hidden="true"></div>'+
+        '<div class="vg-lib-lens" id="vg-lib-lens-ui" aria-hidden="true"></div>'+
+        '<div class="vg-lib-pages-modal" id="vg-lib-pages-modal" aria-hidden="true">'+
+          '<div class="top panel-skin">'+
+            '<input id="vg-lib-page-search" inputmode="numeric" placeholder="Ir para página... (ex: 42)" />'+
+            '<button class="btn-ghost" id="vg-lib-pages-close" title="Fechar">✕</button>'+
+          '</div>'+
+          '<div class="grid" id="vg-lib-pages-grid"></div>'+
+        '</div>'+
       '</div>';
 
     document.body.appendChild(ov);
@@ -961,6 +971,12 @@
     ov.addEventListener('click', function(e){
       if(e.target === ov) closeViewer();
     });
+
+    // bloqueia seleção/drag do browser dentro do viewer (extra safety)
+    try{
+      ov.addEventListener('dragstart', function(e){ e.preventDefault(); }, { passive:false });
+      ov.addEventListener('selectstart', function(e){ e.preventDefault(); }, { passive:false });
+    }catch(e){}
 
     return ov;
   }
@@ -978,6 +994,10 @@
     rendered: new Map(),
     loadingTask: null,
     sessionId: 0,
+    $flip: null,
+    openingCover: false,
+    didOpenCover: false,
+    lensOn: false,
   };
 
   function showOverlay(){
@@ -1006,6 +1026,13 @@
     state.pdf = null;
     state.rendered = new Map();
     state.zoom = 1;
+
+    // fecha UIs auxiliares
+    try{ var pm = document.getElementById('vg-lib-pages-modal'); if(pm) pm.classList.remove('show'); }catch(e){}
+    try{ var lens = document.getElementById('vg-lib-lens-ui'); if(lens) lens.classList.remove('on'); }catch(e){}
+    state.lensOn = false;
+    try{ var lb = document.getElementById('vg-lib-lens'); if(lb) lb.textContent = '🔎'; }catch(e){}
+    state.$flip = null;
   }
 
   function setLoading(text){
@@ -1014,17 +1041,13 @@
     if(box) box.style.display = '';
     if(p) p.textContent = text || '';
 
-    // Enquanto carrega, não deixa o usuário tentar virar páginas
-    var dl = document.getElementById('vg-lib-draglayer');
-    if(dl) dl.style.pointerEvents = 'none';
+    // Enquanto carrega, o Turn.js ainda não existe; nada a bloquear aqui.
   }
 
   function hideLoading(){
     var box = document.getElementById('vg-lib-loading');
     if(box) box.style.display = 'none';
 
-    var dl = document.getElementById('vg-lib-draglayer');
-    if(dl) dl.style.pointerEvents = 'auto';
   }
 
   function withTimeout(promise, ms, label){
@@ -1133,6 +1156,205 @@
       try{ $fb.turn('destroy'); }catch(e){}
     }
     if(el0) el0.innerHTML = '';
+  }
+
+  // ---------------------------------------------------------
+  // UI do Viewer: Lupa + Seletor de páginas
+  // ---------------------------------------------------------
+  function getFlip(){
+    return state.$flip;
+  }
+
+  function getCurrentPage(){
+    var $fb = getFlip();
+    if(!$fb) return 1;
+    try{ return $fb.turn('page') || 1; }catch(e){ return 1; }
+  }
+
+  function goToPage(n){
+    var $fb = getFlip();
+    if(!$fb) return;
+    n = Math.max(1, Math.min(n|0, (state.pdf && state.pdf.numPages) ? state.pdf.numPages : n));
+    try{ $fb.turn('page', n); }catch(e){}
+  }
+
+  function ensurePagesModal(){
+    var modal = document.getElementById('vg-lib-pages-modal');
+    if(!modal) return null;
+    if(modal.__vgBound) return modal;
+    modal.__vgBound = true;
+
+    var closeBtn = document.getElementById('vg-lib-pages-close');
+    if(closeBtn) closeBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); modal.classList.remove('show'); });
+
+    var inp = document.getElementById('vg-lib-page-search');
+    if(inp){
+      inp.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){
+          var v = parseInt(inp.value, 10);
+          if(!isNaN(v)){
+            scrollToThumb(v);
+            goToPage(v);
+            modal.classList.remove('show');
+          }
+        }
+      });
+    }
+
+    function scrollToThumb(pageNum){
+      var grid = document.getElementById('vg-lib-pages-grid');
+      if(!grid) return;
+      var el = grid.querySelector('[data-page="'+pageNum+'"]');
+      if(el) el.scrollIntoView({ block:'center', behavior:'smooth' });
+    }
+
+    modal.__vgScrollToThumb = scrollToThumb;
+    return modal;
+  }
+
+  function buildPageThumbs(){
+    var grid = document.getElementById('vg-lib-pages-grid');
+    if(!grid || !state.pdf) return;
+
+    // idempotente
+    if(grid.__vgBuilt && grid.__vgBuilt === state.sessionId) return;
+    grid.__vgBuilt = state.sessionId;
+    grid.innerHTML = '';
+
+    var total = state.pdf.numPages;
+    for(var p=1; p<=total; p++){
+      var card = document.createElement('div');
+      card.className = 'vg-lib-thumb';
+      card.setAttribute('data-page', String(p));
+      card.innerHTML = '<div class="img"><span style="font-size:12px;opacity:.75">…</span></div><div class="n">'+p+'</div>';
+      card.addEventListener('click', function(){
+        var n = parseInt(this.getAttribute('data-page'), 10);
+        goToPage(n);
+        var m = document.getElementById('vg-lib-pages-modal');
+        m && m.classList.remove('show');
+      });
+      grid.appendChild(card);
+    }
+
+    // popula as imagens usando os blobs já gerados no flipbook (qualidade boa, sem re-render)
+    var fbEl = document.getElementById('vg-flipbook');
+    if(!fbEl) return;
+    for(var p2=1; p2<=total; p2++){
+      var pageEl = fbEl.querySelector('.page[data-page="'+p2+'"]');
+      var img = pageEl && pageEl.querySelector('img.img');
+      var src = img && img.src;
+      if(!src) continue;
+      var thumb = grid.querySelector('[data-page="'+p2+'"] .img');
+      if(!thumb) continue;
+      thumb.innerHTML = '';
+      var im = document.createElement('img');
+      im.alt = 'Página '+p2;
+      im.src = src;
+      thumb.appendChild(im);
+    }
+  }
+
+  function refreshActiveThumb(){
+    var grid = document.getElementById('vg-lib-pages-grid');
+    if(!grid) return;
+    var cur = getCurrentPage();
+    var nodes = grid.querySelectorAll('.vg-lib-thumb');
+    for(var i=0;i<nodes.length;i++){
+      var n = parseInt(nodes[i].getAttribute('data-page'),10);
+      nodes[i].classList.toggle('active', n === cur);
+    }
+  }
+
+  function togglePagesModal(){
+    var modal = ensurePagesModal();
+    if(!modal) return;
+    var willShow = !modal.classList.contains('show');
+    modal.classList.toggle('show', willShow);
+    if(willShow){
+      buildPageThumbs();
+      refreshActiveThumb();
+      // foca no input
+      var inp = document.getElementById('vg-lib-page-search');
+      if(inp){ inp.value = ''; setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 30); }
+      // scroll pro current
+      try{ modal.__vgScrollToThumb && modal.__vgScrollToThumb(getCurrentPage()); }catch(e){}
+    }
+  }
+
+  function toggleLens(){
+    state.lensOn = !state.lensOn;
+    var lensBtn = document.getElementById('vg-lib-lens');
+    var lens = document.getElementById('vg-lib-lens-ui');
+    if(lensBtn) lensBtn.textContent = state.lensOn ? '🔍' : '🔎';
+    if(lens) lens.classList.toggle('on', state.lensOn);
+  }
+
+  function updateLens(e){
+    if(!state.lensOn) return;
+    var lens = document.getElementById('vg-lib-lens-ui');
+    if(!lens) return;
+
+    // pega o elemento sob o cursor e encontra a página
+    var el = document.elementFromPoint(e.clientX, e.clientY);
+    if(!el) return;
+    var pageEl = el.closest && el.closest('.vg-flipbook .page');
+    if(!pageEl) return;
+
+    var img = pageEl.querySelector('img.img');
+    if(!img || !img.src) return;
+
+    var r = pageEl.getBoundingClientRect();
+    var px = (e.clientX - r.left) / Math.max(1, r.width);
+    var py = (e.clientY - r.top) / Math.max(1, r.height);
+
+    var scale = 2.2;
+    lens.style.backgroundImage = 'url("'+img.src+'")';
+    lens.style.backgroundRepeat = 'no-repeat';
+    lens.style.backgroundSize = (scale*100)+'% '+(scale*100)+'%';
+    lens.style.backgroundPosition = (px*100)+'% '+(py*100)+'%';
+
+    // posiciona a lente perto do cursor
+    var size = 220;
+    var x = e.clientX + 18;
+    var y = e.clientY - size/2;
+    lens.style.left = x + 'px';
+    lens.style.top = y + 'px';
+  }
+
+  function bindViewerButtons(){
+    var ov = document.getElementById('vg-lib-viewer');
+    if(!ov || ov.__vgUiBound) return;
+    ov.__vgUiBound = true;
+
+    var pagesBtn = document.getElementById('vg-lib-pages');
+    if(pagesBtn) pagesBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); togglePagesModal(); });
+
+    var lensBtn = document.getElementById('vg-lib-lens');
+    if(lensBtn) lensBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); toggleLens(); });
+
+    var wrap = ov.querySelector('.vg-lib-flip-wrap');
+    if(wrap){
+      wrap.addEventListener('mousemove', updateLens, { passive:true });
+      wrap.addEventListener('mouseleave', function(){
+        var lens = document.getElementById('vg-lib-lens-ui');
+        lens && lens.classList.remove('on');
+        if(state.lensOn){
+          // deixa ligado, mas some enquanto está fora
+          state.lensOn = true;
+        }
+      }, { passive:true });
+      wrap.addEventListener('mouseenter', function(){
+        var lens = document.getElementById('vg-lib-lens-ui');
+        lens && lens.classList.toggle('on', state.lensOn);
+      }, { passive:true });
+    }
+
+    // teclas: setas viram páginas
+    document.addEventListener('keydown', function(e){
+      if(!state.open) return;
+      if(e.key === 'ArrowLeft'){ try{ getFlip() && getFlip().turn('previous'); }catch(err){} }
+      if(e.key === 'ArrowRight'){ try{ getFlip() && getFlip().turn('next'); }catch(err){} }
+    });
   }
 
   // Drag anywhere (AnyFlip-like): segura e arrasta pro lado pra virar página
@@ -1350,8 +1572,10 @@
     var fbEl = document.getElementById('vg-flipbook');
     if(!fbEl) throw new Error('Flipbook container não encontrado');
 
-    fbEl.style.width = Math.round(sizes.bookW) + 'px';
-    fbEl.style.height = Math.round(sizes.bookH) + 'px';
+    // começa no modo CAPA (single) quando for double-mode
+    var initialSingle = (sizes.display === 'double');
+    fbEl.style.width = Math.round(initialSingle ? sizes.pageW : sizes.bookW) + 'px';
+    fbEl.style.height = Math.round(sizes.pageH) + 'px';
 
     // A pedido do usuário: render completo (sem “carregando…” infinito).
     // Para o Turn.js ficar 100% estável, criamos TODAS as páginas no DOM antes do .turn().
@@ -1364,13 +1588,12 @@
 
     var $fb = $(fbEl);
 
-    // Em telas grandes, a capa (página 1) deve ficar centralizada.
-    // A forma mais estável no Turn.js é alternar display/size conforme a página.
+    // Em telas grandes, a capa (pág. 1) começa FECHADA (single).
+    // Ao virar para pág. 2, o livro “abre” (double spread).
     function applyDisplayMode(targetPage){
       if(sizes.display !== 'double') return;
-      var wantSingle = (targetPage === 1);
       try{
-        if(wantSingle){
+        if(targetPage === 1){
           $fb.turn('display', 'single');
           $fb.turn('size', Math.round(sizes.pageW), Math.round(sizes.pageH));
         }else{
@@ -1382,32 +1605,60 @@
 
     // turn.js: cria com num total de páginas; como já montamos o DOM, não precisamos de missing()
     $fb.turn({
-      width: Math.round(sizes.bookW),
-      height: Math.round(sizes.bookH),
+      width: Math.round(initialSingle ? sizes.pageW : sizes.bookW),
+      height: Math.round(sizes.pageH),
       autoCenter: true,
       gradients: true,
       acceleration: true,
-      display: sizes.display,
+      display: (sizes.display === 'double') ? 'single' : sizes.display,
       pages: pdf.numPages,
       page: 1,
       when: {
         turning: function(e, page){
-          applyDisplayMode(page);
-          // mantém o render em dia caso ainda esteja carregando
+          // primeira virada (capa -> pág. 2): deixa o Turn.js fazer o “dobrar”
+          // e só abre em double DEPOIS que virar (evita bug do 1º flip).
+          try{
+            var cur = $fb.turn('page');
+            if(sizes.display === 'double' && !state.didOpenCover && cur === 1 && page === 2){
+              state.openingCover = true;
+              fbEl.classList.add('vg-opening');
+              // não troca display aqui
+            }else if(!state.openingCover){
+              applyDisplayMode(page);
+            }
+          }catch(err){}
+
           queueRenderAround(pdf, fbEl, page, sizes, sessionId);
         },
         turned: function(e, page){
-          applyDisplayMode(page);
+          if(sizes.display === 'double' && state.openingCover && page === 2){
+            state.openingCover = false;
+            state.didOpenCover = true;
+            // agora sim abre em double (book opening)
+            applyDisplayMode(2);
+            // reflow/estabilidade (corrige a “primeira virada bugada”)
+            setTimeout(function(){ try{ $fb.turn('page', 2); }catch(err){} }, 0);
+            setTimeout(function(){ try{ fbEl.classList.remove('vg-opening'); }catch(err){} }, 220);
+            return;
+          }
+          if(!state.openingCover) applyDisplayMode(page);
+          // atualiza destaque no seletor de páginas
+          try{ refreshActiveThumb(); }catch(e){}
         }
       }
     });
 
+    // guarda instância atual
+    state.$flip = $fb;
+
     // centraliza a capa logo de cara
     applyDisplayMode(1);
-    bindDragLayer($fb);
 
     // força carregar páginas iniciais
     $fb.turn('page', 1);
+
+    // UI extra (lupa + páginas)
+    bindViewerButtons();
 
     // Render completo com progresso (evita o “carregando…” infinito ao virar página)
     await renderAllPages(pdf, fbEl, sizes, sessionId);
@@ -1467,6 +1718,11 @@
 
   async function openViewer(book){
     showOverlay();
+
+    // novo livro => reset do “abrindo capa”
+    state.openingCover = false;
+    state.didOpenCover = false;
+    state.$flip = null;
 
     var ov = ensureViewer();
     var title = document.getElementById('vg-lib-title');

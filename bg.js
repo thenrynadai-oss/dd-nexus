@@ -1224,6 +1224,11 @@ const sceneMap = {
     state.sceneState = {};
   }
 
+  function setMuted(m){
+    try{ audioEnsure(); }catch(e){}
+    try{ audioSetMuted(!!m); }catch(e){}
+  }
+
   function init(){
     state.canvas = ensureCanvas();
     state.ctx = state.canvas.getContext("2d", { alpha:true, desynchronized:true });
@@ -1239,14 +1244,29 @@ const sceneMap = {
       setTheme(e.detail?.theme || "");
     });
 
+    // recebe mute/unmute
+    window.addEventListener("vasteria:mute", (e) => {
+      setMuted(!!(e.detail && e.detail.muted));
+    });
+
+    // também reage se mudar em outra aba
+    window.addEventListener('storage', (e) => {
+      if(e && e.key === 'vasteria_mute'){
+        setMuted(localStorage.getItem('vasteria_mute') === '1');
+      }
+    });
+
     // pega tema atual no carregamento
     setTheme(document.documentElement.getAttribute("data-theme") || document.body.getAttribute("data-theme") || "");
+
+    // aplica mute atual no carregamento
+    setMuted(localStorage.getItem('vasteria_mute') === '1');
 
     state.running = true;
     requestAnimationFrame(tick);
   }
 
-  window.VasteriaBG = { init, setTheme };
+  window.VasteriaBG = { init, setTheme, setMuted };
 
   // auto-init
   if(document.readyState === "loading"){
