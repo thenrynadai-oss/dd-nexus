@@ -275,6 +275,14 @@
   display:block;
 }
 
+/* Quando a página termina de renderizar, trocamos canvas por IMG (Blob URL) */
+.vg-flipbook .page img.img{
+  width:100%;
+  height:100%;
+  display:none;
+  object-fit:contain;
+}
+
 .vg-flipbook .page .ph{
   position:absolute;
   left:12px;
