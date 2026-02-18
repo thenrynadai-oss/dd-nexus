@@ -268,6 +268,50 @@
 #vg-lib-panlayer.vg-pan-on{ pointer-events: auto; }
 #vg-lib-panlayer.vg-panning{ cursor: grabbing; }
 
+/* Drag layer (folhear por arrastar – mouse + touch) */
+#vg-lib-draglayer{
+  position:absolute;
+  inset:-12px;
+  z-index: 9998;
+  background: transparent;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+#vg-lib-draglayer.vg-drag-off{ pointer-events: none; }
+
+/* Efeito visual de “dobra” durante o drag (leve, sem travar) */
+#vg-lib-dragfx{
+  position:absolute;
+  inset:-12px;
+  z-index: 9997;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .08s ease;
+}
+#vg-lib-dragfx.show{ opacity: 1; }
+#vg-lib-dragfx .fx{
+  position:absolute;
+  top:0; bottom:0;
+  width: 58%;
+  opacity: 0;
+  transform: perspective(1000px) rotateY(0deg);
+  filter: drop-shadow(0 12px 18px rgba(0,0,0,.35));
+}
+#vg-lib-dragfx .fx.left{
+  left:0;
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(0,0,0,.24), rgba(255,255,255,0));
+}
+#vg-lib-dragfx .fx.right{
+  right:0;
+  transform-origin: right center;
+  background: linear-gradient(270deg, rgba(0,0,0,.24), rgba(255,255,255,0));
+}
+#vg-lib-dragfx.dir-prev .fx.left{ opacity: 1; }
+#vg-lib-dragfx.dir-next .fx.right{ opacity: 1; }
+
+
 /* Indicador de página */
 .vg-lib-page-ind{
   padding: 6px 10px;

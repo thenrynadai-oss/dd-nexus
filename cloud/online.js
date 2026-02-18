@@ -957,6 +957,8 @@
         '</div>'+
         '<div class="vg-lib-stage" id="vg-lib-stage">'+
           '<div id="vg-flipbook" class="vg-flipbook"></div>'+
+          '<div id="vg-lib-dragfx" aria-hidden="true"><div class="fx left"></div><div class="fx right"></div></div>'+
+          '<div id="vg-lib-draglayer" aria-hidden="true"></div>'+
           '<div id="vg-lib-panlayer" aria-hidden="true"></div>'+
         '</div>'+
       '</div>'+
@@ -1239,6 +1241,12 @@
       layer.style.pointerEvents = v ? 'auto' : 'none';
       layer.classList.toggle('vg-pan-on', v);
     }
+    var drag = document.getElementById('vg-lib-draglayer');
+    if(drag){
+      drag.classList.toggle('vg-drag-off', v);
+      drag.style.pointerEvents = v ? 'none' : 'auto';
+    }
+
     if(!v){
       // ao sair, reseta pan (mantém zoom se usuário quiser)
       state.panX = 0; state.panY = 0;
@@ -1306,6 +1314,118 @@
     layer.addEventListener('contextmenu', function(e){ e.preventDefault(); }, { passive:false });
   }
 
+
+
+  function bindDragLayer(){
+    var layer = document.getElementById('vg-lib-draglayer');
+    var fxWrap = document.getElementById('vg-lib-dragfx');
+    if(!layer || layer.__vgBound) return;
+    layer.__vgBound = true;
+
+    var down=false, sx=0, sy=0, dx=0, dir=0, pid=null;
+    var TH = 140;   // distância para “confirmar” virada
+    var START = 10; // distância mínima para começar a mostrar o efeito
+
+    function resetFx(){
+      if(!fxWrap) return;
+      fxWrap.classList.remove('show','dir-next','dir-prev');
+      var l = fxWrap.querySelector('.fx.left');
+      var r = fxWrap.querySelector('.fx.right');
+      if(l) l.style.transform = 'perspective(1000px) rotateY(0deg)';
+      if(r) r.style.transform = 'perspective(1000px) rotateY(0deg)';
+    }
+
+    function setFx(d, prog){
+      if(!fxWrap) return;
+      var p = Math.max(0, Math.min(1, prog || 0));
+      var ang = p * 55;
+      fxWrap.classList.add('show');
+      fxWrap.classList.toggle('dir-next', d>0);
+      fxWrap.classList.toggle('dir-prev', d<0);
+      var l = fxWrap.querySelector('.fx.left');
+      var r = fxWrap.querySelector('.fx.right');
+      if(d>0){
+        if(r) r.style.transform = 'perspective(1000px) rotateY(' + (-ang) + 'deg)';
+        if(l) l.style.transform = 'perspective(1000px) rotateY(0deg)';
+      } else {
+        if(l) l.style.transform = 'perspective(1000px) rotateY(' + (ang) + 'deg)';
+        if(r) r.style.transform = 'perspective(1000px) rotateY(0deg)';
+      }
+    }
+
+    function commit(d){
+      var $fb = state.$fb;
+      if(!$fb) return;
+      try{
+        if(d>0) $fb.turn('next');
+        else $fb.turn('previous');
+      }catch(e){
+        try{
+          var cur = $fb.turn('page') || 1;
+          $fb.turn('page', cur + (d>0?1:-1));
+        }catch(err){}
+      }
+    }
+
+    layer.addEventListener('pointerdown', function(e){
+      if(!state.open || state.zoomMode) return;
+      down=true;
+      sx=e.clientX; sy=e.clientY;
+      dx=0; dir=0;
+      pid=e.pointerId;
+      try{ layer.setPointerCapture(pid); }catch(err){}
+      // não deixa o browser iniciar seleção
+      e.preventDefault();
+    }, { passive:false });
+
+    layer.addEventListener('pointermove', function(e){
+      if(!down || (pid!=null && e.pointerId!==pid)) return;
+      dx = (e.clientX - sx);
+      var adx = Math.abs(dx);
+
+      if(dir===0 && adx > START){
+        // arrastar para esquerda = próxima página
+        dir = (dx < 0) ? 1 : -1;
+      }
+
+      if(dir!==0){
+        setFx(dir, adx / TH);
+        e.preventDefault();
+      }
+    }, { passive:false });
+
+    function end(e){
+      if(!down || (pid!=null && e.pointerId!==pid)) return;
+      down=false;
+      try{ layer.releasePointerCapture(pid); }catch(err){}
+      var adx = Math.abs(dx);
+      var localDir = dir;
+      pid=null;
+      resetFx();
+
+      // “clique” nas laterais como fallback
+      if(adx < 8){
+        var rect = layer.getBoundingClientRect();
+        var relX = e.clientX - rect.left;
+        if(relX > rect.width*0.56) localDir = 1;
+        else if(relX < rect.width*0.44) localDir = -1;
+      }
+
+      if(state._opening) return;
+
+      if(localDir!==0 && (adx > TH*0.28 || adx < 8)){
+        commit(localDir);
+      }
+
+      dx=0; dir=0;
+      e.preventDefault();
+    }
+
+    layer.addEventListener('pointerup', end, { passive:false });
+    layer.addEventListener('pointercancel', end, { passive:false });
+
+    resetFx();
+  }
   function bindNoSelect(){
     var ov = document.getElementById('vg-lib-viewer');
     if(!ov || ov.__vgNoSel) return;
@@ -1631,8 +1751,12 @@
     // inicia sempre em SINGLE (capa central)
     fbEl.style.width = Math.round(state.doubleCapable ? sizes.pageW : sizes.bookW) + 'px';
     fbEl.style.height = Math.round(sizes.pageH) + 'px';
-
     var $fb = $(fbEl);
+
+    // guarda referências para o drag layer / zoom
+    state.$fb = $fb;
+    state.fbEl = fbEl;
+    state.sizes = sizes;
 
     var corner = Math.round(Math.max(sizes.pageW, sizes.pageH));
 
@@ -1701,9 +1825,10 @@
 
     updatePageIndicator(1, pdf.numPages);
 
-    // seleção/drag bloqueados + pan layer
+    // seleção/drag bloqueados + pan/drag layers
     bindNoSelect();
     bindPanLayer();
+    bindDragLayer();
 
     // zoom buttons agora são virtuais
     var ov = document.getElementById('vg-lib-viewer');
@@ -1723,9 +1848,12 @@
     // força página 1
     $fb.turn('page', 1);
 
-    // Render completo com progresso
-    await renderAllPages(pdf, fbEl, sizes, sessionId);
+    // Render essencial (capa + vizinhança). Libera o usuário para folhear rápido.
+    await renderEssentialPages(pdf, fbEl, sizes, sessionId);
     hideLoading();
+
+    // Continua renderizando em segundo plano (para evitar páginas brancas)
+    startBackgroundRender(pdf, fbEl, sizes, sessionId);
 
     // garante que o input volte ao normal (zoom off)
     toggleZoomMode(false);
@@ -1783,6 +1911,71 @@
     await Promise.all(runners);
   }
 
+
+
+  async function renderEssentialPages(pdf, fbEl, sizes, sessionId){
+    // Renderiza rápido a capa e a vizinhança imediata para o usuário já poder folhear.
+    var pages = [1, 2, 3, 4];
+    var done = 0;
+    for(var i=0;i<pages.length;i++){
+      var p = pages[i];
+      if(p < 1 || p > pdf.numPages) continue;
+      var el = fbEl.querySelector('.page[data-page="'+p+'"]');
+      if(!el) continue;
+      var canvas = el.querySelector('canvas');
+      if(!canvas) continue;
+      setLoading('Preparando páginas… ('+(++done)+'/'+pages.length+')');
+      try{ await renderPageToCanvas(pdf, p, canvas, sizes.pageW, sizes.pageH, sessionId); }catch(e){}
+      if(sessionId !== state.sessionId) return;
+    }
+  }
+
+  function startBackgroundRender(pdf, fbEl, sizes, sessionId){
+    if(!pdf || !fbEl) return;
+    if(state.__bgRenderSid === sessionId) return;
+    state.__bgRenderSid = sessionId;
+
+    var total = pdf.numPages;
+    var idx = 1;
+    var conc = 2;
+
+    // mantém o “sub” útil: páginas + progresso
+    var sub = document.getElementById('vg-lib-sub');
+    state.__subBase = state.__subBase || (total + ' páginas');
+
+    function setSubProg(n){
+      if(!sub) return;
+      if(n >= total){
+        sub.textContent = state.__subBase;
+      }else{
+        sub.textContent = state.__subBase + ' • renderizando ' + n + '/' + total;
+      }
+    }
+
+    setSubProg(0);
+
+    async function worker(){
+      while(true){
+        if(sessionId !== state.sessionId) return;
+        var cur = idx++;
+        if(cur > total) return;
+
+        var el = fbEl.querySelector('.page[data-page="'+cur+'"]');
+        if(!el) continue;
+        var canvas = el.querySelector('canvas');
+        if(!canvas) continue;
+
+        try{ await renderPageToCanvas(pdf, cur, canvas, sizes.pageW, sizes.pageH, sessionId); }catch(e){}
+
+        if(cur % 6 === 0 || cur === total) setSubProg(cur);
+      }
+    }
+
+    // dispara em background (não await)
+    var runners = [];
+    for(var i=0;i<conc;i++) runners.push(worker());
+    Promise.all(runners).then(function(){ setSubProg(total); }).catch(function(){});
+  }
   async function openViewer(book){
     showOverlay();
 
@@ -1819,6 +2012,7 @@
       var pdf = await loadPdf(url);
       state.pdf = pdf;
       if(sub) sub.textContent = pdf.numPages + ' páginas';
+      state.__subBase = pdf.numPages + ' páginas';
 
       await initFlipbook(pdf);
     }catch(err){
