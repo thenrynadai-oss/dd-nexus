@@ -1247,7 +1247,7 @@ state.book = null;
         var imgs = el0.querySelectorAll('img.img');
         for(var i=0;i<imgs.length;i++){
           var im = imgs[i];
-          try{ if(im.__vgUrl) URL.revokeObjectURL(im.__vgUrl); }catch(e){}
+          try{ if(im.__vgUrl && String(im.__vgUrl).indexOf('blob:')===0) URL.revokeObjectURL(im.__vgUrl); }catch(e){}
           try{ im.__vgUrl = null; }catch(e){}
         }
       }
@@ -1538,8 +1538,14 @@ state.book = null;
       if(x < 0 || y < 0 || x > rect.width || y > rect.height) return;
 
       var b = state.cornerSize || 160;
-      // Se já está perto do topo/baixo, deixa o Turn.js fazer o trabalho normal
-      if(y < b || y > (rect.height - b)) return;
+
+      // Se o clique já começou dentro de um canto "real", deixa o Turn.js operar normalmente
+      var inCorner =
+        (x < b && y < b) ||
+        (x < b && y > (rect.height - b)) ||
+        (x > (rect.width - b) && y < b) ||
+        (x > (rect.width - b) && y > (rect.height - b));
+      if(inCorner) return;
 
       // decide direção e canto com base na posição clicada
       var side = (x < rect.width/2) ? 'l' : 'r';
@@ -1868,13 +1874,26 @@ state.book = null;
           if(sessionId != null && sessionId !== state.sessionId) return null;
 
           // converte em blob url (img) para reduzir memória e permitir reuso
+          // converte em blob url (img) para reduzir memória e permitir reuso
           var blob = await new Promise(function(res){
-            try{
-              c.toBlob(function(b){ res(b); }, 'image/webp', 0.80);
-            }catch(e){ res(null); }
+            try{ c.toBlob(function(b){ res(b); }, 'image/webp', 0.82); }catch(e){ res(null); }
           });
 
-          if(!blob) throw new Error('toBlob failed');
+          if(!blob){
+            blob = await new Promise(function(res){
+              try{ c.toBlob(function(b){ res(b); }, 'image/png'); }catch(e){ res(null); }
+            });
+          }
+
+          if(!blob){
+            // fallback final: dataURL (mais pesado, mas evita página branca em browsers que falham no toBlob)
+            try{
+              var dataUrl = c.toDataURL('image/png');
+              return dataUrl;
+            }catch(e){
+              throw new Error('toBlob/toDataURL failed');
+            }
+          }
 
           var u = URL.createObjectURL(blob);
           return u;
@@ -1987,6 +2006,13 @@ state.cornerSize = corner;
       page: 1,
       when: {
         turning: function(e, page){
+          // Quando sai da capa, abrimos o livro ANTES da animação para manter o 3D perfeito
+          var _cur = 1;
+          try{ _cur = $fb.turn('page'); }catch(_e){}
+          if(state.doubleCapable && _cur === 1 && page > 1){
+            try{ applyDisplayForPage($fb, fbEl, sizes, 2); }catch(_e){}
+          }
+
           // Abertura do livro (visual) ao sair da capa
           // IMPORTANTE: não bloqueia o turn, para manter a dobra/drag fluida (AnyFlip feel)
           if(state.doubleCapable && $fb.turn('page') === 1 && page > 1){
