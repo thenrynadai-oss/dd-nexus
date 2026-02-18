@@ -1503,6 +1503,70 @@
     });
   }
 
+
+  // =========================================================
+  // Drag-to-flip a partir de QUALQUER ponto da página (AnyFlip feel)
+  // Turn.js só inicia o “peel” se o mousedown começar perto do topo/baixo.
+  // Então, quando o usuário clica no meio, redirecionamos o início para o canto correto,
+  // mas deixamos o mousemove/up reais seguirem normalmente — assim a dobra acompanha o cursor.
+  // =========================================================
+  function bindAnyDragStart(){
+    var fbEl = state.fbEl;
+    if(!fbEl || fbEl.__vgAnyDrag) return;
+    fbEl.__vgAnyDrag = true;
+
+    // evita recursão ao disparar evento sintético
+    state.__vgSynth = false;
+
+    fbEl.addEventListener('mousedown', function(e){
+      if(!state.open || state.zoomMode) return;
+      if(state.__vgSynth) return;
+      if(e.button !== 0) return;
+
+      var rect = fbEl.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var y = e.clientY - rect.top;
+      if(x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+
+      var b = state.cornerSize || 160;
+      // Se já está perto do topo/baixo, deixa o Turn.js fazer o trabalho normal
+      if(y < b || y > (rect.height - b)) return;
+
+      // decide direção e canto com base na posição clicada
+      var side = (x < rect.width/2) ? 'l' : 'r';
+      var top  = (y < rect.height/2);
+      var sx = (side === 'l') ? (rect.left + 2) : (rect.right - 2);
+      var sy = top ? (rect.top + 2) : (rect.bottom - 2);
+
+      // cancela o evento original e inicia o peel em um ponto válido
+      e.preventDefault();
+      e.stopPropagation();
+      if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+      // escolhe um target real sob o ponto sintético
+      var target = document.elementFromPoint(sx, sy) || fbEl;
+
+      state.__vgSynth = true;
+      try{
+        var ev = new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          clientX: sx,
+          clientY: sy,
+          screenX: e.screenX,
+          screenY: e.screenY,
+          button: 0,
+          buttons: 1
+        });
+        target.dispatchEvent(ev);
+      } finally {
+        // libera no próximo tick pra não reentrar no mesmo frame
+        setTimeout(function(){ state.__vgSynth = false; }, 0);
+      }
+    }, true);
+  }
+
   // =========================================================
   // Páginas: grid com thumbnails (scroll progressivo estilo Pinterest)
   // =========================================================
@@ -1842,7 +1906,10 @@
     state.fbEl = fbEl;
     state.sizes = sizes;
 
-    var corner = Math.round(Math.max(sizes.pageW, sizes.pageH));
+    // cornerSize do Turn.js controla onde o drag começa. Se for grande demais, ele “gruda” no canto errado.
+// Mantemos um valor moderado e habilitamos drag em qualquer lugar via redirect (abaixo).
+var corner = Math.round(Math.max(120, Math.min(220, (sizes.pageW||600) * 0.22)));
+state.cornerSize = corner;
 
     // Turn.js
     $fb.turn({
@@ -1889,8 +1956,8 @@
     // seleção/drag bloqueados + pan/drag layers
     bindNoSelect();
     bindPanLayer();
-    // Drag AnyFlip-like: Turn.js precisa receber eventos diretamente.
-    // (O drag layer ficou desativado no CSS.)
+    bindAnyDragStart();
+    // Drag AnyFlip-like: Turn.js recebe eventos diretamente + redirect para iniciar em qualquer ponto.
 
     // zoom buttons agora são virtuais
     var ov = document.getElementById('vg-lib-viewer');
