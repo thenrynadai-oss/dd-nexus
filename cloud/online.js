@@ -1050,6 +1050,9 @@
     // IMPORTANTE: precisa ser recriado a cada initFlipbook(), porque o Turn.js recria o DOM
     // (senão a gente fica “achando” que a página já renderizou e o canvas novo fica branco).
     rendered: new Map(),
+    pageUrls: new Map(),
+    pagePromises: new Map(),
+    fullRender: true,
     loadingTask: null,
     sessionId: 0,
   zoomScale: 1, panX: 0, panY: 0, zoomMode: false, doubleCapable: false, pageW:0, pageH:0, bookW:0, bookH:0, thumbCache: new Map(), thumbQueue: [], thumbActive: 0, thumbObserver: null, thumbPromises: new Map(), _opening:false,
@@ -1090,159 +1093,9 @@
     state.book = null;
     state.pdf = null;
     state.rendered = new Map();
-    state.zoom = 1;
-  }
-
-  // =========================================================
-  // Navegação (setas UI + teclado)
-  // - ArrowLeft / ArrowRight
-  // =========================================================
-
-  function prevPage(){
-    if(!state.open || !state.$fb) return;
-    if(state._opening) return;
-    try{ state.$fb.turn('previous'); }catch(e){}
-  }
-
-  function nextPage(){
-    if(!state.open || !state.$fb) return;
-    if(state._opening) return;
-    try{ state.$fb.turn('next'); }catch(e){}
-  }
-
-  function bindKeyNav(){
-    if(state.__keysBound) return;
-    state.__keysBound = true;
-    state.__onKeyDown = function(e){
-      if(!state.open) return;
-      // não roubar teclado quando o usuário está digitando no modal
-      var t = e.target;
-      if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-      if(e.key === 'ArrowLeft'){
-        e.preventDefault();
-        prevPage();
-      } else if(e.key === 'ArrowRight'){
-        e.preventDefault();
-        nextPage();
-      }
-    };
-    document.addEventListener('keydown', state.__onKeyDown, true);
-  }
-
-  function unbindKeyNav(){
-    if(!state.__keysBound) return;
-    try{ document.removeEventListener('keydown', state.__onKeyDown, true); }catch(e){}
-    state.__keysBound = false;
-    state.__onKeyDown = null;
-  }
-
-  function setLoading(text){
-    var box = document.getElementById('vg-lib-loading');
-    var p = document.getElementById('vg-lib-progress');
-    if(box) box.style.display = '';
-    if(p) p.textContent = text || '';
-  }
-
-  function hideLoading(){
-    var box = document.getElementById('vg-lib-loading');
-    if(box) box.style.display = 'none';
-  }
-
-  function withTimeout(promise, ms, label){
-    var to;
-    var t = new Promise(function(_, rej){
-      to = setTimeout(function(){ rej(new Error(label || 'timeout')); }, ms);
-    });
-    return Promise.race([promise, t]).finally(function(){ clearTimeout(to); });
-  }
-
-  function fmtMB(bytes){
-    var mb = bytes / (1024*1024);
-    return mb.toFixed(mb >= 10 ? 0 : 1) + ' MB';
-  }
-
-  async function loadPdf(url){
-    var pdfjsLib = state.pdfjsLib;
-
-    // 1) Tenta streaming por URL (melhor pra PDFs grandes)
-    try{
-      var task = pdfjsLib.getDocument({
-        url: url,
-        // mitiga alertas de segurança em builds antigos
-        isEvalSupported: false,
-      });
-      state.loadingTask = task;
-
-      task.onProgress = function(p){
-        if(!p) return;
-        var loaded = p.loaded || 0;
-        var total = p.total || 0;
-        if(total){
-          setLoading('Baixando: '+fmtMB(loaded)+' / '+fmtMB(total));
-        }else{
-          setLoading('Baixando: '+fmtMB(loaded));
-        }
-      };
-
-      var pdf = await withTimeout(task.promise, 180000, 'Leitura do PDF demorou demais (timeout)');
-      state.loadingTask = null;
-      return pdf;
-    }catch(err){
-      try{ if(state.loadingTask) state.loadingTask.destroy(); }catch(e){}
-      state.loadingTask = null;
-
-      // 2) Fallback: baixa inteiro e abre por data
-      try{
-        setLoading('Baixando arquivo inteiro (fallback)…');
-        var resp = await withTimeout(fetch(url, { cache: 'no-store' }), 180000, 'Download demorou demais (timeout)');
-        if(!resp.ok) throw new Error('HTTP '+resp.status);
-        var buf = await withTimeout(resp.arrayBuffer(), 180000, 'Download demorou demais (timeout)');
-
-        var task2 = pdfjsLib.getDocument({ data: buf, isEvalSupported: false, disableWorker: true });
-        state.loadingTask = task2;
-        var pdf2 = await withTimeout(task2.promise, 180000, 'Parse do PDF demorou demais (timeout)');
-        state.loadingTask = null;
-        return pdf2;
-      }catch(err2){
-        throw err2 || err;
-      }
-    }
-  }
-
-  function calcBookSize(pageW, pageH){
-    // page ratio
-    var ratio = pageW / pageH;
-    var maxW = Math.min(window.innerWidth * 0.96, 1400);
-    var maxH = Math.min(window.innerHeight * 0.86, 900);
-
-    var doubleMode = window.innerWidth > 860;
-    var targetH = Math.min(maxH, doubleMode ? (maxW / (2*ratio)) : (maxW / ratio));
-    targetH = Math.max(360, targetH);
-
-    var pH = targetH;
-    var pW = pH * ratio;
-
-    if(!doubleMode){
-      return { display: 'single', pageW: pW, pageH: pH, bookW: pW, bookH: pH };
-    }
-    return { display: 'double', pageW: pW, pageH: pH, bookW: pW*2, bookH: pH };
-  }
-
-  function destroyFlipbook(){
-    var $ = state.$;
-    var el0 = document.getElementById('vg-flipbook');
-
-    // libera blobs das páginas (evita leak)
-    try{
-      if(el0){
-        var imgs = el0.querySelectorAll('img.img');
-        for(var i=0;i<imgs.length;i++){
-          var im = imgs[i];
-          try{ if(im.__vgUrl) URL.revokeObjectURL(im.__vgUrl); }catch(e){}
-          try{ im.__vgUrl = null; }catch(e){}
-        }
-      }
-    }catch(e){}
+    state.pagePromises = new Map();
+    state.pageUrls = new Map();
+    state.pagePromises = new Map();
 
     if(!$){
       if(el0) el0.innerHTML = '';
@@ -1256,7 +1109,6 @@
     if(el0) el0.innerHTML = '';
   }
 
-  
 
   // =========================================================
   // UX: zoom/pan + bloqueio de seleção
@@ -1534,6 +1386,16 @@
 
       // decide direção e canto com base na posição clicada
       var side = (x < rect.width/2) ? 'l' : 'r';
+
+      // capa (página 1) e última página: força o canto correto pra evitar bug na primeira virada
+      try{
+        if(state.$fb && state.$fb.turn){
+          var curPage = state.$fb.turn('page') || 1;
+          var total = (state.pdf && state.pdf.numPages) ? state.pdf.numPages : 0;
+          if(curPage === 1) side = 'r';
+          if(total && curPage === total) side = 'l';
+        }
+      }catch(err){}
       var top  = (y < rect.height/2);
       var sx = (side === 'l') ? (rect.left + 2) : (rect.right - 2);
       var sy = top ? (rect.top + 2) : (rect.bottom - 2);
@@ -1695,7 +1557,7 @@
       var vp1 = page.getViewport({ scale: 1 });
       var targetW = 260; // thumb grande, estilo pinterest
       var scale = targetW / vp1.width;
-      var dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+      var dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 1.6));
       var vp = page.getViewport({ scale: scale * dpr });
 
       var c = document.createElement('canvas');
@@ -1783,8 +1645,37 @@
     if(sessionId != null && sessionId !== state.sessionId) return;
 
     var key = String(pageNum);
-    var cached = state.rendered.get(key);
-    if(cached) return cached;
+
+    // Se já temos a imagem desta página (cache), reaplica no DOM atual (Turn.js pode recriar nós ao trocar display/size)
+    var cachedUrl = state.pageUrls && state.pageUrls.get(key);
+    if(cachedUrl){
+      var wrap0 = canvas.parentElement;
+      var img0 = wrap0 && wrap0.querySelector('img.img');
+      if(img0){
+        img0.src = cachedUrl;
+        img0.__vgUrl = cachedUrl;
+        img0.style.display = 'block';
+        canvas.style.display = 'none';
+      }
+      var ph0 = wrap0 && wrap0.querySelector('.ph');
+      if(ph0) ph0.style.display = 'none';
+      return Promise.resolve(cachedUrl);
+    }
+
+    var inflight = state.pagePromises && state.pagePromises.get(key);
+    if(inflight){
+      return inflight.then(function(){
+        var u = state.pageUrls && state.pageUrls.get(key);
+        if(u){
+          var wrap1 = canvas.parentElement;
+          var img1 = wrap1 && wrap1.querySelector('img.img');
+          if(img1){ img1.src = u; img1.__vgUrl = u; img1.style.display='block'; canvas.style.display='none'; }
+          var ph1 = wrap1 && wrap1.querySelector('.ph');
+          if(ph1) ph1.style.display='none';
+        }
+        return u;
+      });
+    }
 
     var p = (async () => {
       var page = await pdf.getPage(pageNum);
@@ -1826,6 +1717,8 @@
           // revoga anterior (se existir)
           try{ if(img.__vgUrl) URL.revokeObjectURL(img.__vgUrl); }catch(e){}
           var u = URL.createObjectURL(blob);
+          // guarda URL para reaplicar caso o Turn.js recrie o DOM
+          try{ state.pageUrls && state.pageUrls.set(String(pageNum), u); }catch(e){}
           img.__vgUrl = u;
           img.src = u;
           img.style.display = 'block';
@@ -1843,18 +1736,26 @@
       throw e;
     });
 
-    state.rendered.set(key, p);
-    return p;
+    // promessa em voo
+    state.pagePromises.set(key, p);
+    return p.finally(function(){
+      try{ state.pagePromises.delete(key); }catch(e){}
+    });
   }
 
   
   async function initFlipbook(pdf){
     var $ = state.$;
 
+    // destrói qualquer instância anterior (revoga blobs e limpa DOM)
+    try{ destroyFlipbook(); }catch(e){}
+
     // Nova sessão: invalida qualquer render antigo (zoom/rebuild etc.)
     state.sessionId = (state.sessionId || 0) + 1;
     var sessionId = state.sessionId;
     state.rendered = new Map();
+    state.pagePromises = new Map();
+    state.pageUrls = new Map();
 
     // reset zoom/pan
     state.zoomMode = false;
@@ -1868,8 +1769,6 @@
     var vp = p1.getViewport({ scale: 1 });
 
     var sizes = calcBookSize(vp.width, vp.height);
-
-    destroyFlipbook();
 
     var fbEl = document.getElementById('vg-flipbook');
     if(!fbEl) throw new Error('Flipbook container não encontrado');
@@ -1945,6 +1844,8 @@ state.cornerSize = corner;
           // modo capa (single) só na página 1; depois abre em double spread
           if(state.doubleCapable){
             applyDisplayForPage($fb, fbEl, sizes, page);
+            // Turn.js pode recriar nós ao trocar display/size: reaplica imagens
+            try{ queueRenderAround(pdf, fbEl, page, sizes, sessionId); }catch(e){}
           }
           updatePageIndicator(page, pdf.numPages);
         }
@@ -1977,12 +1878,15 @@ state.cornerSize = corner;
     // força página 1
     $fb.turn('page', 1);
 
-    // Render essencial (capa + vizinhança). Libera o usuário para folhear rápido.
-    await renderEssentialPages(pdf, fbEl, sizes, sessionId);
-    hideLoading();
+    // Render COMPLETO antes de liberar o usuário (evita páginas brancas)
+    if(state.fullRender){
+      await renderAllPages(pdf, fbEl, sizes, sessionId);
+    } else {
+      await renderEssentialPages(pdf, fbEl, sizes, sessionId);
+      startBackgroundRender(pdf, fbEl, sizes, sessionId);
+    }
 
-    // Continua renderizando em segundo plano (para evitar páginas brancas)
-    startBackgroundRender(pdf, fbEl, sizes, sessionId);
+    hideLoading();
 
     // garante que o input volte ao normal (zoom off)
     toggleZoomMode(false);
@@ -2002,10 +1906,10 @@ state.cornerSize = corner;
   }
 
   async function renderAllPages(pdf, fbEl, sizes, sessionId){
-    // Concurrency pequena pra não explodir memória
+    // Concurrency pequena (adaptativa) pra não explodir memória
     var total = pdf.numPages;
     var idx = 1;
-    var conc = 2;
+    var conc = (window.innerWidth < 740) ? 1 : 3;
 
     function setProg(n){
       setLoading('Renderizando páginas: '+n+' / '+total);
