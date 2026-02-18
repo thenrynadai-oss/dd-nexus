@@ -937,7 +937,9 @@
           '</div>'+
         '</div>'+
         '<div class="right">'+
+          '<button class="btn-ghost" id="vg-lib-prev" title="Página anterior">‹</button>'+
           '<div class="vg-lib-page-ind" id="vg-lib-pageind">1 / 1</div>'+
+          '<button class="btn-ghost" id="vg-lib-next" title="Próxima página">›</button>'+
           '<button class="btn-ghost" id="vg-lib-pages" title="Páginas">☰</button>'+
           '<button class="btn-ghost" id="vg-lib-loupe" title="Lupa">🔍</button>'+
           '<button class="btn-ghost" id="vg-lib-zoomout" title="Diminuir">−</button>'+
@@ -1021,6 +1023,18 @@
     var btnLoupe = ov.querySelector('#vg-lib-loupe');
     if(btnLoupe) btnLoupe.addEventListener('click', function(){ toggleZoomMode(); });
 
+    // setas de navegação (UI)
+    var btnPrev = ov.querySelector('#vg-lib-prev');
+    var btnNext = ov.querySelector('#vg-lib-next');
+    if(btnPrev && !btnPrev.__vgBound){
+      btnPrev.__vgBound = true;
+      btnPrev.addEventListener('click', function(){ prevPage(); });
+    }
+    if(btnNext && !btnNext.__vgBound){
+      btnNext.__vgBound = true;
+      btnNext.addEventListener('click', function(){ nextPage(); });
+    }
+
     return ov;
   }
 
@@ -1047,6 +1061,7 @@
     state.open = true;
     document.documentElement.style.overflow = 'hidden';
     try{ document.body.classList.add('vg-lib-noselect'); }catch(e){}
+    bindKeyNav();
   }
 
   function closeViewer(){
@@ -1055,6 +1070,7 @@
     state.open = false;
     document.documentElement.style.overflow = '';
     try{ document.body.classList.remove('vg-lib-noselect'); }catch(e){}
+    unbindKeyNav();
 
     // limpa flipbook
     try{ destroyFlipbook(); }catch(e){}
@@ -1075,6 +1091,49 @@
     state.pdf = null;
     state.rendered = new Map();
     state.zoom = 1;
+  }
+
+  // =========================================================
+  // Navegação (setas UI + teclado)
+  // - ArrowLeft / ArrowRight
+  // =========================================================
+
+  function prevPage(){
+    if(!state.open || !state.$fb) return;
+    if(state._opening) return;
+    try{ state.$fb.turn('previous'); }catch(e){}
+  }
+
+  function nextPage(){
+    if(!state.open || !state.$fb) return;
+    if(state._opening) return;
+    try{ state.$fb.turn('next'); }catch(e){}
+  }
+
+  function bindKeyNav(){
+    if(state.__keysBound) return;
+    state.__keysBound = true;
+    state.__onKeyDown = function(e){
+      if(!state.open) return;
+      // não roubar teclado quando o usuário está digitando no modal
+      var t = e.target;
+      if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if(e.key === 'ArrowLeft'){
+        e.preventDefault();
+        prevPage();
+      } else if(e.key === 'ArrowRight'){
+        e.preventDefault();
+        nextPage();
+      }
+    };
+    document.addEventListener('keydown', state.__onKeyDown, true);
+  }
+
+  function unbindKeyNav(){
+    if(!state.__keysBound) return;
+    try{ document.removeEventListener('keydown', state.__onKeyDown, true); }catch(e){}
+    state.__keysBound = false;
+    state.__onKeyDown = null;
   }
 
   function setLoading(text){

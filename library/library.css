@@ -450,6 +450,8 @@
 .vg-flipbook .page{
   background: rgba(255,255,255,.98);
   overflow:hidden;
+  /* Turn.js precisa receber eventos no elemento .page para drag-to-flip */
+  pointer-events: auto;
 }
 
 .vg-flipbook .page .inner{
@@ -457,6 +459,8 @@
   height:100%;
   position:relative;
   background: #fff;
+  /* evita que o target do evento vire .inner (Turn.js espera .page) */
+  pointer-events: none;
 }
 
 .vg-flipbook .page canvas{
