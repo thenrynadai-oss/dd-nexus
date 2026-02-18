@@ -1602,19 +1602,44 @@
     el.textContent = String(page||1) + ' / ' + String(total||1);
   }
 
+  // Aplica corretamente o modo "capa" (single) vs livro aberto (double)
+  // e atualiza tanto o flipbook quanto o stage (container), senão o livro fica
+  // "preso" em largura de 1 página (bug visto no deploy).
+  function applyDisplayForPage($fb, fbEl, sizes, page){
+    if(!state.doubleCapable) return;
+    var stage = document.getElementById('vg-lib-stage');
+    if(page === 1){
+      try{ $fb.turn('display','single'); }catch(e){}
+      try{ $fb.turn('size', Math.round(sizes.pageW), Math.round(sizes.pageH)); }catch(e){}
+      fbEl.style.width  = Math.round(sizes.pageW) + 'px';
+      fbEl.style.height = Math.round(sizes.pageH) + 'px';
+      if(stage){
+        stage.style.width  = Math.round(sizes.pageW) + 'px';
+        stage.style.height = Math.round(sizes.pageH) + 'px';
+        stage.classList.remove('vg-double');
+      }
+    } else {
+      try{ $fb.turn('display','double'); }catch(e){}
+      try{ $fb.turn('size', Math.round(sizes.bookW), Math.round(sizes.bookH)); }catch(e){}
+      fbEl.style.width  = Math.round(sizes.bookW) + 'px';
+      fbEl.style.height = Math.round(sizes.bookH) + 'px';
+      if(stage){
+        stage.style.width  = Math.round(sizes.bookW) + 'px';
+        stage.style.height = Math.round(sizes.bookH) + 'px';
+        stage.classList.add('vg-double');
+      }
+    }
+  }
+
   function gotoPage(n){
     if(!state.$) return;
     var fbEl = document.getElementById('vg-flipbook');
     if(!fbEl) return;
     var $fb = state.$(fbEl);
     try{
-      // aplica modo correto (capa / double)
-      if(state.doubleCapable){
-        if(n === 1){
-          try{ $fb.turn('display','single'); $fb.turn('size', Math.round(state.pageW||0), Math.round(state.pageH||0)); }catch(e){}
-        }else{
-          try{ $fb.turn('display','double'); $fb.turn('size', Math.round(state.bookW||0), Math.round(state.bookH||0)); }catch(e){}
-        }
+      // aplica modo correto (capa / double) + ajusta container
+      if(state.doubleCapable && state.sizes){
+        applyDisplayForPage($fb, fbEl, state.sizes, n);
       }
       $fb.turn('page', n);
     }catch(e){}
@@ -1775,49 +1800,26 @@
       page: 1,
       when: {
         turning: function(e, page){
-          // evita bug da PRIMEIRA virada: faz "abertura" antes de virar
-          if(state.doubleCapable && page > 1 && !state._opening && ($fb.turn('display') === 'single')){
-            e.preventDefault();
-            state._opening = true;
+          // Abertura do livro (visual) ao sair da capa
+          // IMPORTANTE: não bloqueia o turn, para manter a dobra/drag fluida (AnyFlip feel)
+          if(state.doubleCapable && $fb.turn('page') === 1 && page > 1){
             var stageEl = document.getElementById('vg-lib-stage');
             stageEl && stageEl.classList.add('vg-opening');
-
-            // troca para double + expande com transição
-            requestAnimationFrame(function(){
-              try{ $fb.turn('display','double'); }catch(err){}
-              try{ $fb.turn('size', Math.round(sizes.bookW), Math.round(sizes.bookH)); }catch(err){}
-              fbEl.style.width = Math.round(sizes.bookW) + 'px';
-              fbEl.style.height = Math.round(sizes.bookH) + 'px';
-
-              // agora sim vai pra página desejada
-              setTimeout(function(){
-                try{ $fb.turn('page', page); }catch(err){}
-                stageEl && stageEl.classList.remove('vg-opening');
-                state._opening = false;
-              }, 130);
-            });
-            return;
+            state._opening = true;
+            setTimeout(function(){
+              stageEl && stageEl.classList.remove('vg-opening');
+              state._opening = false;
+            }, 240);
           }
 
           // render vizinhança caso usuário tente folhear cedo
           queueRenderAround(pdf, fbEl, page, sizes, sessionId);
         },
         turned: function(e, page){
-          // modo capa (single) só na página 1
+          // modo capa (single) só na página 1; depois abre em double spread
           if(state.doubleCapable){
-            if(page === 1){
-              try{ $fb.turn('display','single'); }catch(err){}
-              try{ $fb.turn('size', Math.round(sizes.pageW), Math.round(sizes.pageH)); }catch(err){}
-              fbEl.style.width = Math.round(sizes.pageW) + 'px';
-              fbEl.style.height = Math.round(sizes.pageH) + 'px';
-            } else {
-              try{ $fb.turn('display','double'); }catch(err){}
-              try{ $fb.turn('size', Math.round(sizes.bookW), Math.round(sizes.bookH)); }catch(err){}
-              fbEl.style.width = Math.round(sizes.bookW) + 'px';
-              fbEl.style.height = Math.round(sizes.bookH) + 'px';
-            }
+            applyDisplayForPage($fb, fbEl, sizes, page);
           }
-
           updatePageIndicator(page, pdf.numPages);
         }
       }
@@ -1828,7 +1830,8 @@
     // seleção/drag bloqueados + pan/drag layers
     bindNoSelect();
     bindPanLayer();
-    bindDragLayer();
+    // Drag AnyFlip-like: Turn.js precisa receber eventos diretamente.
+    // (O drag layer ficou desativado no CSS.)
 
     // zoom buttons agora são virtuais
     var ov = document.getElementById('vg-lib-viewer');

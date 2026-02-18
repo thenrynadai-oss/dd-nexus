@@ -247,7 +247,9 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  transition: transform .18s ease;
+  transition: width .18s ease, height .18s ease, transform .18s ease;
+  /* melhora o drag no touch (evita o browser tentar scroll/zoom) */
+  touch-action: none;
 }
 
 /* “abertura” do livro (primeira virada) */
@@ -274,7 +276,13 @@
   inset:-12px;
   z-index: 9998;
   background: transparent;
-  pointer-events: auto;
+  /*
+    Para ter o efeito AnyFlip (página dobrando enquanto arrasta),
+    o Turn.js precisa receber os eventos diretamente no flipbook.
+    Então este layer fica desativado por padrão.
+  */
+  pointer-events: none;
+  display:none;
   cursor: grab;
   touch-action: none;
 }
@@ -286,6 +294,7 @@
   inset:-12px;
   z-index: 9997;
   pointer-events: none;
+  display:none;
   opacity: 0;
   transition: opacity .08s ease;
 }
@@ -435,6 +444,7 @@
   border-radius: 18px;
   box-shadow: 0 25px 45px rgba(0,0,0,.55);
   transition: width .18s ease, height .18s ease, transform .18s ease;
+  touch-action: none;
 }
 
 .vg-flipbook .page{
