@@ -1,0 +1,572 @@
+/* =========================================================
+   VASTERIA GATE — SHEET (FICHA)
+   - RESTAURA a ficha clássica completa (atributos + treino + outros + magias)
+   - Mantém persistência no nexus_db via auth.js (sem quebrar login/hub)
+   - IDs antigos preservados: score-FOR, c-hp-cur etc.
+   ========================================================= */
+
+const ATTR = ["FOR", "DES", "CON", "INT", "SAB", "CAR"];
+
+const SKILLS_LIST = [
+  { name: "Acrobacia", attr: "DES" },
+  { name: "Adestrar Animais", attr: "SAB" },
+  { name: "Arcanismo", attr: "INT" },
+  { name: "Atletismo", attr: "FOR" },
+  { name: "Atuação", attr: "CAR" },
+  { name: "Enganação", attr: "CAR" },
+  { name: "Furtividade", attr: "DES" },
+  { name: "História", attr: "INT" },
+  { name: "Intimidação", attr: "CAR" },
+  { name: "Intuição", attr: "SAB" },
+  { name: "Investigação", attr: "INT" },
+  { name: "Medicina", attr: "SAB" },
+  { name: "Natureza", attr: "INT" },
+  { name: "Percepção", attr: "SAB" },
+  { name: "Persuasão", attr: "CAR" },
+  { name: "Prestidigitação", attr: "DES" },
+  { name: "Religião", attr: "INT" },
+  { name: "Sobrevivência", attr: "SAB" }
+];
+
+let currentUser = null;
+let heroIdx = null;
+let currentHero = null;
+
+/* Debounce de persistência para não martelar o localStorage a cada tecla */
+let _saveTimer = null;
+function schedulePersist() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    if (!currentHero) return;
+    try { Auth.updateHero(heroIdx, currentHero); } catch (e) { /* silent */ }
+  }, 50);
+}
+
+/* Click sound local (micro) — mantém “game feel” mesmo sem depender de libs */
+function playClickSound() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(740, audioCtx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(280, audioCtx.currentTime + 0.09);
+    gainNode.gain.setValueAtTime(0.045, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.09);
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.095);
+  } catch(e) {}
+}
+
+
+
+// =========================================================
+// MODAL: EDITAR PERSONAGEM (nome + jogador + foto)
+// - botão lápis no header
+// - salva no currentHero e persiste no nexus_db
+// =========================================================
+function setupEditCharacterModal(){
+  const btnOpen = document.getElementById('btn-edit-character');
+  const modal = document.getElementById('modal-edit-character');
+  const btnClose = document.getElementById('btn-close-edit-character');
+  const btnCancel = document.getElementById('btn-edit-char-cancel');
+  const btnSave = document.getElementById('btn-edit-char-save');
+  const btnPick = document.getElementById('btn-edit-char-pick');
+  const btnRemove = document.getElementById('btn-edit-char-remove');
+  const file = document.getElementById('edit-char-file');
+  const inpName = document.getElementById('edit-char-name');
+  const inpPlayer = document.getElementById('edit-char-player');
+  const preview = document.getElementById('edit-char-preview');
+
+  if(!btnOpen || !modal || !inpName || !inpPlayer || !preview) return;
+
+  let tempImg = null;
+
+  const open = () => {
+    // hidrata campos
+    inpName.value = (currentHero?.nome || currentHero?.dados?.['c-name'] || '').toString();
+    inpPlayer.value = (currentHero?.player || currentHero?.dados?.['c-player'] || '').toString();
+    tempImg = (currentHero?.img || null);
+    preview.style.backgroundImage = tempImg ? `url(${tempImg})` : 'none';
+    modal.style.display = 'flex';
+  };
+
+  const close = () => {
+    modal.style.display = 'none';
+    if(file) file.value = '';
+  };
+
+  btnOpen.addEventListener('click', (e) => {
+    e.preventDefault();
+    playClickSound();
+    open();
+  });
+
+  // fechar clicando fora
+  modal.addEventListener('mousedown', (e) => {
+    if(e.target === modal) close();
+  });
+
+  btnClose && btnClose.addEventListener('click', (e)=>{ e.preventDefault(); close(); });
+  btnCancel && btnCancel.addEventListener('click', (e)=>{ e.preventDefault(); close(); });
+
+  btnPick && btnPick.addEventListener('click', (e)=>{ e.preventDefault(); playClickSound(); file && file.click(); });
+
+  file && file.addEventListener('change', async () => {
+    const f = file.files && file.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      tempImg = String(reader.result || '');
+      preview.style.backgroundImage = tempImg ? `url(${tempImg})` : 'none';
+    };
+    reader.readAsDataURL(f);
+  });
+
+  btnRemove && btnRemove.addEventListener('click', (e)=>{
+    e.preventDefault();
+    playClickSound();
+    tempImg = null;
+    preview.style.backgroundImage = 'none';
+    if(file) file.value = '';
+  });
+
+  btnSave && btnSave.addEventListener('click', (e)=>{
+    e.preventDefault();
+    playClickSound();
+
+    const name = (inpName.value || '').trim();
+    const player = (inpPlayer.value || '').trim();
+
+    if(!currentHero.dados) currentHero.dados = {};
+
+    // compat: mantém chaves antigas e novas
+    currentHero.nome = name || currentHero.nome || '---';
+    currentHero.player = player || currentHero.player || '---';
+    currentHero.dados['c-name'] = currentHero.nome;
+    currentHero.dados['c-player'] = currentHero.player;
+
+    if(tempImg){
+      currentHero.img = tempImg;
+    }else{
+      delete currentHero.img;
+    }
+
+    // atualiza header imediatamente
+    const dn = document.getElementById('display-name');
+    const dp = document.getElementById('display-player');
+    if(dn) dn.innerText = (currentHero.nome || '---').toString().toUpperCase();
+    if(dp) dp.innerText = (currentHero.player || '---').toString().toUpperCase();
+    const av = document.getElementById('sheet-avatar');
+    if(av) av.style.backgroundImage = currentHero.img ? `url(${currentHero.img})` : 'none';
+
+    schedulePersist();
+    close();
+  });
+}
+
+function setupTabBar() {
+  const tabs = document.querySelectorAll("#sheet-tabs .tab-btn");
+  tabs.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-tab");
+      switchTab(id);
+    });
+  });
+}
+
+window.onload = () => {
+  // Proteção de sessão
+  try { Auth.requireSession("index.html"); } catch (e) { window.location.href = "index.html"; return; }
+
+  currentUser = Auth.getCurrentUser();
+  heroIdx = Auth.getCurrentHeroIndex();
+
+  if (!currentUser || heroIdx === null || heroIdx === undefined) {
+    window.location.href = "home.html";
+    return;
+  }
+  heroIdx = parseInt(heroIdx, 10);
+
+  if (!currentUser.heroes || !currentUser.heroes[heroIdx]) {
+    window.location.href = "home.html";
+    return;
+  }
+
+  currentHero = currentUser.heroes[heroIdx];
+  if (!currentHero.dados) currentHero.dados = {};
+
+  // Fundo e tema já são inicializados em themes.js/bg.js
+  setupTabBar();
+  carregarFicha();
+  setupEditCharacterModal();
+
+  // Delegação de input para todos os campos (inclui elementos injetados)
+  document.addEventListener("input", (e) => {
+    const el = e.target;
+    if (!el || !el.classList || !el.classList.contains("save-field")) return;
+
+    saveData(el);
+
+    const id = el.id || "";
+    if (
+      id.startsWith("score-") ||
+      id === "c-prof" ||
+      id.startsWith("train-") ||
+      id.startsWith("other-") ||
+      id.startsWith("prof-")
+    ) {
+      calcStats();
+    }
+
+    if (id === "spell-ability") calcSpells();
+  });
+
+  // Recalcula quando marcar checkbox (alguns browsers disparam "change" em vez de "input")
+  document.addEventListener("change", (e) => {
+    const el = e.target;
+    if (!el || !el.classList || !el.classList.contains("save-field")) return;
+
+    saveData(el);
+
+    const id = el.id || "";
+    if (
+      id.startsWith("prof-") ||
+      id.startsWith("train-") ||
+      id.startsWith("other-")
+    ) {
+      calcStats();
+    }
+  });
+
+  // Feedback sonoro geral (botões/checkbox)
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!t) return;
+    if (t.tagName === "BUTTON" || t.type === "checkbox" || t.classList.contains("tab-btn")) {
+      playClickSound();
+    }
+  });
+};
+
+
+function initSteppers(){
+    document.querySelectorAll('.glass-stepper').forEach(wrap => {
+        const inputId = wrap.getAttribute('data-stepper-for');
+        const inp = inputId ? document.getElementById(inputId) : wrap.querySelector('input');
+        const down = wrap.querySelector('.step-down');
+        const up = wrap.querySelector('.step-up');
+        if(!inp || !down || !up) return;
+
+        const step = () => parseInt(inp.getAttribute('step') || '1', 10) || 1;
+        const clamp = (v) => {
+            const min = inp.getAttribute('min'); const max = inp.getAttribute('max');
+            if(min !== null && min !== "" && !isNaN(parseFloat(min))) v = Math.max(v, parseFloat(min));
+            if(max !== null && max !== "" && !isNaN(parseFloat(max))) v = Math.min(v, parseFloat(max));
+            return v;
+        };
+        const nudge = (dir) => {
+            const cur = parseFloat(inp.value || '0') || 0;
+            const v = clamp(cur + dir*step());
+            inp.value = String(v);
+            inp.dispatchEvent(new Event('input', { bubbles:true }));
+        };
+        down.addEventListener('click', (e)=>{ e.preventDefault(); nudge(-1); });
+        up.addEventListener('click', (e)=>{ e.preventDefault(); nudge(+1); });
+    });
+}
+
+function carregarFicha() {
+  // Cabeçalho
+  const name = (currentHero.nome || currentHero.dados["c-name"] || "---").toString();
+  const player = (currentHero.player || currentHero.dados["c-player"] || "---").toString();
+
+  document.getElementById("display-name").innerText = name.toUpperCase();
+  document.getElementById("display-player").innerText = player.toUpperCase();
+
+  if (currentHero.img) {
+    document.getElementById("sheet-avatar").style.backgroundImage = `url(${currentHero.img})`;
+  }
+
+  gerarEstrutura();
+  gerarGrimorio();
+  wireSteppers();
+
+  // Hidratar inputs com dados salvos
+  Object.keys(currentHero.dados).forEach((k) => {
+    const el = document.getElementById(k);
+    if (!el) return;
+    if (el.type === "checkbox") el.checked = !!currentHero.dados[k];
+    else el.value = currentHero.dados[k];
+  });
+
+  // Garantir defaults sensatos
+  if (!document.getElementById("c-prof").value) document.getElementById("c-prof").value = "+2";
+  ATTR.forEach((a) => {
+    const node = document.getElementById(`score-${a}`);
+    if (node && (node.value === "" || node.value === null || node.value === undefined)) node.value = 10;
+  });
+
+  calcStats();
+  calcSpells();
+}
+
+function gerarEstrutura() {
+  const attrCont = document.getElementById("attr-container");
+  attrCont.innerHTML = "";
+
+  ATTR.forEach((a) => {
+    attrCont.innerHTML += `
+      <div class="attr-row">
+        <span style="font-weight:900; font-size:14px">${a}</span>
+        <div class="mini-stepper">
+          <button type="button" class="step-btn" data-target="score-${a}" data-delta="-1" aria-label="Diminuir ${a}">−</button>
+          <input id="score-${a}" class="attr-val save-field" value="10" type="number">
+          <button type="button" class="step-btn" data-target="score-${a}" data-delta="1" aria-label="Aumentar ${a}">+</button>
+        </div>
+        <span id="mod-${a}" class="attr-mod">+0</span>
+      </div>
+    `;
+  });
+
+  const saveCont = document.getElementById("saves-container");
+  saveCont.innerHTML = `
+    <div class="skill-header-row">
+      <span></span><span class="text-left">NOME</span><span>ATR</span><span>PROF</span><span>BÔNUS</span><span>TREINO</span><span>OUTRO</span>
+    </div>
+  `;
+
+  ATTR.forEach((a) => {
+    saveCont.innerHTML += `
+      <div class="skill-row-pro">
+        <button class="skill-icon-btn" type="button" onclick="rollSkill('Salvaguarda ${a}', 'total-save-${a}')">
+          <svg viewBox="0 0 100 100"><polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="currentColor"/></svg>
+        </button>
+        <div class="skill-name-pro">Salvaguarda</div>
+        <div class="skill-attr-display">(${a})</div>
+        <input type="checkbox" id="prof-save-${a}" class="prof-check save-field">
+        <div id="total-save-${a}" class="skill-total-display">+0</div>
+        <input type="number" id="train-save-${a}" class="skill-input-line save-field" placeholder="0">
+        <input type="number" id="other-save-${a}" class="skill-input-line save-field" placeholder="0">
+      </div>
+    `;
+  });
+
+  const skillCont = document.getElementById("skills-container");
+  skillCont.innerHTML = `
+    <div class="skill-header-row">
+      <span></span><span class="text-left">NOME</span><span>ATR</span><span>PROF</span><span>BÔNUS</span><span>TREINO</span><span>OUTRO</span>
+    </div>
+  `;
+
+  SKILLS_LIST.forEach((s) => {
+    const idName = s.name.replace(/\s+/g, "-").toLowerCase();
+    skillCont.innerHTML += `
+      <div class="skill-row-pro">
+        <button class="skill-icon-btn" type="button" onclick="rollSkill('${s.name}', 'total-skill-${idName}')">
+          <svg viewBox="0 0 100 100"><polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="currentColor"/></svg>
+        </button>
+        <div class="skill-name-pro">${s.name}</div>
+        <div class="skill-attr-display">(${s.attr})</div>
+        <input type="checkbox" id="prof-skill-${idName}" class="prof-check save-field">
+        <div id="total-skill-${idName}" class="skill-total-display">+0</div>
+        <input type="number" id="train-skill-${idName}" class="skill-input-line save-field" placeholder="0">
+        <input type="number" id="other-skill-${idName}" class="skill-input-line save-field" placeholder="0">
+      </div>
+    `;
+  });
+}
+
+function gerarGrimorio() {
+  const spellsArea = document.getElementById("spells-area");
+  spellsArea.innerHTML = "";
+
+  spellsArea.innerHTML += `
+    <div class="spell-level-block">
+      <div class="sl-header">
+        <span class="sl-title">TRUQUES (NÍVEL 0)</span>
+      </div>
+      <textarea id="spells-0" class="clean-area save-field" style="min-height:150px;" placeholder="Lista de Truques..."></textarea>
+    </div>
+  `;
+
+  for (let i = 1; i <= 9; i++) {
+    spellsArea.innerHTML += `
+      <div class="spell-level-block">
+        <div class="sl-header">
+          <span class="sl-title">NÍVEL ${i}</span>
+          <div class="sl-slots">
+            TOTAL: <input id="slots-total-${i}" class="save-field" placeholder="0">
+            GASTOS: <input id="slots-exp-${i}" class="save-field" placeholder="0">
+          </div>
+        </div>
+        <textarea id="spells-${i}" class="clean-area save-field" style="min-height:150px;" placeholder="Magias preparadas..."></textarea>
+      </div>
+    `;
+  }
+}
+
+
+function wireSteppers() {
+  document.querySelectorAll(".step-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const targetId = btn.getAttribute("data-target");
+      const delta = parseInt(btn.getAttribute("data-delta") || "0", 10);
+      const input = document.getElementById(targetId);
+      if (!input) return;
+
+      let v = parseInt(input.value || "0", 10);
+      if (Number.isNaN(v)) v = 0;
+      input.value = String(v + delta);
+
+      // dispara o pipeline normal (save + calc)
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  });
+}
+
+function calcStats() {
+  const mods = {};
+  const profBonus = parseInt(document.getElementById("c-prof").value, 10) || 2;
+
+  // Mods
+  ATTR.forEach((a) => {
+    const val = parseInt(document.getElementById(`score-${a}`).value, 10) || 10;
+    const mod = Math.floor((val - 10) / 2);
+    mods[a] = mod;
+    const txt = mod >= 0 ? `+${mod}` : `${mod}`;
+    const node = document.getElementById(`mod-${a}`);
+    if (node) node.innerText = txt;
+  });
+
+  // Salvaguardas
+  ATTR.forEach((a) => {
+    const isProf = document.getElementById(`prof-save-${a}`).checked;
+    const train = parseInt(document.getElementById(`train-save-${a}`).value, 10) || 0;
+    const other = parseInt(document.getElementById(`other-save-${a}`).value, 10) || 0;
+    const total = mods[a] + (isProf ? profBonus : 0) + train + other;
+    const node = document.getElementById(`total-save-${a}`);
+    if (node) node.innerText = total >= 0 ? `+${total}` : `${total}`;
+  });
+
+  // Perícias
+  SKILLS_LIST.forEach((s) => {
+    const idName = s.name.replace(/\s+/g, "-").toLowerCase();
+    const isProf = document.getElementById(`prof-skill-${idName}`).checked;
+    const train = parseInt(document.getElementById(`train-skill-${idName}`).value, 10) || 0;
+    const other = parseInt(document.getElementById(`other-skill-${idName}`).value, 10) || 0;
+    const total = mods[s.attr] + (isProf ? profBonus : 0) + train + other;
+
+    const node = document.getElementById(`total-skill-${idName}`);
+    if (node) node.innerText = total >= 0 ? `+${total}` : `${total}`;
+
+    // Passivas
+    if (s.name === "Percepção") {
+      const p = document.getElementById("pas-perc");
+      if (p) p.value = 10 + total;
+    }
+    if (s.name === "Investigação") {
+      const p = document.getElementById("pas-inv");
+      if (p) p.value = 10 + total;
+    }
+    if (s.name === "Intuição") {
+      const p = document.getElementById("pas-ins");
+      if (p) p.value = 10 + total;
+    }
+  });
+
+  calcSpells();
+}
+
+function calcSpells() {
+  const abilityEl = document.getElementById("spell-ability");
+  if (!abilityEl) return;
+
+  const ability = abilityEl.value;
+  const modEl = document.getElementById(`mod-${ability}`);
+  const mod = modEl ? parseInt(modEl.innerText, 10) : 0;
+
+  const prof = parseInt(document.getElementById("c-prof").value, 10) || 2;
+  const dc = 8 + mod + prof;
+  const atk = mod + prof;
+
+  const dcEl = document.getElementById("spell-dc");
+  const atkEl = document.getElementById("spell-atk");
+  if (dcEl) dcEl.innerText = dc;
+  if (atkEl) atkEl.innerText = atk >= 0 ? `+${atk}` : `${atk}`;
+}
+
+/* Rolagem rápida */
+function rollSkill(name, elementId) {
+  playClickSound();
+
+  const totalText = (document.getElementById(elementId)?.innerText || "0").toString();
+  const bonus = parseInt(totalText, 10) || 0;
+
+  const d20 = Math.floor(Math.random() * 20) + 1;
+  const final = d20 + bonus;
+
+  const modal = document.getElementById("quickroll-modal");
+  const resultVal = document.getElementById("roll-result-val");
+  const d20Number = document.getElementById("d20-number");
+
+  if (modal) modal.style.display = "flex";
+  if (resultVal) resultVal.innerText = final;
+  if (d20Number) d20Number.innerText = d20;
+
+  let detail = `${name}: 🎲(${d20}) + ${bonus}`;
+  if (d20 === 20) {
+    detail = "CRÍTICO! " + detail;
+    if (resultVal) resultVal.style.color = "#ffd700";
+  } else if (d20 === 1) {
+    detail = "FALHA CRÍTICA! " + detail;
+    if (resultVal) resultVal.style.color = "#ff4444";
+  } else {
+    if (resultVal) resultVal.style.color = "var(--accent)";
+  }
+
+  const detailEl = document.getElementById("roll-result-detail");
+  if (detailEl) detailEl.innerText = detail;
+}
+
+/* Persistência */
+function saveData(el) {
+  if (!currentHero) return;
+  if (!currentHero.dados) currentHero.dados = {};
+
+  currentHero.dados[el.id] = el.type === "checkbox" ? !!el.checked : el.value;
+
+  // Sync leve para o HUB (campanha vem do input)
+  if (el.id === "c-campaign") currentHero.campaign = el.value;
+
+  schedulePersist();
+}
+
+/* Navegação */
+function voltarParaHome() {
+  window.location.href = "home.html";
+}
+
+function switchTab(id) {
+  playClickSound();
+
+  // troca visual
+  document.querySelectorAll(".page").forEach((p) => (p.style.display = "none"));
+  const target = document.getElementById(id);
+  if (target) target.style.display = "block";
+
+  // ativa botão
+  document.querySelectorAll("#sheet-tabs .tab-btn").forEach((b) => b.classList.remove("active"));
+  const btn = document.querySelector(`#sheet-tabs .tab-btn[data-tab="${id}"]`);
+  if (btn) btn.classList.add("active");
+}
+
+/* Expor funções usadas por onclick/injeção */
+window.rollSkill = rollSkill;
+window.calcSpells = calcSpells;
+window.voltarParaHome = voltarParaHome;
+window.switchTab = switchTab;
