@@ -8,8 +8,10 @@
 (() => {
   "use strict";
 
-  const CFG = window.FIREBASE_CONFIG;
-  const enabled = !!(CFG && CFG.apiKey && CFG.projectId);
+  function _isCloudEnabled(){
+    const CFG = window.FIREBASE_CONFIG;
+    return !!(CFG && CFG.apiKey && CFG.projectId);
+  }
 
 
   function sanitizeNick(s){
@@ -19,7 +21,7 @@
 
 
   const VGCloud = {
-    enabled,
+    get enabled(){ return _isCloudEnabled(); },
     ready: false,
     user: null,
     db: null,
@@ -29,7 +31,8 @@
     onAuth(cb){ this._authCbs.push(cb); if(this.user) cb(this.user); },
 
     async init(){
-      if(!enabled || this.ready) return this.ready;
+      if(!_isCloudEnabled() || this.ready) return this.ready;
+      const CFG = window.FIREBASE_CONFIG;
 
       const CDN = "https://www.gstatic.com/firebasejs/10.12.5/";
       const appMod  = await import(CDN + "firebase-app.js");

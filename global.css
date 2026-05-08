@@ -1630,4 +1630,60 @@ html[data-theme="master"] body::after{
 html[data-theme="stealth"] body::after{
   background:
     radial-gradient(circle at 50% 50%, rgba(16,185,129,0.14), transparent 62%),
-Finally a big patch. Might be too long but ok.
+    var(--vg-noise);
+  background-size: auto, 520px 520px;
+  animation: vg-drift 22s ease-in-out infinite;
+  opacity: 0.52;
+}
+
+/* =========================
+   MASTER BADGE — selo de mestre (coroa) ao lado do nick
+   ========================= */
+.master-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2a1a00;
+  background: linear-gradient(135deg, #ffd86b 0%, #f5b400 50%, #b88600 100%);
+  border: 1px solid rgba(255, 215, 0, 0.85);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 12px rgba(255, 200, 60, 0.35);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  vertical-align: middle;
+  user-select: none;
+  animation: master-glow 3.2s ease-in-out infinite;
+}
+.master-badge .crown{
+  font-size: 13px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+  animation: master-bob 2.4s ease-in-out infinite;
+}
+.master-badge .label{ line-height: 1; }
+
+@keyframes master-glow{
+  0%, 100% { box-shadow: 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.55), 0 0 8px rgba(255,200,60,0.30); }
+  50%      { box-shadow: 0 2px 8px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.65), 0 0 18px rgba(255,200,60,0.55); }
+}
+@keyframes master-bob{
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-1px) rotate(3deg); }
+}
+
+/* Quando é mestre, o nick ganha um brilho dourado sutil */
+body.is-master #current-user-nick{
+  background: linear-gradient(135deg, #fff3b0 0%, #ffd86b 50%, #f5b400 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 18px rgba(255, 200, 60, 0.25);
+}

@@ -1,0 +1,37 @@
+{
+  "firestore": {
+    "rules": "FIRESTORE_RULES_VASTERIA.txt",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "firestore.indexes.json",
+      "FIRESTORE_RULES_VASTERIA.txt",
+      "STORAGE_RULES_VASTERIA.txt",
+      "firebase.config.example.js",
+      "**/.*",
+      "**/node_modules/**",
+      "package.json",
+      "package-lock.json",
+      "vite.config.*",
+      "*.md"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css|html)",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "**/*.@(jpg|jpeg|png|webp|svg|woff|woff2)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=604800" }
+        ]
+      }
+    ]
+  }
+}

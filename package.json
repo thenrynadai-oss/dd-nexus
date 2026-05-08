@@ -4,7 +4,7 @@
   "description": "Vasteria Gate — Portal D&D com Firebase, biblioteca de livros e fichas de personagem",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "echo \"Static site — no build needed\"",
     "preview": "vite preview"
   },
   "devDependencies": {

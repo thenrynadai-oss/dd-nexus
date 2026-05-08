@@ -1,13 +1,13 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAu8BqHB-zqXKmeY2eMbTFxfd_-W9xNIbI",
-  authDomain: "vasteria-gate.firebaseapp.com",
-  projectId: "vasteria-gate",
-  storageBucket: "vasteria-gate.firebasestorage.app",
-  messagingSenderId: "732190407959",
-  appId: "1:732190407959:web:0ee5760ccdcf295c220b52"
+  apiKey: "AIzaSyC9zeCmCDloV7Xlpt83HTZ47trmQBZ0LaU",
+  authDomain: "vasteria-gate-dd.firebaseapp.com",
+  projectId: "vasteria-gate-dd",
+  storageBucket: "vasteria-gate-dd.firebasestorage.app",
+  messagingSenderId: "772207439440",
+  appId: "1:772207439440:web:1dc74c935be2ddf8672b55"
 };
 
 const app = initializeApp(firebaseConfig);

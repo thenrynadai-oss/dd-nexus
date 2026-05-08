@@ -64,34 +64,6 @@
   window.VASTERIA_THEMES = VASTERIA_THEMES;
 
   // -----------------------------
-  // Áudio: "ping" ao selecionar (sem arquivos)
-  // -----------------------------
-  let audioCtx = null;
-  function playSelectSound(){
-    try{
-      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const t0 = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(880, t0);
-      osc.frequency.exponentialRampToValueAtTime(1320, t0 + 0.07);
-
-      gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.exponentialRampToValueAtTime(0.35, t0 + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(t0);
-      osc.stop(t0 + 0.14);
-    }catch(err){
-      // silêncio se browser bloquear
-    }
-  }
-
-  // -----------------------------
   // Helpers
   // -----------------------------
   const qs = (sel, el=document) => el.querySelector(sel);
@@ -102,24 +74,6 @@
     return localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
   }
 
-
-  function getStoredMute(){
-    try{ return localStorage.getItem('vasteria_mute') === '1'; }catch(e){ return false; }
-  }
-
-  function setStoredMute(m){
-    try{ localStorage.setItem('vasteria_mute', m ? '1' : '0'); }catch(e){}
-    try{ window.dispatchEvent(new CustomEvent('vasteria:mute', { detail: { muted: !!m } })); }catch(e){}
-    try{ if(window.VasteriaBG && typeof window.VasteriaBG.setMuted === 'function') window.VasteriaBG.setMuted(!!m); }catch(e){}
-  }
-
-  function syncMuteBtn(modal){
-    const btn = qs('#theme-mute-btn', modal);
-    if(!btn) return;
-    const m = getStoredMute();
-    btn.textContent = m ? '🔇' : '🔊';
-    btn.title = m ? 'Desmutar áudio ambiente' : 'Mutar áudio ambiente';
-  }
 
   function getStoredKind(){
     return localStorage.getItem(STORAGE_KIND_KEY) || "minimal";
@@ -152,7 +106,6 @@
     }));
     setStoredTheme(theme);
 
-    if(!silent) playSelectSound();
 
     // avisa BG engine e qualquer outro ouvinte
     window.dispatchEvent(new CustomEvent("vasteria:theme", { detail: { theme } }));
@@ -211,7 +164,6 @@
           <div style="flex:1"></div>
           <div style="display:flex;gap:10px;align-items:center">
             <span class="current-theme-label" style="font-size:12px;color:rgba(255,255,255,0.65)"></span>
-            <button class="btn-ghost" id="theme-mute-btn" type="button" title="Mutar / desmutar áudio ambiente">🔇</button>
           </div>
         </div>
 
@@ -384,8 +336,6 @@
     // label tema atual
     qsa(".current-theme-label").forEach(el => el.textContent = getThemeName(getStoredTheme()));
 
-    syncMuteBtn(modal);
-
     // build cards (idempotente)
     buildThemeCards(modal);
 
@@ -415,18 +365,6 @@
     document.addEventListener("keydown", (e) => {
       if(e.key === "Escape" && modal.classList.contains("active")) closeModal();
     });
-    // mute button (áudio ambiente)
-    const muteBtn = qs('#theme-mute-btn', modal);
-    if(muteBtn){
-      syncMuteBtn(modal);
-      muteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const next = !getStoredMute();
-        setStoredMute(next);
-        syncMuteBtn(modal);
-      });
-    }
-
 
 
     // conexões: qualquer botão com [data-action="open-themes"] abre

@@ -270,6 +270,12 @@ function boot(){
     bindEvents();
   }
 
+  const MASTER_EMAILS = [];
+  function isMasterUser(u){
+    const email = String(u && u.email || "").trim().toLowerCase();
+    return !!email && MASTER_EMAILS.includes(email);
+  }
+
   function renderHeader(){
     const u = Auth.getCurrentUser();
     if(!u) return;
@@ -278,6 +284,22 @@ function boot(){
     elUserName.textContent = u.nome || "—";
 
     setAvatar(elUserImg, u.profileImg, initials(u.apelido));
+
+    const meta = elUserNick.parentElement;
+    let badge = meta && meta.querySelector(".master-badge");
+    if(isMasterUser(u)){
+      if(!badge && meta){
+        badge = document.createElement("span");
+        badge.className = "master-badge";
+        badge.title = "Mestre do Vasteria Gate";
+        badge.innerHTML = '<span class="crown" aria-hidden="true">\u{1F451}</span><span class="label">MESTRE</span>';
+        elUserNick.insertAdjacentElement("afterend", badge);
+      }
+      document.body.classList.add("is-master");
+    } else {
+      if(badge) badge.remove();
+      document.body.classList.remove("is-master");
+    }
   }
 
   function heroLevel(hero){

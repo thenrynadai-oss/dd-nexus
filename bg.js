@@ -1000,129 +1000,7 @@
     mesh:null
   };
 
-  
-  /* ===============================
-     AMBIENT AUDIO (procedural)
-     - Sem arquivos externos
-     - Respeita vasteria_mute
-     =============================== */
-  const AUDIO = {
-    ctx: null,
-    master: null,
-    running: false,
-    theme: "",
-    muted: false,
-    nodes: [],
-    _timer: null
-  };
 
-  function audioEnsure(){
-    if(AUDIO.ctx) return;
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if(!Ctx) return;
-    AUDIO.ctx = new Ctx();
-    AUDIO.master = AUDIO.ctx.createGain();
-    AUDIO.master.gain.value = 0.0;
-    AUDIO.master.connect(AUDIO.ctx.destination);
-    AUDIO.running = true;
-  }
-
-  function audioSetMuted(m){
-    AUDIO.muted = !!m;
-    if(!AUDIO.master) return;
-    AUDIO.master.gain.setTargetAtTime(AUDIO.muted ? 0.0 : 0.12, AUDIO.ctx.currentTime, 0.05);
-  }
-
-  function audioStop(){
-    if(!AUDIO.ctx) return;
-    try{
-      AUDIO.nodes.forEach(n => { try{ n.disconnect(); }catch(e){} });
-      AUDIO.nodes = [];
-      if(AUDIO._timer) { clearInterval(AUDIO._timer); AUDIO._timer=null; }
-    }catch(e){}
-    AUDIO.theme = "";
-  }
-
-  function audioStart(theme){
-    audioEnsure();
-    if(!AUDIO.ctx) return;
-    if(AUDIO.theme === theme) return;
-    audioStop();
-    AUDIO.theme = theme;
-
-    // só roda em lowpoly (piloto café + cthulhu)
-    if(theme !== "coffee_caramel" && theme !== "cthulhu") return;
-
-    // garantir que o contexto esteja ativo (necessita gesto)
-    if(AUDIO.ctx.state === "suspended"){
-      // tenta retomar; se falhar, ficará mudo até o próximo clique
-      AUDIO.ctx.resume().catch(()=>{});
-    }
-
-    const ctx = AUDIO.ctx;
-
-    // base noise
-    const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-    const out = noiseBuf.getChannelData(0);
-    for(let i=0;i<out.length;i++) out[i] = (Math.random()*2-1);
-    const noise = ctx.createBufferSource();
-    noise.buffer = noiseBuf;
-    noise.loop = true;
-
-    const hp = ctx.createBiquadFilter();
-    hp.type = "highpass"; hp.frequency.value = 200;
-
-    const lp = ctx.createBiquadFilter();
-    lp.type = "lowpass"; lp.frequency.value = theme === "coffee_caramel" ? 1800 : 900;
-
-    const ambGain = ctx.createGain();
-    ambGain.gain.value = theme === "coffee_caramel" ? 0.35 : 0.28;
-
-    noise.connect(hp); hp.connect(lp); lp.connect(ambGain); ambGain.connect(AUDIO.master);
-    noise.start();
-
-    AUDIO.nodes.push(noise, hp, lp, ambGain);
-
-    // eventos pontuais (clinks / sussurros)
-    AUDIO._timer = setInterval(() => {
-      if(AUDIO.muted || !AUDIO.ctx) return;
-      const now = ctx.currentTime;
-
-      if(theme === "coffee_caramel"){
-        // "clink" aleatório
-        if(Math.random() < 0.45){
-          const osc = ctx.createOscillator();
-          const g = ctx.createGain();
-          osc.type = "triangle";
-          osc.frequency.setValueAtTime(700 + Math.random()*600, now);
-          g.gain.setValueAtTime(0.0001, now);
-          g.gain.exponentialRampToValueAtTime(0.02, now+0.01);
-          g.gain.exponentialRampToValueAtTime(0.0001, now+0.08);
-          osc.connect(g); g.connect(AUDIO.master);
-          osc.start(now); osc.stop(now+0.09);
-          AUDIO.nodes.push(osc,g);
-        }
-      } else {
-        // "sussurro" grave + ping distante
-        if(Math.random() < 0.35){
-          const osc = ctx.createOscillator();
-          const g = ctx.createGain();
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(90 + Math.random()*60, now);
-          g.gain.setValueAtTime(0.0001, now);
-          g.gain.exponentialRampToValueAtTime(0.03, now+0.03);
-          g.gain.exponentialRampToValueAtTime(0.0001, now+0.35);
-          const flt = ctx.createBiquadFilter();
-          flt.type = "lowpass"; flt.frequency.value = 380;
-          osc.connect(flt); flt.connect(g); g.connect(AUDIO.master);
-          osc.start(now); osc.stop(now+0.36);
-          AUDIO.nodes.push(osc,flt,g);
-        }
-      }
-    }, 1200);
-
-    audioSetMuted(localStorage.getItem("vasteria_mute")==="1");
-  }
 const sceneMap = {
     caramel: sceneCafe,
     coffee_caramel: sceneCafe,
@@ -1218,42 +1096,25 @@ const sceneMap = {
   function setTheme(themeId){
     if(themeId === "caramel") themeId = "coffee_caramel";
     state.theme = themeId || "";
-    // áudio ambiente (piloto)
-    audioStart(state.theme);
     // reset scene state pra trocar completamente
     state.sceneState = {};
   }
 
   
 
-  function setMuted(m){
-    try{ localStorage.setItem('vasteria_mute', m ? '1' : '0'); }catch(e){}
-    try{ audioEnsure(); if(AUDIO.ctx && AUDIO.ctx.state === 'suspended') AUDIO.ctx.resume().catch(()=>{}); }catch(e){}
-    try{ audioSetMuted(!!m); }catch(e){}
-  }
-
-  function isMuted(){
-    return !!AUDIO.muted;
-  }
+  function setMuted(){}
+  function isMuted(){ return false; }
 function init(){
     state.canvas = ensureCanvas();
     state.ctx = state.canvas.getContext("2d", { alpha:true, desynchronized:true });
     resize();
     window.addEventListener("resize", resize);
 
-    document.addEventListener("pointerdown", () => {
-      try{ audioEnsure(); if(AUDIO.ctx && AUDIO.ctx.state === "suspended") AUDIO.ctx.resume().catch(()=>{}); }catch(e){}
-    }, { once:false });
-
     // recebe eventos do Theme.apply()
     window.addEventListener("vasteria:theme", (e) => {
       setTheme(e.detail?.theme || "");
     });
 
-    // recebe eventos do botão de mute (Themes)
-    window.addEventListener("vasteria:mute", (e) => {
-      setMuted(!!(e.detail && e.detail.muted));
-    });
 
 
     // pega tema atual no carregamento
