@@ -1462,6 +1462,25 @@ state.book = null;
       }
     }, { passive:false });
 
+    // Cursor dinâmico: dica visual de para qual lado o clique vai virar
+    layer.addEventListener('pointermove', function(e){
+      if(down) return; // não troca cursor durante drag
+      var rect = layer.getBoundingClientRect();
+      var relX = e.clientX - rect.left;
+      var onCover = false;
+      try{ if(state.$ && state.fbEl){ onCover = state.$(state.fbEl).turn('page') === 1; } }catch(_e){}
+      if(onCover){
+        layer.style.cursor = 'e-resize';
+      } else if(relX > rect.width*0.53){
+        layer.style.cursor = 'e-resize';
+      } else if(relX < rect.width*0.47){
+        layer.style.cursor = 'w-resize';
+      } else {
+        layer.style.cursor = 'default';
+      }
+    }, { passive: true });
+    layer.addEventListener('pointerleave', function(){ layer.style.cursor = ''; });
+
     function end(e){
       if(!down || (pid!=null && e.pointerId!==pid)) return;
       down=false;
@@ -1471,17 +1490,28 @@ state.book = null;
       pid=null;
       resetFx();
 
-      // “clique” nas laterais como fallback
-      if(adx < 8){
+      // CLIQUE direto na página → vira (mais tolerante a micro-movimento)
+      // Tolerância: até 12px de movimento ainda conta como clique.
+      // Dead zone (lombada): 47-53% (apenas 6% de centro morto).
+      var CLICK_TOL = 12;
+      if(adx < CLICK_TOL){
         var rect = layer.getBoundingClientRect();
         var relX = e.clientX - rect.left;
-        if(relX > rect.width*0.56) localDir = 1;
-        else if(relX < rect.width*0.44) localDir = -1;
+        // Capa (página 1, single display) → qualquer clique vira pra frente
+        var onCover = false;
+        try{ if(state.$ && state.fbEl){ onCover = state.$(state.fbEl).turn('page') === 1; } }catch(_e){}
+        if(onCover){
+          localDir = 1;
+        } else if(relX > rect.width*0.53){
+          localDir = 1;
+        } else if(relX < rect.width*0.47){
+          localDir = -1;
+        }
       }
 
       if(state._opening) return;
 
-      if(localDir!==0 && (adx > TH*0.28 || adx < 8)){
+      if(localDir!==0 && (adx > TH*0.28 || adx < CLICK_TOL)){
         commit(localDir);
       }
 

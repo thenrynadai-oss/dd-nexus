@@ -1,0 +1,420 @@
+/* ============================================================
+   VASTERIA THEME SYSTEM
+   5 themes — each shifts palette, fonts, glass, overlays, motion.
+   Apply via [data-theme="..."] on body.
+   ============================================================ */
+
+:root {
+  /* ── default theme: VASTERIA (high fantasy, gold + amethyst) ── */
+  --t-bg-base: #07070c;
+  --t-bg-grad:
+    radial-gradient(ellipse 1200px 800px at 12% 8%, rgba(186, 120, 50, 0.18), transparent 60%),
+    radial-gradient(ellipse 900px 700px at 88% 92%, rgba(72, 38, 120, 0.32), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 50% 50%, rgba(40, 22, 60, 0.4), transparent 70%),
+    linear-gradient(180deg, #0a0712 0%, #060509 100%);
+
+  --t-particles: radial-gradient(1px 1px at 10% 20%, rgba(255,220,170,0.6), transparent),
+                 radial-gradient(1px 1px at 30% 80%, rgba(255,220,170,0.4), transparent),
+                 radial-gradient(1px 1px at 60% 10%, rgba(255,220,170,0.5), transparent),
+                 radial-gradient(1.5px 1.5px at 80% 60%, rgba(255,220,170,0.3), transparent),
+                 radial-gradient(1px 1px at 45% 45%, rgba(255,220,170,0.5), transparent),
+                 radial-gradient(1px 1px at 90% 30%, rgba(255,220,170,0.4), transparent),
+                 radial-gradient(1.5px 1.5px at 15% 70%, rgba(255,220,170,0.4), transparent),
+                 radial-gradient(1px 1px at 70% 85%, rgba(255,220,170,0.3), transparent);
+  --t-particle-anim: twinkle 8s ease-in-out infinite;
+  --t-overlay: radial-gradient(circle at 20% 30%, rgba(218, 165, 90, 0.05), transparent 40%),
+               radial-gradient(circle at 75% 70%, rgba(120, 80, 200, 0.06), transparent 50%);
+  --t-overlay-anim: drift 18s ease-in-out infinite;
+
+  --t-glass: linear-gradient(180deg, rgba(35, 28, 50, 0.55) 0%, rgba(20, 15, 32, 0.65) 100%);
+  --t-glass-strong: linear-gradient(180deg, rgba(45, 36, 64, 0.78) 0%, rgba(24, 18, 38, 0.82) 100%);
+  --t-glass-soft: rgba(255, 245, 220, 0.03);
+  --t-border: rgba(218, 180, 120, 0.12);
+  --t-border-strong: rgba(218, 180, 120, 0.25);
+  --t-border-active: rgba(218, 162, 90, 0.45);
+  --t-shadow: 0 20px 60px -20px rgba(0,0,0, 0.7);
+
+  --t-accent: #d8a25a;
+  --t-accent-bright: #f0c170;
+  --t-accent-deep: #b07d3c;
+  --t-accent-glow: rgba(216, 162, 90, 0.5);
+  --t-accent-tint: rgba(218, 162, 90, 0.15);
+  --t-accent-soft: rgba(218, 162, 90, 0.08);
+
+  --t-text: #f5ecd6;
+  --t-text-soft: #e8e3d6;
+  --t-text-mute: rgba(232, 227, 214, 0.55);
+  --t-text-faint: rgba(232, 227, 214, 0.35);
+
+  --t-danger: #c25555;
+  --t-success: #7ba85d;
+  --t-info: #6da5c8;
+  --t-magic: #9d7bd8;
+  --t-warn: #c8643a;
+
+  --t-font-serif: 'Cormorant Garamond', serif;
+  --t-font-display: 'Cormorant Garamond', serif;
+  --t-font-sans: 'Inter', system-ui, sans-serif;
+  --t-font-mono: 'JetBrains Mono', monospace;
+  --t-display-letter: 0.3px;
+  --t-display-weight: 600;
+  --t-display-transform: none;
+
+  --t-radius: 16px;
+  --t-radius-sm: 10px;
+  --t-radius-lg: 22px;
+  --t-blur: 20px;
+
+  --t-rune: "✦";
+  --t-rune2: "❖";
+  --t-cursor: default;
+
+  --t-noise: none;
+  --t-vignette: none;
+  --t-scanline: none;
+}
+
+/* ============================================================
+   THEME — NOITE DO SANGUE (modern horror, urban paranormal)
+   ============================================================ */
+body[data-theme="blood"] {
+  --t-bg-base: #060304;
+  --t-bg-grad:
+    radial-gradient(ellipse 1100px 700px at 8% 5%, rgba(180, 20, 30, 0.22), transparent 55%),
+    radial-gradient(ellipse 800px 600px at 92% 95%, rgba(80, 10, 20, 0.4), transparent 60%),
+    radial-gradient(circle at 50% 40%, rgba(40, 5, 12, 0.5), transparent 70%),
+    linear-gradient(180deg, #0a0304 0%, #050102 100%);
+
+  --t-particles:
+    radial-gradient(1.5px 1.5px at 12% 25%, rgba(255, 60, 80, 0.4), transparent),
+    radial-gradient(1px 1px at 35% 75%, rgba(255, 80, 90, 0.25), transparent),
+    radial-gradient(2px 2px at 65% 15%, rgba(255, 50, 70, 0.35), transparent),
+    radial-gradient(1px 1px at 85% 55%, rgba(255, 90, 100, 0.2), transparent),
+    radial-gradient(1px 1px at 50% 90%, rgba(255, 60, 80, 0.3), transparent);
+  --t-particle-anim: blood-pulse 4s ease-in-out infinite;
+  --t-overlay: radial-gradient(circle at 30% 50%, rgba(200, 30, 40, 0.06), transparent 45%),
+               radial-gradient(circle at 80% 30%, rgba(140, 0, 20, 0.08), transparent 50%);
+  --t-overlay-anim: blood-drift 12s ease-in-out infinite;
+
+  --t-glass: linear-gradient(180deg, rgba(28, 8, 12, 0.7) 0%, rgba(14, 4, 6, 0.8) 100%);
+  --t-glass-strong: linear-gradient(180deg, rgba(38, 10, 16, 0.85) 0%, rgba(18, 5, 8, 0.9) 100%);
+  --t-glass-soft: rgba(255, 60, 80, 0.04);
+  --t-border: rgba(200, 30, 50, 0.18);
+  --t-border-strong: rgba(220, 40, 60, 0.35);
+  --t-border-active: rgba(255, 60, 80, 0.6);
+  --t-shadow: 0 20px 60px -10px rgba(120, 0, 20, 0.5), 0 0 0 1px rgba(255, 30, 50, 0.05) inset;
+
+  --t-accent: #c8243a;
+  --t-accent-bright: #ff5060;
+  --t-accent-deep: #800015;
+  --t-accent-glow: rgba(255, 60, 80, 0.6);
+  --t-accent-tint: rgba(200, 36, 58, 0.2);
+  --t-accent-soft: rgba(200, 36, 58, 0.1);
+
+  --t-text: #f0e0e2;
+  --t-text-soft: #d8c0c4;
+  --t-text-mute: rgba(220, 200, 205, 0.5);
+  --t-text-faint: rgba(220, 200, 205, 0.3);
+
+  --t-danger: #ff3050;
+  --t-success: #6db088;
+  --t-info: #6090b0;
+  --t-magic: #b060a0;
+  --t-warn: #d87830;
+
+  --t-font-serif: 'Oswald', sans-serif;
+  --t-font-display: 'Oswald', sans-serif;
+  --t-font-sans: 'Inter', system-ui, sans-serif;
+  --t-font-mono: 'JetBrains Mono', monospace;
+  --t-display-letter: 1.5px;
+  --t-display-weight: 700;
+  --t-display-transform: uppercase;
+
+  --t-radius: 4px;
+  --t-radius-sm: 2px;
+  --t-radius-lg: 6px;
+  --t-blur: 14px;
+
+  --t-rune: "†";
+  --t-rune2: "✗";
+
+  --t-noise: repeating-linear-gradient(0deg, rgba(255,30,50,0.015) 0, rgba(255,30,50,0.015) 1px, transparent 1px, transparent 3px);
+  --t-vignette: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+  --t-scanline: repeating-linear-gradient(0deg, rgba(0,0,0,0.08) 0, rgba(0,0,0,0.08) 1px, transparent 1px, transparent 4px);
+}
+
+/* ============================================================
+   THEME — O CHAMADO (cosmic horror, vintage 1920s, oceanic)
+   ============================================================ */
+body[data-theme="cthulhu"] {
+  --t-bg-base: #0a1318;
+  --t-bg-grad:
+    radial-gradient(ellipse 1300px 900px at 15% 10%, rgba(20, 70, 80, 0.3), transparent 60%),
+    radial-gradient(ellipse 900px 700px at 85% 90%, rgba(30, 50, 65, 0.4), transparent 60%),
+    radial-gradient(ellipse 600px 500px at 50% 50%, rgba(15, 40, 50, 0.5), transparent 70%),
+    linear-gradient(180deg, #0c1418 0%, #050a0e 100%);
+
+  --t-particles:
+    radial-gradient(1px 1px at 18% 28%, rgba(150, 200, 190, 0.35), transparent),
+    radial-gradient(1px 1px at 42% 70%, rgba(170, 220, 210, 0.25), transparent),
+    radial-gradient(1.5px 1.5px at 70% 18%, rgba(140, 200, 195, 0.3), transparent),
+    radial-gradient(1px 1px at 90% 60%, rgba(160, 215, 200, 0.2), transparent),
+    radial-gradient(1px 1px at 25% 90%, rgba(150, 205, 195, 0.3), transparent),
+    radial-gradient(1.5px 1.5px at 55% 50%, rgba(180, 230, 220, 0.25), transparent);
+  --t-particle-anim: ocean-glow 14s ease-in-out infinite;
+  --t-overlay: radial-gradient(circle at 25% 40%, rgba(60, 130, 130, 0.08), transparent 45%),
+               radial-gradient(circle at 75% 65%, rgba(40, 100, 110, 0.1), transparent 50%);
+  --t-overlay-anim: tentacle-drift 22s ease-in-out infinite;
+
+  --t-glass: linear-gradient(180deg, rgba(18, 36, 42, 0.7) 0%, rgba(10, 22, 28, 0.8) 100%);
+  --t-glass-strong: linear-gradient(180deg, rgba(24, 46, 52, 0.85) 0%, rgba(12, 26, 32, 0.9) 100%);
+  --t-glass-soft: rgba(180, 220, 215, 0.03);
+  --t-border: rgba(120, 180, 175, 0.16);
+  --t-border-strong: rgba(140, 200, 195, 0.3);
+  --t-border-active: rgba(160, 220, 210, 0.5);
+  --t-shadow: 0 20px 60px -20px rgba(0, 30, 35, 0.7);
+
+  --t-accent: #4a9b8e;
+  --t-accent-bright: #7dc8b8;
+  --t-accent-deep: #2a6058;
+  --t-accent-glow: rgba(125, 200, 184, 0.45);
+  --t-accent-tint: rgba(74, 155, 142, 0.18);
+  --t-accent-soft: rgba(74, 155, 142, 0.08);
+
+  --t-text: #d8e8e2;
+  --t-text-soft: #c0d4ce;
+  --t-text-mute: rgba(200, 220, 215, 0.55);
+  --t-text-faint: rgba(200, 220, 215, 0.35);
+
+  --t-danger: #b85050;
+  --t-success: #8ab07a;
+  --t-info: #6da5c8;
+  --t-magic: #a890d0;
+  --t-warn: #c89058;
+
+  --t-font-serif: 'IM Fell English', serif;
+  --t-font-display: 'IM Fell English', serif;
+  --t-font-sans: 'IM Fell DW Pica', serif;
+  --t-font-mono: 'Special Elite', monospace;
+  --t-display-letter: 0.5px;
+  --t-display-weight: 400;
+  --t-display-transform: none;
+
+  --t-radius: 10px;
+  --t-radius-sm: 6px;
+  --t-radius-lg: 14px;
+  --t-blur: 18px;
+
+  --t-rune: "Ψ";
+  --t-rune2: "Ω";
+
+  --t-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.78 0 0 0 0 0.65 0 0 0 0.10 0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.5'/></svg>");
+  --t-vignette: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.6) 100%);
+  --t-scanline: none;
+}
+
+/* ============================================================
+   KH FONTS
+   ============================================================ */
+@font-face { font-family: 'KHTitle'; src: url('assets/kh/fonts/KHTitle.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'KHMenu'; src: url('assets/kh/fonts/KHMenu.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'KHMenuBold'; src: url('assets/kh/fonts/KHMenuBold.woff2') format('woff2'); font-display: swap; }
+
+/* ============================================================
+   THEME — KINGDOM KEY (Sora)
+   ============================================================ */
+body[data-theme="kh-sora"] {
+  --t-bg-base: #0a1a3a;
+  --t-bg-grad:
+    radial-gradient(ellipse 1400px 900px at 20% 10%, rgba(120, 200, 255, 0.32), transparent 55%),
+    radial-gradient(ellipse 1000px 700px at 80% 95%, rgba(255, 200, 80, 0.22), transparent 60%),
+    radial-gradient(ellipse 800px 600px at 50% 55%, rgba(60, 130, 220, 0.35), transparent 65%),
+    linear-gradient(180deg, #0e2052 0%, #061128 100%);
+
+  --t-particles:
+    radial-gradient(1.5px 1.5px at 12% 25%, rgba(180, 230, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 38% 70%, rgba(255, 230, 150, 0.5), transparent),
+    radial-gradient(2px 2px at 70% 18%, rgba(200, 240, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 88% 60%, rgba(255, 220, 130, 0.5), transparent),
+    radial-gradient(1px 1px at 25% 90%, rgba(180, 230, 255, 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 55% 50%, rgba(255, 240, 180, 0.4), transparent);
+  --t-particle-anim: kh-twinkle 6s ease-in-out infinite;
+  --t-overlay: radial-gradient(circle at 30% 40%, rgba(120, 200, 255, 0.1), transparent 50%),
+               radial-gradient(circle at 75% 65%, rgba(255, 200, 80, 0.08), transparent 55%);
+  --t-overlay-anim: kh-drift 22s ease-in-out infinite;
+
+  --t-glass: linear-gradient(180deg, rgba(20, 50, 100, 0.65) 0%, rgba(10, 25, 60, 0.78) 100%);
+  --t-glass-strong: linear-gradient(180deg, rgba(30, 65, 130, 0.85) 0%, rgba(12, 30, 70, 0.9) 100%);
+  --t-glass-soft: rgba(180, 220, 255, 0.04);
+  --t-border: rgba(120, 200, 255, 0.18);
+  --t-border-strong: rgba(140, 220, 255, 0.32);
+  --t-border-active: rgba(255, 220, 100, 0.55);
+  --t-shadow: 0 20px 60px -10px rgba(20, 60, 140, 0.6), 0 0 0 1px rgba(120, 200, 255, 0.06) inset;
+
+  --t-accent: #ffcc33;
+  --t-accent-bright: #fff080;
+  --t-accent-deep: #b08018;
+  --t-accent-glow: rgba(255, 204, 51, 0.55);
+  --t-accent-tint: rgba(255, 204, 51, 0.18);
+  --t-accent-soft: rgba(255, 204, 51, 0.08);
+
+  --t-text: #f0f6ff;
+  --t-text-soft: #d8e6fa;
+  --t-text-mute: rgba(230, 230, 250, 0.85);
+  --t-text-faint: rgba(220, 220, 245, 0.6);
+
+  --t-danger: #e63a3a;
+  --t-success: #6ed080;
+  --t-info: #5fb8ff;
+  --t-magic: #b886ff;
+  --t-warn: #ff9b3a;
+
+  --t-font-serif: 'KHTitle', 'Cormorant Garamond', serif;
+  --t-font-display: 'KHTitle', 'Cormorant Garamond', serif;
+  --t-font-sans: 'KHMenu', 'Inter', system-ui, sans-serif;
+  --t-font-mono: 'KHMenu', 'JetBrains Mono', monospace;
+  --t-display-letter: 1.2px;
+  --t-display-weight: 400;
+  --t-display-transform: none;
+
+  --t-radius: 14px;
+  --t-radius-sm: 8px;
+  --t-radius-lg: 22px;
+  --t-blur: 20px;
+
+  --t-rune: "♛";
+  --t-rune2: "✧";
+
+  --t-noise: none;
+  --t-vignette: radial-gradient(ellipse at center, transparent 45%, rgba(5, 15, 40, 0.5) 100%);
+  --t-scanline: none;
+}
+
+/* ============================================================
+   THEME — REINO DAS TREVAS (Heartless / Anti-Form)
+   ============================================================ */
+body[data-theme="kh-dark"] {
+  --t-bg-base: #050208;
+  --t-bg-grad:
+    radial-gradient(ellipse 1300px 900px at 18% 12%, rgba(80, 30, 140, 0.32), transparent 55%),
+    radial-gradient(ellipse 900px 700px at 85% 92%, rgba(40, 10, 80, 0.5), transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(20, 5, 40, 0.6), transparent 70%),
+    linear-gradient(180deg, #07020e 0%, #02000a 100%);
+
+  --t-particles:
+    radial-gradient(2px 2px at 15% 25%, rgba(255, 220, 60, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 38% 72%, rgba(180, 100, 255, 0.45), transparent),
+    radial-gradient(2px 2px at 68% 18%, rgba(255, 200, 30, 0.55), transparent),
+    radial-gradient(1px 1px at 88% 58%, rgba(160, 80, 240, 0.4), transparent),
+    radial-gradient(1.5px 1.5px at 28% 88%, rgba(255, 220, 60, 0.5), transparent),
+    radial-gradient(1px 1px at 55% 50%, rgba(140, 60, 220, 0.5), transparent);
+  --t-particle-anim: heartless-eyes 3.5s steps(2) infinite;
+  --t-overlay: radial-gradient(circle at 25% 40%, rgba(120, 50, 200, 0.1), transparent 45%),
+               radial-gradient(circle at 78% 65%, rgba(60, 20, 120, 0.14), transparent 50%);
+  --t-overlay-anim: dark-creep 16s ease-in-out infinite;
+
+  --t-glass: linear-gradient(180deg, rgba(22, 8, 38, 0.78) 0%, rgba(8, 2, 16, 0.88) 100%);
+  --t-glass-strong: linear-gradient(180deg, rgba(32, 12, 54, 0.9) 0%, rgba(10, 2, 20, 0.94) 100%);
+  --t-glass-soft: rgba(180, 100, 255, 0.04);
+  --t-border: rgba(140, 80, 220, 0.22);
+  --t-border-strong: rgba(180, 110, 255, 0.4);
+  --t-border-active: rgba(255, 210, 50, 0.55);
+  --t-shadow: 0 20px 60px -10px rgba(60, 10, 120, 0.55), 0 0 0 1px rgba(140, 80, 220, 0.06) inset;
+
+  --t-accent: #ffd230;
+  --t-accent-bright: #ffe860;
+  --t-accent-deep: #b48a18;
+  --t-accent-glow: rgba(255, 210, 50, 0.6);
+  --t-accent-tint: rgba(255, 210, 50, 0.16);
+  --t-accent-soft: rgba(180, 100, 255, 0.1);
+
+  --t-text: #ece0fa;
+  --t-text-soft: #d4c0ee;
+  --t-text-mute: rgba(220, 200, 240, 0.55);
+  --t-text-faint: rgba(220, 200, 240, 0.32);
+
+  --t-danger: #ff4060;
+  --t-success: #80b070;
+  --t-info: #7090e0;
+  --t-magic: #c060ff;
+  --t-warn: #e08838;
+
+  --t-font-serif: 'KHTitle', 'Cormorant Garamond', serif;
+  --t-font-display: 'KHTitle', 'Cormorant Garamond', serif;
+  --t-font-sans: 'KHMenu', 'Inter', system-ui, sans-serif;
+  --t-font-mono: 'KHMenu', 'JetBrains Mono', monospace;
+  --t-display-letter: 2px;
+  --t-display-weight: 700;
+  --t-display-transform: none;
+
+  --t-radius: 6px;
+  --t-radius-sm: 3px;
+  --t-radius-lg: 10px;
+  --t-blur: 16px;
+
+  --t-rune: "♚";
+  --t-rune2: "✦";
+
+  --t-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.2 0 0 0 0 0.6 0 0 0 0.10 0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.5'/></svg>");
+  --t-vignette: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%);
+  --t-scanline: none;
+}
+
+@keyframes kh-twinkle {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+@keyframes kh-drift {
+  0%, 100% { transform: translate(0,0); }
+  50% { transform: translate(30px, -20px); }
+}
+@keyframes heartless-eyes {
+  0%, 45%, 100% { opacity: 0.8; }
+  50%, 95% { opacity: 0.2; }
+}
+@keyframes dark-creep {
+  0%, 100% { transform: translate(0, 0) scale(1); filter: blur(40px); }
+  50% { transform: translate(-25px, 30px) scale(1.05); filter: blur(55px); }
+}
+
+/* ─── KH themes — text shadow for legibility ──────────── */
+body[data-theme="kh-sora"] {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+}
+body[data-theme="kh-dark"] {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.75);
+}
+body[data-theme="kh-sora"] h1,
+body[data-theme="kh-sora"] h2,
+body[data-theme="kh-sora"] h3,
+body[data-theme="kh-sora"] .serif,
+body[data-theme="kh-sora"] .serif-display {
+  text-shadow:
+    0 0 10px rgba(255, 220, 100, 0.35),
+    0 2px 4px rgba(0, 0, 0, 0.7),
+    0 1px 0 rgba(6, 18, 42, 0.9);
+}
+body[data-theme="kh-sora"] h1.serif,
+body[data-theme="kh-sora"] .serif-display {
+  text-shadow:
+    0 0 14px rgba(255, 220, 100, 0.45),
+    0 3px 6px rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(6, 18, 42, 1);
+}
+body[data-theme="kh-dark"] h1,
+body[data-theme="kh-dark"] h2,
+body[data-theme="kh-dark"] h3,
+body[data-theme="kh-dark"] .serif,
+body[data-theme="kh-dark"] .serif-display {
+  text-shadow:
+    0 0 10px rgba(184, 96, 255, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.85),
+    0 1px 0 rgba(5, 2, 8, 1);
+}
+body[data-theme="kh-dark"] h1.serif,
+body[data-theme="kh-dark"] .serif-display {
+  text-shadow:
+    0 0 16px rgba(255, 210, 50, 0.45),
+    0 3px 6px rgba(0, 0, 0, 0.95),
+    0 1px 0 rgba(5, 2, 8, 1);
+}
