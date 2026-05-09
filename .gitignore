@@ -6,6 +6,23 @@ dist/
 # Credenciais Firebase reais — use firebase.config.example.js como template
 firebase.config.js
 
+# Chaves de serviço e credenciais — NUNCA commitar
+*-service-account*.json
+*-credentials*.json
+*-key*.json
+service-account.json
+credentials.json
+gcp-key.json
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+
+# Scripts de setup únicos (executar e deletar)
+setup-*.js
+
 # Sistema
 .DS_Store
 Thumbs.db
