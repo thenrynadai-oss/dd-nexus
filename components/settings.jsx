@@ -9,6 +9,16 @@ const Settings = ({ role, theme, setTheme }) => {
   const [handle, setHandle] = useState("");
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
+  const [profileImg, setProfileImg] = useState(null);
+  const fileInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const u = window.Auth?.getCurrentUser() || {};
+    if (u.nome) setName(u.nome);
+    if (u.apelido) setHandle(u.apelido);
+    if (u.email) setEmail(u.email);
+    if (u.profileImg) setProfileImg(u.profileImg);
+  }, []);
   const [pronouns, setPronouns] = useState("");
   const [avatarHue, setAvatarHue] = useState(180);
   const [density, setDensity] = useState("confortável");
@@ -101,16 +111,23 @@ const Settings = ({ role, theme, setTheme }) => {
         border: "1px solid var(--t-border)", marginBottom: 18,
         display: "flex", alignItems: "center", gap: 22,
       }}>
-        <div style={{
-          width: 84, height: 84, borderRadius: "50%",
-          background: `conic-gradient(from 180deg, hsl(${avatarHue}, 65%, 55%), hsl(${(avatarHue + 60) % 360}, 65%, 45%), hsl(${avatarHue}, 65%, 55%))`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 32, fontWeight: 700, color: "#1a0e04",
-          fontFamily: "var(--t-font-serif)",
-          border: "2px solid var(--t-border-active)",
-          boxShadow: "0 0 32px -4px var(--t-accent-glow)",
-          flexShrink: 0,
-        }}>{initials}</div>
+        {profileImg ? (
+          <img src={profileImg} style={{
+            width: 84, height: 84, borderRadius: "50%", objectFit: "cover",
+            border: "2px solid var(--t-border-active)",
+            boxShadow: "0 0 32px -4px var(--t-accent-glow)", flexShrink: 0,
+          }} />
+        ) : (
+          <div style={{
+            width: 84, height: 84, borderRadius: "50%",
+            background: `conic-gradient(from 180deg, hsl(${avatarHue}, 65%, 55%), hsl(${(avatarHue + 60) % 360}, 65%, 45%), hsl(${avatarHue}, 65%, 55%))`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 32, fontWeight: 700, color: "#1a0e04",
+            fontFamily: "var(--t-font-serif)",
+            border: "2px solid var(--t-border-active)",
+            boxShadow: "0 0 32px -4px var(--t-accent-glow)", flexShrink: 0,
+          }}>{initials}</div>
+        )}
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
             <h1 className="serif" style={{ fontSize: 30, fontWeight: 600, color: "var(--t-text)", margin: 0 }}>{name || "Usuário Vasteria"}</h1>
@@ -170,27 +187,57 @@ const Settings = ({ role, theme, setTheme }) => {
             </Field>
             <Field label="E-mail"><Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" /></Field>
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-              <Btn>Salvar alterações</Btn>
-              <Btn variant="ghost">Cancelar</Btn>
+              <Btn onClick={() => {
+                const res = window.Auth?.updateCurrentUser({ nome: name, apelido: handle, email, profileImg });
+                if (res && !res.ok) { alert(res.msg || "Erro ao salvar."); return; }
+                window.dispatchEvent(new Event("vg:auth-update"));
+                alert("Perfil salvo!");
+              }}>Salvar alterações</Btn>
+              <Btn variant="ghost" onClick={() => {
+                const u = window.Auth?.getCurrentUser() || {};
+                setName(u.nome || ""); setHandle(u.apelido || ""); setEmail(u.email || ""); setProfileImg(u.profileImg || null);
+              }}>Cancelar</Btn>
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <div className="glass" style={{ padding: 22, borderRadius: 14, border: "1px solid var(--t-border)" }}>
               <SectionTitle>Avatar</SectionTitle>
+              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => setProfileImg(ev.target.result);
+                  reader.readAsDataURL(file);
+                  e.target.value = "";
+                }} />
               <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-                <div style={{
-                  width: 72, height: 72, borderRadius: "50%",
-                  background: `conic-gradient(from 180deg, hsl(${avatarHue}, 65%, 55%), hsl(${(avatarHue + 60) % 360}, 65%, 45%), hsl(${avatarHue}, 65%, 55%))`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 26, fontWeight: 700, color: "#1a0e04",
-                  fontFamily: "var(--t-font-serif)",
-                  border: "2px solid var(--t-border-active)",
-                  flexShrink: 0,
-                }}>{initials}</div>
+                {profileImg ? (
+                  <img src={profileImg} style={{
+                    width: 72, height: 72, borderRadius: "50%", objectFit: "cover",
+                    border: "2px solid var(--t-border-active)", flexShrink: 0,
+                  }} />
+                ) : (
+                  <div style={{
+                    width: 72, height: 72, borderRadius: "50%",
+                    background: `conic-gradient(from 180deg, hsl(${avatarHue}, 65%, 55%), hsl(${(avatarHue + 60) % 360}, 65%, 45%), hsl(${avatarHue}, 65%, 55%))`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 26, fontWeight: 700, color: "#1a0e04",
+                    fontFamily: "var(--t-font-serif)",
+                    border: "2px solid var(--t-border-active)", flexShrink: 0,
+                  }}>{initials}</div>
+                )}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: "var(--t-text-mute)", marginBottom: 6 }}>matiz</div>
-                  <input type="range" min={0} max={359} value={avatarHue} onChange={(e) => setAvatarHue(+e.target.value)} style={{ width: "100%", accentColor: "var(--t-accent)" }} />
-                  <div style={{ marginTop: 8 }}><Btn size="sm" variant="ghost">↑ Enviar imagem</Btn></div>
+                  {!profileImg && (
+                    <>
+                      <div style={{ fontSize: 11, color: "var(--t-text-mute)", marginBottom: 6 }}>matiz</div>
+                      <input type="range" min={0} max={359} value={avatarHue} onChange={(e) => setAvatarHue(+e.target.value)} style={{ width: "100%", accentColor: "var(--t-accent)" }} />
+                    </>
+                  )}
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <Btn size="sm" variant="ghost" onClick={() => fileInputRef.current?.click()}>↑ Enviar foto</Btn>
+                    {profileImg && <Btn size="sm" variant="danger" onClick={() => setProfileImg(null)}>Remover</Btn>}
+                  </div>
                 </div>
               </div>
             </div>

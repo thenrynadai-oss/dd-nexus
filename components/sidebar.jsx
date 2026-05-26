@@ -1,6 +1,11 @@
 const Sidebar = ({ view, setView, openDice, role, setRole }) => {
   const isDM = role === "mestre";
-  const user = window.Auth?.getCurrentUser() || {};
+  const [user, setUser] = React.useState(() => window.Auth?.getCurrentUser() || {});
+  React.useEffect(() => {
+    const refresh = () => setUser(window.Auth?.getCurrentUser() || {});
+    window.addEventListener("vg:auth-update", refresh);
+    return () => window.removeEventListener("vg:auth-update", refresh);
+  }, []);
   const userName = user.nome || (isDM ? "Mestre" : "Jogador");
   const userApelido = user.apelido ? `@${user.apelido}` : "";
   const userImg = user.profileImg || null;
