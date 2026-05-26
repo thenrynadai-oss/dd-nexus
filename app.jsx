@@ -36,7 +36,7 @@ const App = () => {
   const titles = {
     dashboard: { t: isDM ? "Mesa do Mestre" : "Sua Mesa", s: isDM ? "Visão geral das suas campanhas e jogadores" : "Suas campanhas e personagem", b: ["Vasteria"] },
     campaigns: { t: "Campanhas", s: isDM ? "Suas mesas e crônicas" : "Mesas em que você joga", b: ["Vasteria", "Mesas"] },
-    character: { t: isDM ? "Ficha de Personagem" : "Minha Ficha", s: "Aelar Lirion · Patrulheiro elfo nível 6", b: ["Vasteria", "Fichas", "Aelar Lirion"] },
+    character: { t: isDM ? "Ficha de Personagem" : "Minha Ficha", s: "Atributos, habilidades e inventário do personagem", b: ["Vasteria", "Fichas"] },
     players: { t: "Jogadores", s: "Aventureiros das suas mesas", b: ["Vasteria", "Pessoas"] },
     notes: { t: isDM ? "Caderno do Mestre" : "Minhas Anotações", s: isDM ? "Notas, NPCs, segredos e ganchos" : "Suas notas pessoais e compartilhadas", b: ["Vasteria", "Anotações"] },
     compendium: { t: "Compêndio", s: "Biblioteca de magias, monstros e regras", b: ["Vasteria", "Biblioteca"] },

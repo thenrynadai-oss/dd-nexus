@@ -164,24 +164,24 @@ const DetailPanel = ({ entry, isCustom, onEdit, onDelete }) => {
       {entry.type === "Habilidade" && <HabilidadeDetail e={entry} />}
       {entry.type === "Monstro" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 18 }}>
-          <DetailCell l="Tipo" v={entry.school.split(" ")[0]} />
-          <DetailCell l="ND" v={entry.lvl.replace("ND ", "")} />
-          <DetailCell l="PV médio" v="180 (19d10+76)" />
-          <DetailCell l="CA" v="18" />
+          <DetailCell l="Tipo" v={entry.school ? entry.school.split(" ")[0] : "—"} />
+          <DetailCell l="ND" v={entry.lvl ? entry.lvl.replace("ND ", "") : "—"} />
+          <DetailCell l="PV médio" v={entry.hp || "—"} />
+          <DetailCell l="CA" v={entry.ac || "—"} />
         </div>
       )}
       {entry.type === "Item" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 18 }}>
-          <DetailCell l="Raridade" v={entry.lvl} />
-          <DetailCell l="Sintonização" v="Sim" />
-          <DetailCell l="Peso" v="3 kg" />
-          <DetailCell l="Categoria" v={entry.school.split(" — ")[0]} />
+          <DetailCell l="Raridade" v={entry.lvl || "—"} />
+          <DetailCell l="Sintonização" v={entry.attunement || "—"} />
+          <DetailCell l="Peso" v={entry.weight || "—"} />
+          <DetailCell l="Categoria" v={entry.school ? entry.school.split(" — ")[0] : "—"} />
         </div>
       )}
       {entry.type === "Regra" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 18 }}>
-          <DetailCell l="Categoria" v={entry.school} />
-          <DetailCell l="Livro" v="Manual do Jogador" />
+          <DetailCell l="Categoria" v={entry.school || "—"} />
+          <DetailCell l="Livro" v={entry.source || "—"} />
         </div>
       )}
 
