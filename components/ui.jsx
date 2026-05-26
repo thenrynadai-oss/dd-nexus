@@ -130,6 +130,7 @@ const DiceTray = ({ open, onClose }) => {
     { die: "d20", roll: 1, total: 1, label: "Atletismo", time: "3m" },
   ]);
   const [rolling, setRolling] = useState(false);
+  const quickDice = window.MOCK?.QUICK_DICE || ["d4", "d6", "d8", "d10", "d12", "d20", "d100"];
 
   const rollDie = (die) => {
     const sides = parseInt(die.slice(1));
@@ -157,7 +158,7 @@ const DiceTray = ({ open, onClose }) => {
         </button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 14 }}>
-        {window.MOCK.QUICK_DICE.map((d) => (
+        {quickDice.map((d) => (
           <button key={d} onClick={() => rollDie(d)}
             style={{
               padding: "12px 0", borderRadius: 10,

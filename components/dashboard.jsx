@@ -1,8 +1,21 @@
 const Dashboard = ({ setView, setActiveCampaign, role = "mestre" }) => {
   const isDM = role === "mestre";
-  const { CAMPAIGNS, ACTIVITY, PLAYERS } = window.MOCK;
+  const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [] } = window.MOCK || {};
   const { Pill, Btn, StatBlock, RuneDivider, Avatar, SectionTitle } = window.UI;
-  const next = CAMPAIGNS[0];
+  const next = CAMPAIGNS[0] || {
+    cover: "linear-gradient(135deg, #111 0%, #222 100%)",
+    system: "",
+    level: "",
+    sessions: 0,
+    name: "Nenhuma campanha ativa",
+    setting: "Ainda não há campanhas carregadas.",
+    summary: "Importe ou crie uma campanha para visualizar o dashboard.",
+    nextSession: "—",
+    progress: 0,
+    players: 0,
+    accent: "var(--t-accent)",
+    status: "sem dados",
+  };
 
   return (
     <div data-screen-label="Dashboard">

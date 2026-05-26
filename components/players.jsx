@@ -1,5 +1,5 @@
 const Players = () => {
-  const { PLAYERS } = window.MOCK;
+  const { PLAYERS = [] } = window.MOCK || {};
   const { Pill, Btn, Avatar, SectionTitle } = window.UI;
   const [filter, setFilter] = useState("todos");
   const [layout, setLayout] = useState("grid");
@@ -34,7 +34,11 @@ const Players = () => {
         </div>
       </div>
 
-      {layout === "grid" ? (
+      {filtered.length === 0 ? (
+        <div className="glass" style={{ borderRadius: 18, padding: 28, textAlign: "center", color: "var(--t-text-mute)", fontSize: 14 }}>
+          Nenhum jogador encontrado. Importe ou conecte dados reais para ver os jogadores aqui.
+        </div>
+      ) : layout === "grid" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           {filtered.map((p) => {
             const hpVal = parseInt(p.hp.split("/")[0]);

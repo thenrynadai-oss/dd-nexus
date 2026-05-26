@@ -113,10 +113,15 @@ const MobileShell = ({ view, setView, role, children }) => {
 };
 
 const MobileDashboard = ({ setView, role }) => {
-  const { CAMPAIGNS, ACTIVITY, PLAYERS } = window.MOCK;
+  const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [] } = window.MOCK || {};
   const { Pill, Btn } = window.UI;
   const isDM = role === "mestre";
-  const next = CAMPAIGNS[0];
+  const next = CAMPAIGNS[0] || {
+    cover: "linear-gradient(135deg, #111 0%, #222 100%)",
+    name: "Nenhuma campanha ativa",
+    nextSession: "—",
+    progress: 0,
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ padding: "8px 4px 4px" }}>
@@ -195,7 +200,22 @@ const MobileDashboard = ({ setView, role }) => {
 };
 
 const MobileCharacter = () => {
-  const { CHARACTER } = window.MOCK;
+  const { CHARACTER = {
+    name: "",
+    race: "",
+    class: "",
+    level: 0,
+    xp: 0,
+    xpNext: 1,
+    hp: 0,
+    hpMax: 0,
+    ac: 0,
+    init: 0,
+    speed: 0,
+    abilities: [],
+    attacks: [],
+    skills: [],
+  } } = window.MOCK || {};
   const c = CHARACTER;
   const sign = (n) => n >= 0 ? `+${n}` : `${n}`;
   return (
@@ -282,7 +302,7 @@ const MobileCharacter = () => {
 };
 
 const MobileCampaigns = () => {
-  const { CAMPAIGNS } = window.MOCK;
+  const { CAMPAIGNS = [] } = window.MOCK || {};
   const { Pill } = window.UI;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -290,7 +310,11 @@ const MobileCampaigns = () => {
         <h1 className="serif" style={{ fontSize: 26, fontWeight: 600, color: "var(--t-text)", margin: 0 }}>Campanhas</h1>
         <div style={{ fontSize: 11, color: "var(--t-text-mute)", marginTop: 2 }}>{CAMPAIGNS.length} mesas</div>
       </div>
-      {CAMPAIGNS.map((c) => (
+      {CAMPAIGNS.length === 0 ? (
+        <div className="glass" style={{ borderRadius: 16, padding: 20, color: "var(--t-text-mute)", textAlign: "center" }}>
+          Nenhuma campanha cadastrada. Importe ou crie campanhas para preencher esta tela.
+        </div>
+      ) : CAMPAIGNS.map((c) => (
         <div key={c.id} className="glass" style={{ borderRadius: 16, overflow: "hidden" }}>
           <div style={{ height: 80, background: c.cover, position: "relative" }}>
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent, rgba(0,0,0,0.6))" }} />
@@ -348,7 +372,7 @@ const MobileNotes = ({ role }) => {
 };
 
 const MobileCompendium = () => {
-  const { COMPENDIUM } = window.MOCK;
+  const { COMPENDIUM = [] } = window.MOCK || {};
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ padding: "8px 4px 0" }}>
@@ -366,7 +390,11 @@ const MobileCompendium = () => {
           }}>{t}</button>
         ))}
       </div>
-      {COMPENDIUM.map((it) => (
+      {COMPENDIUM.length === 0 ? (
+        <div className="glass" style={{ borderRadius: 14, padding: 18, color: "var(--t-text-mute)", textAlign: "center" }}>
+          Nenhum item no compêndio. Crie ou importe conteúdo para que ele apareça aqui.
+        </div>
+      ) : COMPENDIUM.map((it) => (
         <div key={it.name} className="glass" style={{ borderRadius: 14, padding: 14, display: "flex", gap: 12 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 10,

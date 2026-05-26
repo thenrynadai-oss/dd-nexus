@@ -40,8 +40,10 @@
 
       // UI
       if(btnGoogle) btnGoogle.style.display = "";
+      if(btnGoogleRegister) btnGoogleRegister.style.display = "";
     } else {
       if(btnGoogle) btnGoogle.style.display = "none";
+      if(btnGoogleRegister) btnGoogleRegister.style.display = "none";
     }
   });
 

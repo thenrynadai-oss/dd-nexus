@@ -1,5 +1,35 @@
 const CharacterSheet = () => {
-  const { CHARACTER } = window.MOCK;
+  const { CHARACTER = {
+    name: "",
+    player: "",
+    race: "",
+    class: "",
+    subclass: "",
+    background: "",
+    alignment: "",
+    level: 0,
+    xp: 0,
+    xpNext: 1,
+    hp: 0,
+    hpMax: 0,
+    hpTemp: 0,
+    ac: 0,
+    speed: 0,
+    init: 0,
+    prof: 0,
+    inspiration: false,
+    hitDice: "",
+    deathSaves: { s: 0, f: 0 },
+    abilities: [],
+    skills: [],
+    attacks: [],
+    spellSlots: [],
+    spells: [],
+    features: [],
+    inventory: [],
+    money: { pc: 0, pp: 0, po: 0, pe: 0, pl: 0 },
+    notes: "",
+  } } = window.MOCK || {};
   const { Pill, Btn, AbilityHex, RuneDivider, Avatar, SectionTitle } = window.UI;
   const c = CHARACTER;
   const [tab, setTab] = useState("combate");

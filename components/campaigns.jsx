@@ -1,9 +1,24 @@
 const Campaigns = ({ activeCampaign, setActiveCampaign }) => {
-  const { CAMPAIGNS, PLAYERS } = window.MOCK;
+  const { CAMPAIGNS = [], PLAYERS = [] } = window.MOCK || {};
   const { Pill, Btn, SectionTitle, Avatar } = window.UI;
   const [view, setLocalView] = useState("grid");
-  const c = activeCampaign || CAMPAIGNS[0];
-  const playersInCampaign = PLAYERS.slice(0, c.players);
+  const c = activeCampaign || CAMPAIGNS[0] || {
+    id: "",
+    name: "Sem campanha selecionada",
+    setting: "Nenhum dado de campanha disponível.",
+    dm: "",
+    status: "sem dados",
+    tags: [],
+    sessions: 0,
+    players: 0,
+    level: "",
+    nextSession: "—",
+    progress: 0,
+    summary: "Importe ou crie uma campanha para visualizar o conteúdo.",
+    cover: "linear-gradient(135deg, #111 0%, #222 100%)",
+    accent: "var(--t-accent)",
+  };
+  const playersInCampaign = PLAYERS.slice(0, c.players || 0);
 
   const sessions = [
     { n: 14, title: "A Casa Sem Janelas", date: "26 abr", recap: "O grupo encontra a estalagem abandonada. Aelar identifica pegadas de ferozes; Brann descobre um alçapão sob o tapete da cozinha." },
