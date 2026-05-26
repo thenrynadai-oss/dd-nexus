@@ -1,5 +1,15 @@
 // Mobile shell — wraps app in iPhone-like frame with bottom nav
 const Icon = window.Icon;
+
+const LiveClock = () => {
+  const fmt = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const [time, setTime] = React.useState(fmt);
+  React.useEffect(() => {
+    const t = setInterval(() => setTime(fmt()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return <span>{time}</span>;
+};
 const MobileShell = ({ view, setView, role, children }) => {
   const isDM = role === "mestre";
   const navItems = isDM ? [
@@ -49,7 +59,7 @@ const MobileShell = ({ view, setView, role, children }) => {
             padding: "16px 32px 0", zIndex: 10,
             color: "var(--t-text)", fontSize: 14, fontWeight: 600,
           }}>
-            <span>22:14</span>
+            <LiveClock />
             <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
               <span style={{ fontSize: 11 }}>●●●</span>
               <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M1 8h2v2H1zm3-2h2v4H4zm3-2h2v6H7zm3-2h2v8h-2z"/></svg>
@@ -116,12 +126,7 @@ const MobileDashboard = ({ setView, role }) => {
   const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [], CHARACTER = {} } = window.MOCK || {};
   const { Pill, Btn } = window.UI;
   const isDM = role === "mestre";
-  const next = CAMPAIGNS[0] || {
-    cover: "linear-gradient(135deg, #111 0%, #222 100%)",
-    name: "Nenhuma campanha ativa",
-    nextSession: "—",
-    progress: 0,
-  };
+  const next = CAMPAIGNS[0] || null;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ padding: "8px 4px 4px" }}>
@@ -133,29 +138,42 @@ const MobileDashboard = ({ setView, role }) => {
         </h1>
       </div>
 
-      <div className="glass" style={{ borderRadius: 20, overflow: "hidden", position: "relative" }}>
-        <div style={{ height: 100, background: next.cover, position: "relative" }}>
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7))" }} />
-          <div style={{ position: "absolute", top: 12, left: 14, display: "flex", gap: 6 }}>
-            <Pill color="var(--t-accent-bright)">● próxima</Pill>
+      {next ? (
+        <div className="glass" style={{ borderRadius: 20, overflow: "hidden", position: "relative" }}>
+          <div style={{ height: 100, background: next.cover, position: "relative" }}>
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7))" }} />
+            <div style={{ position: "absolute", top: 12, left: 14, display: "flex", gap: 6 }}>
+              <Pill color={next.status === "ativa" ? "var(--t-success)" : "var(--t-accent-bright)"}>{next.status || "campanha"}</Pill>
+            </div>
+          </div>
+          <div style={{ padding: 16 }}>
+            <div className="serif" style={{ fontSize: 20, fontWeight: 600, color: "var(--t-text)", lineHeight: 1.15 }}>{next.name}</div>
+            <div style={{ fontSize: 11, color: "var(--t-text-mute)", marginTop: 4 }}>{next.nextSession}</div>
+            <div style={{ marginTop: 12, height: 4, background: "rgba(0,0,0,0.3)", borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ width: `${(next.progress || 0) * 100}%`, height: "100%", background: "linear-gradient(90deg, var(--t-accent), var(--t-accent-bright))" }} />
+            </div>
+            <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
+              <button style={{ flex: 1, padding: 10, borderRadius: 10, background: "var(--t-accent)", border: "none", color: "#1a0e04", fontSize: 12, fontWeight: 700 }}>
+                ▸ Iniciar sessão
+              </button>
+              <button style={{ padding: "10px 14px", borderRadius: 10, background: "var(--t-glass-soft)", border: "1px solid var(--t-border)", color: "var(--t-text-soft)" }}>
+                <Icon name="map" size={14} />
+              </button>
+            </div>
           </div>
         </div>
-        <div style={{ padding: 16 }}>
-          <div className="serif" style={{ fontSize: 20, fontWeight: 600, color: "var(--t-text)", lineHeight: 1.15 }}>{next.name}</div>
-          <div style={{ fontSize: 11, color: "var(--t-text-mute)", marginTop: 4 }}>{next.nextSession}</div>
-          <div style={{ marginTop: 12, height: 4, background: "rgba(0,0,0,0.3)", borderRadius: 2, overflow: "hidden" }}>
-            <div style={{ width: `${next.progress * 100}%`, height: "100%", background: "linear-gradient(90deg, var(--t-accent), var(--t-accent-bright))" }} />
+      ) : (
+        <div className="glass" style={{ borderRadius: 20, padding: 28, textAlign: "center" }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: "var(--t-accent-soft)", border: "1px solid var(--t-border-strong)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <Icon name="scroll" size={24} style={{ color: "var(--t-accent)", opacity: 0.8 }} />
           </div>
-          <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
-            <button style={{ flex: 1, padding: 10, borderRadius: 10, background: "var(--t-accent)", border: "none", color: "#1a0e04", fontSize: 12, fontWeight: 700 }}>
-              ▸ Iniciar sessão
-            </button>
-            <button style={{ padding: "10px 14px", borderRadius: 10, background: "var(--t-glass-soft)", border: "1px solid var(--t-border)", color: "var(--t-text-soft)" }}>
-              <Icon name="map" size={14} />
-            </button>
-          </div>
+          <div className="serif" style={{ fontSize: 17, fontWeight: 600, color: "var(--t-text)", marginBottom: 8 }}>Nenhuma campanha ativa</div>
+          <div style={{ fontSize: 12, color: "var(--t-text-mute)", lineHeight: 1.5, marginBottom: 16 }}>Crie ou entre em uma campanha para começar a jogar.</div>
+          <button style={{ padding: "9px 18px", borderRadius: 10, background: "var(--t-accent)", border: "none", color: "#1a0e04", fontSize: 12, fontWeight: 700 }}>
+            + Nova campanha
+          </button>
         </div>
-      </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {(isDM ? [
@@ -182,7 +200,11 @@ const MobileDashboard = ({ setView, role }) => {
       <div>
         <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.4, color: "var(--t-text-mute)", padding: "4px 4px 8px" }}>CRÔNICA</div>
         <div className="glass" style={{ borderRadius: 14, padding: 12 }}>
-          {ACTIVITY.slice(0, 4).map((a, i, arr) => (
+          {ACTIVITY.length === 0 ? (
+            <div style={{ padding: "12px 4px", color: "var(--t-text-mute)", fontSize: 12, textAlign: "center" }}>
+              Nenhuma atividade recente. Ações da mesa aparecerão aqui.
+            </div>
+          ) : ACTIVITY.slice(0, 4).map((a, i, arr) => (
             <div key={a.id} style={{ display: "flex", gap: 10, padding: "8px 0", borderBottom: i === arr.length - 1 ? "none" : "1px dashed var(--t-border)" }}>
               <div style={{ width: 26, height: 26, borderRadius: 7, background: `${a.color}1a`, border: `1px solid ${a.color}40`, color: a.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Icon name={a.icon} size={12} />
@@ -218,6 +240,28 @@ const MobileCharacter = () => {
   } } = window.MOCK || {};
   const c = CHARACTER;
   const sign = (n) => n >= 0 ? `+${n}` : `${n}`;
+  const initials = c.name ? c.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase() : "?";
+
+  if (!c.name) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ padding: "8px 4px 0" }}>
+          <h1 className="serif" style={{ fontSize: 26, fontWeight: 600, color: "var(--t-text)", margin: 0 }}>Minha Ficha</h1>
+        </div>
+        <div className="glass" style={{ borderRadius: 20, padding: 32, textAlign: "center" }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--t-accent-soft)", border: "1px solid var(--t-border-strong)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+            <Icon name="shield" size={28} style={{ color: "var(--t-accent)", opacity: 0.7 }} />
+          </div>
+          <div className="serif" style={{ fontSize: 18, fontWeight: 600, color: "var(--t-text)", marginBottom: 8 }}>Nenhuma ficha criada</div>
+          <div style={{ fontSize: 12, color: "var(--t-text-mute)", lineHeight: 1.5, marginBottom: 18 }}>Crie um personagem para ver seus atributos e habilidades aqui.</div>
+          <button style={{ padding: "9px 18px", borderRadius: 10, background: "var(--t-accent)", border: "none", color: "#1a0e04", fontSize: 12, fontWeight: 700 }}>
+            + Criar personagem
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div className="glass" style={{ borderRadius: 20, padding: 18, position: "relative", overflow: "hidden" }}>
@@ -228,16 +272,16 @@ const MobileCharacter = () => {
             border: "2px solid var(--t-border-active)",
             display: "flex", alignItems: "center", justifyContent: "center",
             color: "#1a0e04", fontWeight: 700, fontSize: 22,
-          }} className="serif">AL</div>
+          }} className="serif">{initials}</div>
           <div style={{ flex: 1 }}>
             <h2 className="serif" style={{ fontSize: 22, fontWeight: 600, color: "var(--t-text)", margin: 0, lineHeight: 1 }}>{c.name}</h2>
             <div style={{ fontSize: 11, color: "var(--t-text-mute)", marginTop: 4 }}>{c.race} · {c.class} Nv. {c.level}</div>
           </div>
         </div>
         <div style={{ marginTop: 14, height: 4, background: "rgba(0,0,0,0.4)", borderRadius: 2 }}>
-          <div style={{ width: `${(c.xp / c.xpNext) * 100}%`, height: "100%", background: "linear-gradient(90deg, var(--t-accent), var(--t-accent-bright))", borderRadius: 2 }} />
+          <div style={{ width: `${c.xpNext ? (c.xp / c.xpNext) * 100 : 0}%`, height: "100%", background: "linear-gradient(90deg, var(--t-accent), var(--t-accent-bright))", borderRadius: 2 }} />
         </div>
-        <div className="mono" style={{ fontSize: 9.5, color: "var(--t-text-mute)", marginTop: 6 }}>{c.xp.toLocaleString()} / {c.xpNext.toLocaleString()} XP</div>
+        <div className="mono" style={{ fontSize: 9.5, color: "var(--t-text-mute)", marginTop: 6 }}>{(c.xp || 0).toLocaleString()} / {(c.xpNext || 0).toLocaleString()} XP</div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
@@ -340,27 +384,37 @@ const MobileCampaigns = () => {
 
 const MobileNotes = ({ role }) => {
   const isDM = role === "mestre";
-  const notes = [
-    { t: "Sir Tellam de Vorlan", c: "NPC", color: "var(--t-magic)", ex: "Capitão da guarda. Cabelo grisalho, cicatriz no maxilar.", time: "2h", priv: isDM },
-    { t: "Estalagem da Lua Quebrada", c: "Local", color: "var(--t-info)", ex: "Atendida por Bruna. 5 PO/noite.", time: "1d" },
-    { t: "Resumo — Sessão 14", c: "Sessão", color: "var(--t-accent)", ex: "Casa Sem Janelas. Pegadas de gnolls.", time: "5h" },
-    { t: "Pista — medalhão de Aelar", c: "Personagem", color: "var(--t-accent-bright)", ex: "Brilha perto de criaturas mágicas.", time: "1h" },
-  ];
+  const notes = [];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ padding: "8px 4px 0" }}>
         <h1 className="serif" style={{ fontSize: 26, fontWeight: 600, color: "var(--t-text)", margin: 0 }}>{isDM ? "Caderno do Mestre" : "Minhas Notas"}</h1>
-        <div style={{ fontSize: 11, color: "var(--t-text-mute)", marginTop: 2 }}>{notes.length} notas{isDM ? " · 3 privadas 🔒" : ""}</div>
+        <div style={{ fontSize: 11, color: "var(--t-text-mute)", marginTop: 2 }}>{notes.length === 0 ? "Nenhuma nota" : `${notes.length} notas`}</div>
       </div>
       <div className="glass" style={{ borderRadius: 12, padding: "9px 14px", display: "flex", alignItems: "center", gap: 8 }}>
         <Icon name="search" size={13} style={{ color: "var(--t-text-mute)" }} />
         <input placeholder="Buscar notas..." style={{ background: "none", border: "none", outline: "none", color: "var(--t-text-soft)", fontSize: 12, flex: 1 }} />
       </div>
-      {notes.map((n, i) => (
+      {notes.length === 0 ? (
+        <div className="glass" style={{ borderRadius: 20, padding: 32, textAlign: "center" }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: "var(--t-accent-soft)", border: "1px solid var(--t-border-strong)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <Icon name="feather" size={22} style={{ color: "var(--t-accent)", opacity: 0.8 }} />
+          </div>
+          <div className="serif" style={{ fontSize: 17, fontWeight: 600, color: "var(--t-text)", marginBottom: 8 }}>
+            {isDM ? "Caderno vazio" : "Nenhuma nota ainda"}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--t-text-mute)", lineHeight: 1.5, marginBottom: 18 }}>
+            {isDM ? "Registre NPCs, locais e ganchos de sessão aqui." : "Anote pistas, itens e acontecimentos da campanha."}
+          </div>
+          <button style={{ padding: "9px 18px", borderRadius: 10, background: "var(--t-accent)", border: "none", color: "#1a0e04", fontSize: 12, fontWeight: 700 }}>
+            + Nova nota
+          </button>
+        </div>
+      ) : notes.map((n, i) => (
         <div key={i} className="glass" style={{ borderRadius: 14, padding: 14, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: 3, background: n.color }} />
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span className="mono" style={{ fontSize: 9, letterSpacing: 1.2, color: n.color, fontWeight: 700 }}>{n.c.toUpperCase()}{n.priv ? " 🔒" : ""}</span>
+            <span className="mono" style={{ fontSize: 9, letterSpacing: 1.2, color: n.color, fontWeight: 700 }}>{n.c.toUpperCase()}</span>
             <span className="mono" style={{ fontSize: 9.5, color: "var(--t-text-faint)" }}>{n.time}</span>
           </div>
           <div className="serif" style={{ fontSize: 15, fontWeight: 600, color: "var(--t-text)" }}>{n.t}</div>

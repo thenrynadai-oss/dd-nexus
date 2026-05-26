@@ -2,72 +2,97 @@ const Dashboard = ({ setView, setActiveCampaign, role = "mestre" }) => {
   const isDM = role === "mestre";
   const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [], CHARACTER = {} } = window.MOCK || {};
   const { Pill, Btn, StatBlock, RuneDivider, Avatar, SectionTitle } = window.UI;
-  const next = CAMPAIGNS[0] || {
-    cover: "linear-gradient(135deg, #111 0%, #222 100%)",
-    system: "",
-    level: "",
-    sessions: 0,
-    name: "Nenhuma campanha ativa",
-    setting: "Ainda não há campanhas carregadas.",
-    summary: "Importe ou crie uma campanha para visualizar o dashboard.",
-    nextSession: "—",
-    progress: 0,
-    players: 0,
-    accent: "var(--t-accent)",
-    status: "sem dados",
-  };
+  const next = CAMPAIGNS[0] || null;
 
   return (
     <div data-screen-label="Dashboard">
-      {/* Hero — Active campaign */}
-      <div className="glass" style={{
-        position: "relative", borderRadius: 22, padding: 32, marginBottom: 24,
-        overflow: "hidden",
-      }}>
-        <div style={{
-          position: "absolute", inset: 0,
-          background: next.cover, opacity: 0.35, zIndex: 0,
-        }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(10,7,15,0.9) 0%, rgba(10,7,15,0.4) 60%, transparent 100%)" }} />
-        <div style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 32 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-              <Pill color="var(--t-accent-bright)">● Sessão ativa</Pill>
-              <span className="mono" style={{ fontSize: 11, color: "var(--t-text-mute)" }}>{next.system} · {next.level} · {next.sessions}ª sessão</span>
-            </div>
-            <h1 className="serif" style={{ fontSize: 44, fontWeight: 600, margin: 0, color: "var(--t-text)", lineHeight: 1.05, letterSpacing: 0.3 }}>{next.name}</h1>
-            <div style={{ fontSize: 13, color: "rgba(232,227,214,0.6)", marginTop: 8, fontStyle: "italic" }}>{next.setting}</div>
-            <p style={{ fontSize: 14.5, color: "rgba(232,227,214,0.78)", lineHeight: 1.6, maxWidth: 540, marginTop: 18 }}>{next.summary}</p>
-
-            <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
-              <Btn icon="play" onClick={() => { setActiveCampaign(next); setView("campaigns"); }}>Continuar Sessão</Btn>
-              <Btn variant="ghost" icon="map">Abrir mapa</Btn>
-              <Btn variant="ghost" icon="feather">Anotações da sessão</Btn>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, justifyContent: "center" }}>
-            <div className="glass-strong" style={{ padding: 16, borderRadius: 14 }}>
-              <div className="mono" style={{ fontSize: 10, letterSpacing: 1.4, color: "rgba(218,180,120,0.6)", marginBottom: 8 }}>PRÓXIMA SESSÃO</div>
-              <div className="serif" style={{ fontSize: 22, fontWeight: 600, color: "var(--t-text)" }}>{next.nextSession}</div>
-              <div style={{ marginTop: 14, height: 6, background: "rgba(0,0,0,0.4)", borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ width: `${next.progress * 100}%`, height: "100%", background: "linear-gradient(90deg, var(--t-accent), var(--t-accent-bright))", borderRadius: 3 }} />
+      {/* Hero — campanha ativa OU empty state de boas-vindas */}
+      {next ? (
+        <div className="glass" style={{
+          position: "relative", borderRadius: 22, padding: 32, marginBottom: 24,
+          overflow: "hidden",
+        }}>
+          <div style={{ position: "absolute", inset: 0, background: next.cover, opacity: 0.35, zIndex: 0 }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(10,7,15,0.9) 0%, rgba(10,7,15,0.4) 60%, transparent 100%)" }} />
+          <div style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 32 }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <Pill color={next.status === "ativa" ? "#7ba85d" : "var(--t-accent-bright)"}>
+                  {next.status === "ativa" ? "● Em curso" : next.status || "campanha"}
+                </Pill>
+                <span className="mono" style={{ fontSize: 11, color: "var(--t-text-mute)" }}>
+                  {[next.system, next.level, next.sessions > 0 ? `${next.sessions}ª sessão` : null].filter(Boolean).join(" · ")}
+                </span>
               </div>
-              <div style={{ fontSize: 11, color: "var(--t-text-mute)", marginTop: 8 }}>{Math.round(next.progress * 100)}% da campanha · arco 2 de 3</div>
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <div className="glass-strong" style={{ flex: 1, padding: 14, borderRadius: 14, textAlign: "center" }}>
-                <div className="serif" style={{ fontSize: 30, color: "var(--t-accent-bright)", fontWeight: 600, lineHeight: 1 }}>{next.players}</div>
-                <div style={{ fontSize: 10, color: "var(--t-text-mute)", letterSpacing: 1, marginTop: 4 }}>JOGADORES</div>
+              <h1 className="serif" style={{ fontSize: 44, fontWeight: 600, margin: 0, color: "var(--t-text)", lineHeight: 1.05, letterSpacing: 0.3 }}>{next.name}</h1>
+              <div style={{ fontSize: 13, color: "rgba(232,227,214,0.6)", marginTop: 8, fontStyle: "italic" }}>{next.setting}</div>
+              <p style={{ fontSize: 14.5, color: "rgba(232,227,214,0.78)", lineHeight: 1.6, maxWidth: 540, marginTop: 18 }}>{next.summary}</p>
+              <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+                <Btn icon="play" onClick={() => { setActiveCampaign(next); setView("campaigns"); }}>Continuar Sessão</Btn>
+                <Btn variant="ghost" icon="feather" onClick={() => setView("notes")}>Anotações</Btn>
               </div>
-              <div className="glass-strong" style={{ flex: 1, padding: 14, borderRadius: 14, textAlign: "center" }}>
-                <div className="serif" style={{ fontSize: 30, color: "var(--t-accent-bright)", fontWeight: 600, lineHeight: 1 }}>{next.sessions}</div>
-                <div style={{ fontSize: 10, color: "var(--t-text-mute)", letterSpacing: 1, marginTop: 4 }}>SESSÕES</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, justifyContent: "center" }}>
+              <div className="glass-strong" style={{ padding: 16, borderRadius: 14 }}>
+                <div className="mono" style={{ fontSize: 10, letterSpacing: 1.4, color: "rgba(218,180,120,0.6)", marginBottom: 8 }}>PRÓXIMA SESSÃO</div>
+                <div className="serif" style={{ fontSize: 22, fontWeight: 600, color: "var(--t-text)" }}>{next.nextSession || "—"}</div>
+                {next.progress > 0 && (
+                  <>
+                    <div style={{ marginTop: 14, height: 6, background: "rgba(0,0,0,0.4)", borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ width: `${next.progress * 100}%`, height: "100%", background: "linear-gradient(90deg, var(--t-accent), var(--t-accent-bright))", borderRadius: 3 }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--t-text-mute)", marginTop: 8 }}>{Math.round(next.progress * 100)}% concluído</div>
+                  </>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <div className="glass-strong" style={{ flex: 1, padding: 14, borderRadius: 14, textAlign: "center" }}>
+                  <div className="serif" style={{ fontSize: 30, color: "var(--t-accent-bright)", fontWeight: 600, lineHeight: 1 }}>{next.players || 0}</div>
+                  <div style={{ fontSize: 10, color: "var(--t-text-mute)", letterSpacing: 1, marginTop: 4 }}>JOGADORES</div>
+                </div>
+                <div className="glass-strong" style={{ flex: 1, padding: 14, borderRadius: 14, textAlign: "center" }}>
+                  <div className="serif" style={{ fontSize: 30, color: "var(--t-accent-bright)", fontWeight: 600, lineHeight: 1 }}>{next.sessions || 0}</div>
+                  <div style={{ fontSize: 10, color: "var(--t-text-mute)", letterSpacing: 1, marginTop: 4 }}>SESSÕES</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* ── EMPTY STATE: portal vazio ── */
+        <div className="glass" style={{
+          borderRadius: 22, padding: "52px 40px", marginBottom: 24,
+          textAlign: "center", position: "relative", overflow: "hidden",
+        }}>
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 600px 400px at 50% 50%, rgba(218,162,90,0.06), transparent 70%)" }} />
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: 18, margin: "0 auto 24px",
+              background: "linear-gradient(135deg, var(--t-accent-tint), var(--t-accent-soft))",
+              border: "1px solid var(--t-border-strong)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 0 40px -10px var(--t-accent-glow)",
+              animation: "float-soft 6s ease-in-out infinite",
+            }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--t-accent-bright)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2 L20 7 L20 17 L12 22 L4 17 L4 7 Z" />
+                <path d="M12 8 L12 16 M8 10 L16 14 M16 10 L8 14" />
+              </svg>
+            </div>
+            <h1 className="serif" style={{ fontSize: 38, fontWeight: 600, margin: "0 0 12px", color: "var(--t-text)" }}>
+              Seu portal ainda está silencioso
+            </h1>
+            <p style={{ fontSize: 16, color: "var(--t-text-mute)", lineHeight: 1.65, maxWidth: 520, margin: "0 auto 32px" }}>
+              Crie sua primeira campanha, personagem ou grimório para iniciar sua jornada em Vasteria.
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <Btn icon="scroll" onClick={() => setView("campaigns")}>Criar primeira campanha</Btn>
+              <Btn variant="ghost" icon="shield" onClick={() => setView("character")}>Criar personagem</Btn>
+              <Btn variant="ghost" icon="book" onClick={() => setView("compendium")}>Explorar compêndio</Btn>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>

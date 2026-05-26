@@ -134,7 +134,6 @@ const Sidebar = ({ view, setView, openDice, role, setRole }) => {
         >
           <Icon name="chat" size={17} />
           <span>Chat de Mesa</span>
-          <span style={{ marginLeft: "auto", padding: "1px 6px", fontSize: 9, background: "#c25555", color: "#fff", borderRadius: 999, fontWeight: 700 }}>3</span>
         </button>
       </nav>
 

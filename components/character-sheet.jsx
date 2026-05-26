@@ -36,6 +36,30 @@ const CharacterSheet = () => {
   const [hp, setHp] = useState(c.hp);
   const tabs = ["combate", "magias", "habilidades", "inventário", "anotações"];
   const sign = (n) => (n >= 0 ? `+${n}` : `${n}`);
+  const initials = c.name ? c.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase() : "?";
+
+  if (!c.name) {
+    return (
+      <div data-screen-label="Ficha">
+        <div className="glass" style={{ borderRadius: 22, padding: "72px 40px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 500px 350px at 50% 50%, rgba(218,162,90,0.05), transparent 70%)" }} />
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={{ width: 80, height: 80, borderRadius: 20, margin: "0 auto 24px", background: "var(--t-accent-soft)", border: "1px solid var(--t-border-strong)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 40px -10px var(--t-accent-tint)" }}>
+              <Icon name="shield" size={38} style={{ color: "var(--t-accent)", opacity: 0.8 }} />
+            </div>
+            <div className="serif" style={{ fontSize: 28, fontWeight: 600, color: "var(--t-text)", marginBottom: 12 }}>Nenhuma ficha criada ainda</div>
+            <p style={{ fontSize: 15, color: "var(--t-text-mute)", lineHeight: 1.65, maxWidth: 440, margin: "0 auto 32px" }}>
+              Crie um personagem para registrar seus atributos, habilidades, inventário e muito mais.
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <button style={{ padding: "12px 24px", borderRadius: 12, background: "var(--t-accent)", border: "none", color: "#1a0e04", fontSize: 14, fontWeight: 700 }}>+ Criar personagem</button>
+              <button style={{ padding: "12px 24px", borderRadius: 12, background: "transparent", border: "1px solid var(--t-border-strong)", color: "var(--t-text-soft)", fontSize: 14 }}>Importar ficha</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div data-screen-label="Ficha">
@@ -55,7 +79,7 @@ const CharacterSheet = () => {
             boxShadow: "0 0 40px -8px var(--t-accent-glow)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <span className="serif" style={{ fontSize: 46, fontWeight: 600, color: "#1a0e04" }}>AL</span>
+            <span className="serif" style={{ fontSize: 46, fontWeight: 600, color: "#1a0e04" }}>{initials}</span>
           </div>
         </div>
 
@@ -71,10 +95,10 @@ const CharacterSheet = () => {
             <span style={{ width: 3, height: 3, background: "rgba(232,227,214,0.3)", borderRadius: "50%" }} />
             <span><span style={{ color: "var(--t-text-faint)" }}>Tendência</span> · {c.alignment}</span>
             <span style={{ width: 3, height: 3, background: "rgba(232,227,214,0.3)", borderRadius: "50%" }} />
-            <span><span style={{ color: "var(--t-text-faint)" }}>XP</span> · <span className="mono">{c.xp.toLocaleString()}/{c.xpNext.toLocaleString()}</span></span>
+            <span><span style={{ color: "var(--t-text-faint)" }}>XP</span> · <span className="mono">{(c.xp || 0).toLocaleString()}/{(c.xpNext || 0).toLocaleString()}</span></span>
           </div>
           <div style={{ marginTop: 12, height: 4, background: "rgba(0,0,0,0.4)", borderRadius: 2, maxWidth: 380 }}>
-            <div style={{ width: `${(c.xp / c.xpNext) * 100}%`, height: "100%", background: "linear-gradient(90deg, var(--t-accent), var(--t-accent-bright))", borderRadius: 2 }} />
+            <div style={{ width: `${c.xpNext ? (c.xp / c.xpNext) * 100 : 0}%`, height: "100%", background: "linear-gradient(90deg, var(--t-accent), var(--t-accent-bright))", borderRadius: 2 }} />
           </div>
         </div>
 
@@ -103,7 +127,7 @@ const CharacterSheet = () => {
             <span style={{ fontSize: 16, color: "var(--t-text-faint)" }}>/ {c.hpMax}</span>
           </div>
           <div style={{ height: 6, background: "rgba(0,0,0,0.4)", borderRadius: 3, marginTop: 10, overflow: "hidden" }}>
-            <div style={{ width: `${(hp / c.hpMax) * 100}%`, height: "100%", background: "linear-gradient(90deg, #c25555, #e07b7b)" }} />
+            <div style={{ width: `${c.hpMax ? (hp / c.hpMax) * 100 : 0}%`, height: "100%", background: "linear-gradient(90deg, #c25555, #e07b7b)" }} />
           </div>
           <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
             <button onClick={() => setHp(Math.max(0, hp - 1))} style={btnMini}>−1</button>

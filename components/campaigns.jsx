@@ -2,24 +2,46 @@ const Campaigns = ({ activeCampaign, setActiveCampaign }) => {
   const { CAMPAIGNS = [], PLAYERS = [] } = window.MOCK || {};
   const { Pill, Btn, SectionTitle, Avatar } = window.UI;
   const [view, setLocalView] = useState("grid");
-  const c = activeCampaign || CAMPAIGNS[0] || {
-    id: "",
-    name: "Sem campanha selecionada",
-    setting: "Nenhum dado de campanha disponível.",
-    dm: "",
-    status: "sem dados",
-    tags: [],
-    sessions: 0,
-    players: 0,
-    level: "",
-    nextSession: "—",
-    progress: 0,
-    summary: "Importe ou crie uma campanha para visualizar o conteúdo.",
-    cover: "linear-gradient(135deg, #111 0%, #222 100%)",
-    accent: "var(--t-accent)",
-  };
+
+  // Se não há campanhas, mostra empty state
+  if (CAMPAIGNS.length === 0 && !activeCampaign) {
+    return (
+      <div data-screen-label="Campanhas">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28 }}>
+          <div>
+            <h1 className="serif" style={{ fontSize: 36, fontWeight: 600, margin: 0, color: "var(--t-text)" }}>Campanhas</h1>
+            <div style={{ fontSize: 13, color: "var(--t-text-mute)", marginTop: 4 }}>Suas mesas e crônicas</div>
+          </div>
+        </div>
+        <div className="glass" style={{ borderRadius: 22, padding: "72px 40px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 500px 350px at 50% 50%, rgba(218,162,90,0.05), transparent 70%)" }} />
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: 20, margin: "0 auto 24px",
+              background: "var(--t-accent-soft)", border: "1px solid var(--t-border-strong)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 0 40px -10px var(--t-accent-tint)",
+              animation: "float-soft 6s ease-in-out infinite",
+            }}>
+              <Icon name="scroll" size={38} style={{ color: "var(--t-accent)", opacity: 0.8 }} />
+            </div>
+            <div className="serif" style={{ fontSize: 28, fontWeight: 600, color: "var(--t-text)", marginBottom: 12 }}>Nenhuma campanha foi criada ainda</div>
+            <p style={{ fontSize: 15, color: "var(--t-text-mute)", lineHeight: 1.65, maxWidth: 440, margin: "0 auto 32px" }}>
+              Quando uma nova aventura nascer, ela aparecerá aqui. Crie sua primeira campanha para começar.
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <Btn icon="plus">Criar campanha</Btn>
+              <Btn variant="ghost" icon="upload">Importar módulo</Btn>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const c = activeCampaign || CAMPAIGNS[0];
   const playersInCampaign = PLAYERS.slice(0, c.players || 0);
-  const sessions = c.sessions || [];
+  const sessions = Array.isArray(c.sessions) ? c.sessions : [];
 
   return (
     <div data-screen-label="Campanhas">
@@ -47,7 +69,7 @@ const Campaigns = ({ activeCampaign, setActiveCampaign }) => {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
             {[
               { l: "Sessões", v: c.sessions, i: "calendar" },
-              { l: "Nível médio", v: c.level.replace("Nível ", ""), i: "crown" },
+              { l: "Nível médio", v: (c.level || "—").replace("Nível ", "") || "—", i: "crown" },
               { l: "Jogadores", v: c.players, i: "users" },
               { l: "Próxima", v: c.nextSession === "—" ? "—" : c.nextSession.split("•")[0].trim(), i: "moon" },
               { l: "Progresso", v: `${Math.round(c.progress * 100)}%`, i: "target" },
