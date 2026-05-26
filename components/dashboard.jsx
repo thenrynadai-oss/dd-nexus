@@ -1,6 +1,6 @@
 const Dashboard = ({ setView, setActiveCampaign, role = "mestre" }) => {
   const isDM = role === "mestre";
-  const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [], CHARACTER = {} } = window.MOCK || {};
+  const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [], CHARACTER = {} } = useAppMock();
   const { Pill, Btn, SectionTitle, Avatar } = window.UI;
   const hasCampaigns = CAMPAIGNS.length > 0;
   const hasPlayers = PLAYERS.length > 0;
