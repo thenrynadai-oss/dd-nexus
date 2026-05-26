@@ -1,3 +1,74 @@
+// Injeta keyframes uma vez
+if (!document.getElementById("settings-toast-style")) {
+  const s = document.createElement("style");
+  s.id = "settings-toast-style";
+  s.textContent = `
+    @keyframes toast-in {
+      0%   { opacity: 0; transform: translateY(24px) scale(0.94); }
+      60%  { opacity: 1; transform: translateY(-4px) scale(1.02); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes toast-out {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(12px) scale(0.96); }
+    }
+    @keyframes shimmer-h {
+      0%   { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 28px -4px rgba(218,162,90,0.55), 0 8px 32px -8px rgba(0,0,0,0.6); }
+      50%       { box-shadow: 0 0 48px -2px rgba(218,162,90,0.85), 0 8px 32px -8px rgba(0,0,0,0.6); }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
+const SaveToast = ({ visible, leaving }) => {
+  if (!visible) return null;
+  return (
+    <div style={{
+      position: "fixed", bottom: 32, right: 32, zIndex: 9999,
+      animation: leaving ? "toast-out 380ms ease forwards" : "toast-in 420ms cubic-bezier(0.22,1,0.36,1) forwards",
+    }}>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 14,
+        padding: "16px 22px",
+        background: "linear-gradient(135deg, #1a1208 0%, #2a1e0a 50%, #1a1208 100%)",
+        border: "1px solid rgba(218,162,90,0.5)",
+        borderRadius: 16,
+        animation: "glow-pulse 2s ease-in-out infinite",
+        minWidth: 260,
+        position: "relative", overflow: "hidden",
+      }}>
+        {/* shimmer strip */}
+        <div style={{
+          position: "absolute", inset: 0, pointerEvents: "none",
+          background: "linear-gradient(105deg, transparent 35%, rgba(218,162,90,0.12) 50%, transparent 65%)",
+          backgroundSize: "200% 100%",
+          animation: "shimmer-h 2.2s linear infinite",
+        }} />
+        {/* ícone coroa */}
+        <div style={{
+          width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+          background: "linear-gradient(135deg, rgba(218,162,90,0.25), rgba(218,162,90,0.08))",
+          border: "1px solid rgba(218,162,90,0.4)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 20,
+        }}>✦</div>
+        <div>
+          <div className="serif" style={{
+            fontSize: 15, fontWeight: 600, color: "var(--t-accent-bright)", lineHeight: 1.1,
+          }}>Perfil salvo</div>
+          <div style={{ fontSize: 11.5, color: "rgba(218,180,120,0.65)", marginTop: 3 }}>
+            Suas alterações foram aplicadas
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Componentes helper fora do Settings para não recriar a cada render
 const SettingsField = ({ label, hint, children }) => (
   <div style={{ marginBottom: 16 }}>
@@ -85,6 +156,14 @@ const Settings = ({ role, theme, setTheme }) => {
   const [pingMention, setPingMention] = useState(true);
   const [pingSession, setPingSession] = useState(true);
   const [showOnline, setShowOnline] = useState(true);
+  const [toast, setToast] = useState(false);
+  const [toastLeaving, setToastLeaving] = useState(false);
+  const showToast = () => {
+    setToastLeaving(false);
+    setToast(true);
+    setTimeout(() => setToastLeaving(true), 2400);
+    setTimeout(() => setToast(false), 2800);
+  };
 
   const themes = [
     { id: "default", l: "Vasteria", c1: "#1a1410", c2: "#d8a25a", desc: "Padrão · pergaminho dourado" },
@@ -197,7 +276,7 @@ const Settings = ({ role, theme, setTheme }) => {
                 const res = window.Auth?.updateCurrentUser({ nome: name, apelido: handle, email, profileImg });
                 if (res && !res.ok) { alert(res.msg || "Erro ao salvar."); return; }
                 window.dispatchEvent(new Event("vg:auth-update"));
-                alert("Perfil salvo!");
+                showToast();
               }}>Salvar alterações</Btn>
               <Btn variant="ghost" onClick={() => {
                 const u = window.Auth?.getCurrentUser() || {};
@@ -410,6 +489,7 @@ const Settings = ({ role, theme, setTheme }) => {
           </div>
         </div>
       )}
+      <SaveToast visible={toast} leaving={toastLeaving} />
     </div>
   );
 };
