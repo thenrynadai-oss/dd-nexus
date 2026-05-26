@@ -13,13 +13,14 @@
   const DB_KEY = "nexus_db";
   const SESSION_KEY = "nexus_session";
   const QUICKLOAD_KEY = "nexus_quickload";
-  const DB_CLEARED_FLAG = "nexus_db_cleared_v1";
+  const DB_CLEARED_FLAG = "nexus_db_cleared_v2";
 
-  // clear legacy accounts once after the update
-  if(!localStorage.getItem(DB_CLEARED_FLAG) && localStorage.getItem(DB_KEY)){
+  // force-clear all accounts on this version bump
+  if(!localStorage.getItem(DB_CLEARED_FLAG)){
     localStorage.removeItem(DB_KEY);
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem(QUICKLOAD_KEY);
+    localStorage.removeItem("nexus_db_cleared_v1");
     localStorage.setItem(DB_CLEARED_FLAG, "1");
   }
 
