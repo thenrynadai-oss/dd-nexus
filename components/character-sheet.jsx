@@ -1,39 +1,122 @@
+const CreateCharacterModal = ({ onClose }) => {
+  const CLASSES = ["Bárbaro", "Bardo", "Bruxo", "Clérigo", "Druida", "Feiticeiro", "Guerreiro", "Ladino", "Mago", "Monge", "Paladino", "Patrulheiro"];
+  const RACES = ["Humano", "Elfo", "Anão", "Halfling", "Gnomo", "Meio-elfo", "Meio-orc", "Tiefling", "Draconato", "Outro"];
+  const ALIGNMENTS = ["Legal Bom", "Neutro Bom", "Caótico Bom", "Legal Neutro", "Neutro", "Caótico Neutro", "Legal Mau", "Neutro Mau", "Caótico Mau"];
+
+  const [form, setForm] = React.useState({
+    name: "", class: "Guerreiro", race: "Humano", background: "", alignment: "Neutro", level: "1",
+  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSave = () => {
+    if (!form.name.trim()) return;
+    const res = window.AppData?.createCharacter(form.name.trim(), form);
+    if (!res || !res.ok) { alert(res?.msg || "Erro ao criar personagem."); return; }
+    onClose();
+  };
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="glass-strong" style={{ width: 480, borderRadius: 22, padding: 32, maxHeight: "88vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div className="serif" style={{ fontSize: 26, fontWeight: 600, color: "var(--t-text)" }}>Novo Personagem</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--t-text-mute)", cursor: "pointer", padding: 6 }}>
+            <Icon name="close" size={18} />
+          </button>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>NOME DO PERSONAGEM *</div>
+          <input
+            value={form.name}
+            onChange={e => set("name", e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSave()}
+            placeholder="Kael, a Lâmina Perdida..."
+            autoFocus
+            style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: "rgba(0,0,0,0.4)", border: "1px solid var(--t-border)", color: "var(--t-text)", fontSize: 15, outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+          <div>
+            <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>CLASSE</div>
+            <select value={form.class} onChange={e => set("class", e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "rgba(0,0,0,0.4)", border: "1px solid var(--t-border)", color: "var(--t-text)", fontSize: 13, outline: "none" }}>
+              {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>RAÇA</div>
+            <select value={form.race} onChange={e => set("race", e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "rgba(0,0,0,0.4)", border: "1px solid var(--t-border)", color: "var(--t-text)", fontSize: 13, outline: "none" }}>
+              {RACES.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+          <div>
+            <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>TENDÊNCIA</div>
+            <select value={form.alignment} onChange={e => set("alignment", e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "rgba(0,0,0,0.4)", border: "1px solid var(--t-border)", color: "var(--t-text)", fontSize: 13, outline: "none" }}>
+              {ALIGNMENTS.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          <div>
+            <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>NÍVEL INICIAL</div>
+            <input
+              type="number"
+              min="1" max="20"
+              value={form.level}
+              onChange={e => set("level", e.target.value)}
+              style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "rgba(0,0,0,0.4)", border: "1px solid var(--t-border)", color: "var(--t-text)", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 26 }}>
+          <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>ANTECEDENTE</div>
+          <input
+            value={form.background}
+            onChange={e => set("background", e.target.value)}
+            placeholder="Nobre, Errante, Soldado..."
+            style={{ width: "100%", padding: "10px 14px", borderRadius: 10, background: "rgba(0,0,0,0.4)", border: "1px solid var(--t-border)", color: "var(--t-text)", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={handleSave}
+            disabled={!form.name.trim()}
+            style={{
+              flex: 1, padding: "12px 0", borderRadius: 10,
+              background: form.name.trim() ? "var(--t-accent)" : "rgba(218,162,90,0.15)",
+              border: "none", color: form.name.trim() ? "#1a0e04" : "var(--t-text-mute)",
+              fontSize: 14, fontWeight: 700, cursor: form.name.trim() ? "pointer" : "default",
+            }}
+          >
+            Criar personagem
+          </button>
+          <button onClick={onClose} style={{ padding: "12px 20px", borderRadius: 10, background: "transparent", border: "1px solid var(--t-border)", color: "var(--t-text-mute)", fontSize: 14, cursor: "pointer" }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CharacterSheet = () => {
-  const { CHARACTER = {
-    name: "",
-    player: "",
-    race: "",
-    class: "",
-    subclass: "",
-    background: "",
-    alignment: "",
-    level: 0,
-    xp: 0,
-    xpNext: 1,
-    hp: 0,
-    hpMax: 0,
-    hpTemp: 0,
-    ac: 0,
-    speed: 0,
-    init: 0,
-    prof: 0,
-    inspiration: false,
-    hitDice: "",
-    deathSaves: { s: 0, f: 0 },
-    abilities: [],
-    skills: [],
-    attacks: [],
-    spellSlots: [],
-    spells: [],
-    features: [],
-    inventory: [],
-    money: { pc: 0, pp: 0, po: 0, pe: 0, pl: 0 },
-    notes: "",
-  } } = window.MOCK || {};
+  const { CHARACTER = {} } = useAppMock();
   const { Pill, Btn, AbilityHex, RuneDivider, Avatar, SectionTitle } = window.UI;
-  const c = CHARACTER;
+  const c = CHARACTER || {};
+
+  const [showCreate, setShowCreate] = useState(false);
   const [tab, setTab] = useState("combate");
-  const [hp, setHp] = useState(c.hp);
+  const [hp, setHp] = useState(c.hp || 0);
+  React.useEffect(() => {
+    setHp(c.hp || 0);
+  }, [c.hp]);
   const tabs = ["combate", "magias", "habilidades", "inventário", "anotações"];
   const sign = (n) => (n >= 0 ? `+${n}` : `${n}`);
   const initials = c.name ? c.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase() : "?";
@@ -41,10 +124,11 @@ const CharacterSheet = () => {
   if (!c.name) {
     return (
       <div data-screen-label="Ficha">
+        {showCreate && <CreateCharacterModal onClose={() => setShowCreate(false)} />}
         <div className="glass" style={{ borderRadius: 22, padding: "72px 40px", textAlign: "center", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 500px 350px at 50% 50%, rgba(218,162,90,0.05), transparent 70%)" }} />
           <div style={{ position: "relative", zIndex: 1 }}>
-            <div style={{ width: 80, height: 80, borderRadius: 20, margin: "0 auto 24px", background: "var(--t-accent-soft)", border: "1px solid var(--t-border-strong)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 40px -10px var(--t-accent-tint)" }}>
+            <div style={{ width: 80, height: 80, borderRadius: 20, margin: "0 auto 24px", background: "var(--t-accent-soft)", border: "1px solid var(--t-border-strong)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 40px -10px var(--t-accent-tint)", animation: "float-soft 6s ease-in-out infinite" }}>
               <Icon name="shield" size={38} style={{ color: "var(--t-accent)", opacity: 0.8 }} />
             </div>
             <div className="serif" style={{ fontSize: 28, fontWeight: 600, color: "var(--t-text)", marginBottom: 12 }}>Nenhuma ficha criada ainda</div>
@@ -52,8 +136,8 @@ const CharacterSheet = () => {
               Crie um personagem para registrar seus atributos, habilidades, inventário e muito mais.
             </p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-              <button style={{ padding: "12px 24px", borderRadius: 12, background: "var(--t-accent)", border: "none", color: "#1a0e04", fontSize: 14, fontWeight: 700 }}>+ Criar personagem</button>
-              <button style={{ padding: "12px 24px", borderRadius: 12, background: "transparent", border: "1px solid var(--t-border-strong)", color: "var(--t-text-soft)", fontSize: 14 }}>Importar ficha</button>
+              <button onClick={() => setShowCreate(true)} style={{ padding: "12px 24px", borderRadius: 12, background: "var(--t-accent)", border: "none", color: "#1a0e04", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ Criar personagem</button>
+              <button style={{ padding: "12px 24px", borderRadius: 12, background: "transparent", border: "1px solid var(--t-border-strong)", color: "var(--t-text-soft)", fontSize: 14, cursor: "pointer" }}>Importar ficha</button>
             </div>
           </div>
         </div>

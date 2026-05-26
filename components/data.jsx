@@ -98,18 +98,19 @@ function createDefaultCampaign(name, patch = {}) {
   };
 }
 
-function createDefaultCharacter(name) {
+function createDefaultCharacter(name, patch = {}) {
   const player = window.Auth?.getCurrentUser?.()?.apelido || "Jogador";
   const characterName = (name || "Novo Herói").trim() || "Novo Herói";
+  const level = Math.max(1, Math.min(20, parseInt(patch.level) || 1));
   return {
     name: characterName,
     player,
-    race: "Humano",
-    class: "Guerreiro",
-    subclass: "Escolhido",
-    background: "Errante",
-    alignment: "Neutro",
-    level: 1,
+    race: patch.race || "Humano",
+    class: patch.class || "Guerreiro",
+    subclass: patch.subclass || "Escolhido",
+    background: patch.background || "Errante",
+    alignment: patch.alignment || "Neutro",
+    level,
     xp: 0,
     xpNext: 100,
     hp: 12,
@@ -173,8 +174,8 @@ window.AppData = {
     const res = saveAppStore({ campaigns: [...current.CAMPAIGNS, campaign] });
     return { ...res, campaign };
   },
-  createCharacter(name) {
-    const character = createDefaultCharacter(name);
+  createCharacter(name, patch = {}) {
+    const character = createDefaultCharacter(name, patch);
     const res = saveAppStore({ character });
     return { ...res, character };
   },
