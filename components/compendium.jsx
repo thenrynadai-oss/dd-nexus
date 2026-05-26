@@ -47,7 +47,7 @@ const Compendium = () => {
           <div style={{ fontSize: 13, color: "var(--t-text-mute)", marginTop: 4 }}>Magias, classes, habilidades, monstros, itens e regras — crie e consulte durante a sessão</div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <Btn variant="ghost" icon="upload" size="sm">Importar livro</Btn>
+          <Btn variant="ghost" icon="upload" size="sm" onClick={() => alert("Importação de livros chegará em breve.\nPor enquanto, use 'Criar entrada' para adicionar conteúdo ao compêndio.")}>Importar livro</Btn>
           <Btn icon="plus" size="sm" onClick={() => setEditing({ type: activeFilter !== "Todos" ? activeFilter : "Magia" })}>Criar entrada</Btn>
         </div>
       </div>
@@ -186,8 +186,16 @@ const DetailPanel = ({ entry, isCustom, onEdit, onDelete }) => {
       )}
 
       <div style={{ display: "flex", gap: 8, marginTop: 22, flexWrap: "wrap" }}>
-        <Btn size="sm" icon="plus">Adicionar à ficha</Btn>
-        <Btn variant="ghost" size="sm" icon="star">Favoritar</Btn>
+        <Btn size="sm" icon="plus" onClick={() => {
+          const char = window.MOCK?.CHARACTER || {};
+          if (!char.name) { alert("Nenhuma ficha ativa. Crie um personagem primeiro na aba Fichas."); return; }
+          const feat = `${entry.name}:\n${entry.desc || ""}`;
+          const updated = { ...char, featuresTraits: char.featuresTraits ? char.featuresTraits + "\n\n" + feat : feat };
+          const res = window.AppData?.update("CHARACTER", updated);
+          if (res?.ok) alert(`"${entry.name}" adicionado às características da ficha de ${char.name}.`);
+          else alert("Erro ao adicionar à ficha.");
+        }}>Adicionar à ficha</Btn>
+        <Btn variant="ghost" size="sm" icon="star" onClick={() => alert("Favoritos em breve ✦")}>Favoritar</Btn>
         {isCustom && (
           <>
             <Btn variant="ghost" size="sm" icon="settings" onClick={onEdit}>Editar</Btn>

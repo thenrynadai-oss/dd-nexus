@@ -84,7 +84,7 @@ const App = () => {
       {view === "dashboard" && <Dashboard setView={setView} setActiveCampaign={setActiveCampaign} role={role} />}
       {view === "campaigns" && <Campaigns activeCampaign={activeCampaign} setActiveCampaign={setActiveCampaign} role={role} />}
       {view === "character" && <CharacterSheet role={role} />}
-      {view === "players" && isDM && <Players />}
+      {view === "players" && isDM && <Players setView={setView} />}
       {view === "notes" && <Notes role={role} />}
       {view === "compendium" && <Compendium />}
       {view === "settings" && <Settings role={role} theme={theme} setTheme={setTheme} />}

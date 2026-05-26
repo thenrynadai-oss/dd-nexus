@@ -1,8 +1,10 @@
-const Players = () => {
+const Players = ({ setView }) => {
   const { PLAYERS = [] } = useAppMock();
   const { Pill, Btn, Avatar, SectionTitle } = window.UI;
   const [filter, setFilter] = useState("todos");
   const [layout, setLayout] = useState("grid");
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2400); };
 
   const filtered = PLAYERS.filter((p) =>
     filter === "todos" ? true : filter === "online" ? p.status === "online" : p.status !== "online"
@@ -10,6 +12,11 @@ const Players = () => {
 
   return (
     <div data-screen-label="Jogadores">
+      {toast && (
+        <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", zIndex: 999, padding: "10px 22px", borderRadius: 12, background: "rgba(10,7,15,0.95)", border: "1px solid var(--t-border-strong)", color: "var(--t-accent-bright)", fontSize: 13, fontWeight: 600, pointerEvents: "none" }}>
+          {toast}
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22 }}>
         <div>
           <h1 className="serif" style={{ fontSize: 36, fontWeight: 600, margin: 0, color: "var(--t-text)" }}>Jogadores</h1>
@@ -30,7 +37,7 @@ const Players = () => {
             <button onClick={() => setLayout("grid")} style={{ padding: 8, borderRadius: 7, background: layout === "grid" ? "var(--t-accent-tint)" : "transparent", color: layout === "grid" ? "var(--t-accent-bright)" : "rgba(232,227,214,0.6)", border: "none" }}><Icon name="grid" size={14} /></button>
             <button onClick={() => setLayout("list")} style={{ padding: 8, borderRadius: 7, background: layout === "list" ? "var(--t-accent-tint)" : "transparent", color: layout === "list" ? "var(--t-accent-bright)" : "rgba(232,227,214,0.6)", border: "none" }}><Icon name="list" size={14} /></button>
           </div>
-          <Btn icon="plus">Convidar</Btn>
+          <Btn icon="plus" onClick={() => showToast("Convites via link chegam em breve ✦")}>Convidar</Btn>
         </div>
       </div>
 
@@ -41,8 +48,10 @@ const Players = () => {
       ) : layout === "grid" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           {filtered.map((p) => {
-            const hpVal = parseInt(p.hp.split("/")[0]);
-            const hpMax = parseInt(p.hp.split("/")[1]);
+            const hpStr = p.hp || "0/0";
+            const hpParts = hpStr.toString().split("/");
+            const hpVal = parseInt(hpParts[0]) || 0;
+            const hpMax = parseInt(hpParts[1]) || 0;
             return (
               <div key={p.id} className="glass" style={{ borderRadius: 18, padding: 22, position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 90, background: `radial-gradient(ellipse at 50% 0%, ${p.accent}40, transparent 70%)` }} />
@@ -73,8 +82,8 @@ const Players = () => {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 6, width: "100%", marginTop: 14 }}>
-                    <button style={{ flex: 1, padding: "8px 0", borderRadius: 8, background: "var(--t-accent-tint)", border: "1px solid var(--t-border-strong)", color: "var(--t-accent-bright)", fontSize: 11, fontWeight: 600 }}>Ver Ficha</button>
-                    <button style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(255,245,220,0.04)", border: "1px solid var(--t-border)", color: "rgba(232,227,214,0.7)" }}><Icon name="chat" size={13} /></button>
+                    <button onClick={() => setView && setView("character")} style={{ flex: 1, padding: "8px 0", borderRadius: 8, background: "var(--t-accent-tint)", border: "1px solid var(--t-border-strong)", color: "var(--t-accent-bright)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Ver Ficha</button>
+                    <button onClick={() => showToast("Chat de mesa em breve ✦")} style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(255,245,220,0.04)", border: "1px solid var(--t-border)", color: "rgba(232,227,214,0.7)", cursor: "pointer" }}><Icon name="chat" size={13} /></button>
                   </div>
                 </div>
               </div>
@@ -105,7 +114,7 @@ const Players = () => {
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.status === "online" ? "#7ba85d" : p.status === "ausente" ? "var(--t-accent-bright)" : "#54545c" }} />
                 <span style={{ fontSize: 11.5, color: "rgba(232,227,214,0.7)", textTransform: "capitalize" }}>{p.status}</span>
               </span>
-              <button style={{ padding: "6px 10px", borderRadius: 6, background: "var(--t-accent-tint)", border: "1px solid var(--t-border-strong)", color: "var(--t-accent-bright)", fontSize: 11, fontWeight: 600 }}>Ver</button>
+              <button onClick={() => setView && setView("character")} style={{ padding: "6px 10px", borderRadius: 6, background: "var(--t-accent-tint)", border: "1px solid var(--t-border-strong)", color: "var(--t-accent-bright)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Ver</button>
             </div>
           ))}
         </div>

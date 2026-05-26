@@ -114,6 +114,36 @@ const SettingsToggle = ({ on, onChange, label, desc }) => (
   </button>
 );
 
+const PasswordSection = () => {
+  const [cur, setCur] = useState("");
+  const [next, setNext] = useState("");
+  const [msg, setMsg] = useState(null);
+  const Field = SettingsField;
+  const Input = SettingsInput;
+  const { Btn } = window.UI;
+  const handleChange = () => {
+    if (!cur || !next) { setMsg({ ok: false, text: "Preencha os dois campos." }); return; }
+    if (next.length < 6) { setMsg({ ok: false, text: "Nova senha precisa ter ao menos 6 caracteres." }); return; }
+    const u = window.Auth?.getCurrentUser();
+    if (!u) { setMsg({ ok: false, text: "Sessão expirada." }); return; }
+    if (u.pass !== cur) { setMsg({ ok: false, text: "Senha atual incorreta." }); return; }
+    const res = window.Auth.updateCurrentUser({ pass: next });
+    if (!res?.ok) { setMsg({ ok: false, text: res?.msg || "Erro." }); return; }
+    setCur(""); setNext("");
+    setMsg({ ok: true, text: "Senha alterada com sucesso!" });
+    setTimeout(() => setMsg(null), 3000);
+  };
+  return (
+    <div className="glass" style={{ padding: 22, borderRadius: 14, border: "1px solid var(--t-border)" }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t-text)", marginBottom: 14 }}>Senha</div>
+      <Field label="Senha atual"><Input type="password" value={cur} onChange={e => setCur(e.target.value)} placeholder="••••••••" /></Field>
+      <Field label="Nova senha"><Input type="password" value={next} onChange={e => setNext(e.target.value)} placeholder="mínimo 6 caracteres" /></Field>
+      {msg && <div style={{ fontSize: 12, color: msg.ok ? "#7ba85d" : "#e07b7b", marginBottom: 10 }}>{msg.text}</div>}
+      <Btn size="sm" onClick={handleChange}>Trocar senha</Btn>
+    </div>
+  );
+};
+
 // Conta + Personalização do site
 const Settings = ({ role, theme, setTheme }) => {
   const Icon = window.Icon;
@@ -412,12 +442,7 @@ const Settings = ({ role, theme, setTheme }) => {
             </div>
 
             {/* Senha */}
-            <div className="glass" style={{ padding: 22, borderRadius: 14, border: "1px solid var(--t-border)" }}>
-              <SectionTitle>Senha</SectionTitle>
-              <Field label="Senha atual"><Input type="password" placeholder="••••••••" /></Field>
-              <Field label="Nova senha"><Input type="password" placeholder="•••••••••" /></Field>
-              <Btn size="sm">Trocar senha</Btn>
-            </div>
+            <PasswordSection />
 
             {/* Zona de perigo */}
             <div className="glass" style={{ padding: 22, borderRadius: 14, border: "1px solid var(--t-border)" }}>
@@ -428,7 +453,22 @@ const Settings = ({ role, theme, setTheme }) => {
                   window.Auth?.logout();
                   window.location.href = "index.html";
                 }}>Sair da conta</Btn>
-                <Btn size="sm" variant="danger">Excluir minha conta</Btn>
+                <Btn size="sm" variant="danger" onClick={() => {
+                  if (!confirm("Isso apagará sua conta e todos os dados permanentemente. Continuar?")) return;
+                  if (!confirm("Tem certeza? Esta ação não pode ser desfeita.")) return;
+                  try {
+                    const u = window.Auth?.getCurrentUser();
+                    if (u) {
+                      const db = JSON.parse(localStorage.getItem("nexus_db") || "[]");
+                      const updated = db.filter(x => x.uuid !== u.uuid);
+                      localStorage.setItem("nexus_db", JSON.stringify(updated));
+                    }
+                    window.Auth?.logout();
+                    window.location.href = "index.html";
+                  } catch(e) {
+                    alert("Erro ao excluir conta. Tente novamente.");
+                  }
+                }}>Excluir minha conta</Btn>
               </div>
             </div>
           </div>

@@ -133,30 +133,22 @@ const Sidebar = ({ view, setView, openDice, role, setRole }) => {
           <span>Mesa de Dados</span>
           <span style={{ marginLeft: "auto", fontSize: 10, color: "rgba(218,180,120,0.5)" }} className="mono">⌘D</span>
         </button>
-        <button style={{
-          display: "flex", alignItems: "center", gap: 12,
-          width: "100%", padding: "11px 12px", marginBottom: 2, borderRadius: 10,
-          background: "transparent", border: "1px solid transparent",
-          color: "rgba(232,227,214,0.7)", fontSize: 13, fontWeight: 500, textAlign: "left",
-        }}
-          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,245,220,0.04)"}
-          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-        >
-          <Icon name="map" size={17} />
-          <span>Mapas</span>
-        </button>
-        <button style={{
-          display: "flex", alignItems: "center", gap: 12,
-          width: "100%", padding: "11px 12px", marginBottom: 2, borderRadius: 10,
-          background: "transparent", border: "1px solid transparent",
-          color: "rgba(232,227,214,0.7)", fontSize: 13, fontWeight: 500, textAlign: "left",
-        }}
-          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,245,220,0.04)"}
-          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-        >
-          <Icon name="chat" size={17} />
-          <span>Chat de Mesa</span>
-        </button>
+        {[
+          { icon: "map", label: "Mapas", tag: "em breve" },
+          { icon: "chat", label: "Chat de Mesa", tag: "em breve" },
+        ].map(it => (
+          <button key={it.label} title={`${it.label} — em breve`} style={{
+            display: "flex", alignItems: "center", gap: 12,
+            width: "100%", padding: "11px 12px", marginBottom: 2, borderRadius: 10,
+            background: "transparent", border: "1px solid transparent",
+            color: "rgba(232,227,214,0.4)", fontSize: 13, fontWeight: 500, textAlign: "left",
+            cursor: "default", opacity: 0.6,
+          }}>
+            <Icon name={it.icon} size={17} />
+            <span>{it.label}</span>
+            <span className="mono" style={{ marginLeft: "auto", fontSize: 8.5, letterSpacing: 0.8, color: "rgba(218,180,120,0.35)", border: "1px solid rgba(218,180,120,0.15)", borderRadius: 4, padding: "1px 5px" }}>em breve</span>
+          </button>
+        ))}
       </nav>
 
       <div style={{ padding: 14, borderTop: "1px solid var(--t-border)" }}>
