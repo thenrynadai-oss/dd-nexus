@@ -274,7 +274,7 @@ const Settings = ({ role, theme, setTheme }) => {
 
       {/* ── CONTA ── */}
       {tab === "conta" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 18, alignItems: "start" }}>
 
           {/* Identidade */}
           <div className="glass" style={{ padding: 24, borderRadius: 14, border: "1px solid var(--t-border)" }}>
