@@ -33,24 +33,7 @@ const ThemeSwitcher = ({ theme, setTheme, viewport, setViewport }) => {
 
   return (
     <>
-      {/* Trigger */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        style={{
-          position: "fixed", top: 32, right: 32, zIndex: 60,
-          width: 46, height: 46, borderRadius: "50%",
-          background: "var(--t-glass-strong)",
-          border: "1px solid var(--t-border-active)",
-          backdropFilter: "blur(20px)",
-          color: "var(--t-accent-bright)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)",
-          cursor: "pointer",
-        }}
-        title="Trocar tema"
-      >
-        <Icon_TS name="spark" size={18} />
-      </button>
+      {/* Trigger removido — tema via Configurações */}
 
       {open && (
         <div
