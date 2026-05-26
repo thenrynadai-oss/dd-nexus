@@ -166,8 +166,25 @@ const Sidebar = ({ view, setView, openDice, role, setRole }) => {
               {isDM ? "Mestre · Sem campanha ativa" : "Jogador · Sem personagem atribuído"}
             </div>
           </div>
-          <button onClick={() => setView("settings")} style={{ background: "none", border: "none", color: "var(--t-text-mute)", padding: 4, cursor: "pointer" }}>
+          <button onClick={() => setView("settings")} title="Configurações" style={{ background: "none", border: "none", color: "var(--t-text-mute)", padding: 4, cursor: "pointer" }}>
             <Icon name="settings" size={15} />
+          </button>
+          <button
+            title="Desconectar"
+            onClick={() => {
+              if (!confirm("Deseja sair da sua conta?")) return;
+              window.Auth?.logout();
+              window.location.href = "index.html";
+            }}
+            style={{ background: "none", border: "none", padding: 4, cursor: "pointer", color: "rgba(200,80,80,0.7)" }}
+            onMouseEnter={(e) => e.currentTarget.style.color = "#e05555"}
+            onMouseLeave={(e) => e.currentTarget.style.color = "rgba(200,80,80,0.7)"}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
           </button>
         </div>
       </div>

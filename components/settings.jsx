@@ -423,7 +423,11 @@ const Settings = ({ role, theme, setTheme }) => {
             <div className="glass" style={{ padding: 22, borderRadius: 14, border: "1px solid var(--t-border)" }}>
               <SectionTitle>Zona de perigo</SectionTitle>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Btn size="sm" variant="danger">Sair de todas as sessões</Btn>
+                <Btn size="sm" variant="danger" onClick={() => {
+                  if (!confirm("Deseja sair da sua conta?")) return;
+                  window.Auth?.logout();
+                  window.location.href = "index.html";
+                }}>Sair da conta</Btn>
                 <Btn size="sm" variant="danger">Excluir minha conta</Btn>
               </div>
             </div>
