@@ -1,3 +1,57 @@
+// Componentes helper fora do Settings para não recriar a cada render
+const SettingsField = ({ label, hint, children }) => (
+  <div style={{ marginBottom: 16 }}>
+    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
+      <label style={{ fontSize: 11.5, color: "var(--t-text-mute)", fontWeight: 600, letterSpacing: 0.3 }}>{label}</label>
+      {hint && <span className="mono" style={{ fontSize: 10, color: "var(--t-text-faint)" }}>{hint}</span>}
+    </div>
+    {children}
+  </div>
+);
+
+const SettingsInput = (props) => (
+  <input {...props} style={{
+    width: "100%", padding: "10px 12px",
+    background: "rgba(0,0,0,0.3)",
+    border: "1px solid var(--t-border)",
+    borderRadius: 8, color: "var(--t-text)",
+    fontSize: 13, fontFamily: "inherit",
+    outline: "none",
+    boxSizing: "border-box",
+  }} onFocus={(e) => e.target.style.borderColor = "var(--t-border-active)"}
+     onBlur={(e) => e.target.style.borderColor = "var(--t-border)"} />
+);
+
+const SettingsToggle = ({ on, onChange, label, desc }) => (
+  <button onClick={() => onChange(!on)} style={{
+    display: "flex", alignItems: "center", gap: 14,
+    width: "100%", padding: "12px 14px",
+    background: "rgba(0,0,0,0.2)",
+    border: `1px solid ${on ? "var(--t-border-strong)" : "var(--t-border)"}`,
+    borderRadius: 10, cursor: "pointer",
+    textAlign: "left",
+  }}>
+    <div style={{
+      width: 38, height: 22, borderRadius: 999,
+      background: on ? "var(--t-accent)" : "rgba(0,0,0,0.5)",
+      border: "1px solid var(--t-border)",
+      position: "relative", flexShrink: 0,
+      transition: "background 180ms",
+    }}>
+      <div style={{
+        position: "absolute", top: 2, left: on ? 18 : 2,
+        width: 16, height: 16, borderRadius: "50%",
+        background: on ? "#1a0e04" : "var(--t-text-mute)",
+        transition: "left 180ms",
+      }} />
+    </div>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 13, color: "var(--t-text)", fontWeight: 500 }}>{label}</div>
+      {desc && <div style={{ fontSize: 11.5, color: "var(--t-text-mute)", marginTop: 2 }}>{desc}</div>}
+    </div>
+  </button>
+);
+
 // Conta + Personalização do site
 const Settings = ({ role, theme, setTheme }) => {
   const Icon = window.Icon;
@@ -40,57 +94,9 @@ const Settings = ({ role, theme, setTheme }) => {
     { id: "kh-dark", l: "Reino das Trevas", c1: "#050208", c2: "#b860ff", desc: "Sem-Coração · Anti-Form" },
   ];
 
-  const Field = ({ label, hint, children }) => (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
-        <label style={{ fontSize: 11.5, color: "var(--t-text-mute)", fontWeight: 600, letterSpacing: 0.3 }}>{label}</label>
-        {hint && <span className="mono" style={{ fontSize: 10, color: "var(--t-text-faint)" }}>{hint}</span>}
-      </div>
-      {children}
-    </div>
-  );
-
-  const Input = (props) => (
-    <input {...props} style={{
-      width: "100%", padding: "10px 12px",
-      background: "rgba(0,0,0,0.3)",
-      border: "1px solid var(--t-border)",
-      borderRadius: 8, color: "var(--t-text)",
-      fontSize: 13, fontFamily: "inherit",
-      outline: "none",
-    }} onFocus={(e) => e.target.style.borderColor = "var(--t-border-active)"}
-       onBlur={(e) => e.target.style.borderColor = "var(--t-border)"} />
-  );
-
-  const Toggle = ({ on, onChange, label, desc }) => (
-    <button onClick={() => onChange(!on)} style={{
-      display: "flex", alignItems: "center", gap: 14,
-      width: "100%", padding: "12px 14px",
-      background: "rgba(0,0,0,0.2)",
-      border: `1px solid ${on ? "var(--t-border-strong)" : "var(--t-border)"}`,
-      borderRadius: 10, cursor: "pointer",
-      textAlign: "left",
-    }}>
-      <div style={{
-        width: 38, height: 22, borderRadius: 999,
-        background: on ? "var(--t-accent)" : "rgba(0,0,0,0.5)",
-        border: "1px solid var(--t-border)",
-        position: "relative", flexShrink: 0,
-        transition: "background 180ms",
-      }}>
-        <div style={{
-          position: "absolute", top: 2, left: on ? 18 : 2,
-          width: 16, height: 16, borderRadius: "50%",
-          background: on ? "#1a0e04" : "var(--t-text-mute)",
-          transition: "left 180ms",
-        }} />
-      </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, color: "var(--t-text)", fontWeight: 500 }}>{label}</div>
-        {desc && <div style={{ fontSize: 11.5, color: "var(--t-text-mute)", marginTop: 2 }}>{desc}</div>}
-      </div>
-    </button>
-  );
+  const Field = SettingsField;
+  const Input = SettingsInput;
+  const Toggle = SettingsToggle;
 
   const Tabs = [
     { id: "conta", l: "Conta", i: "user" },
