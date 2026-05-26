@@ -5,12 +5,12 @@ const Settings = ({ role, theme, setTheme }) => {
   const isDM = role === "mestre";
 
   const [tab, setTab] = useState("conta");
-  const [name, setName] = useState(isDM ? "Helena Ravari" : "Marina Cruz");
-  const [handle, setHandle] = useState(isDM ? "@helena.ravari" : "@marina.cruz");
-  const [email, setEmail] = useState(isDM ? "helena@vasteria.local" : "marina@vasteria.local");
-  const [bio, setBio] = useState(isDM ? "Mestra há 8 anos. Foco em horror gótico e investigação." : "Patrulheira elfa, arqueira de longas distâncias e silêncios.");
-  const [pronouns, setPronouns] = useState("ela/dela");
-  const [avatarHue, setAvatarHue] = useState(isDM ? 270 : 38);
+  const [name, setName] = useState("");
+  const [handle, setHandle] = useState("");
+  const [email, setEmail] = useState("");
+  const [bio, setBio] = useState("");
+  const [pronouns, setPronouns] = useState("");
+  const [avatarHue, setAvatarHue] = useState(180);
   const [density, setDensity] = useState("confortável");
   const [animations, setAnimations] = useState(true);
   const [particles, setParticles] = useState(true);
@@ -91,7 +91,7 @@ const Settings = ({ role, theme, setTheme }) => {
     { id: "privacidade", l: "Privacidade", i: "shield" },
   ];
 
-  const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("");
+  const initials = name ? name.split(" ").map((p) => p[0]).slice(0, 2).join("") : "US";
 
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
@@ -113,16 +113,16 @@ const Settings = ({ role, theme, setTheme }) => {
         }}>{initials}</div>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <h1 className="serif" style={{ fontSize: 30, fontWeight: 600, color: "var(--t-text)", margin: 0 }}>{name}</h1>
+            <h1 className="serif" style={{ fontSize: 30, fontWeight: 600, color: "var(--t-text)", margin: 0 }}>{name || "Usuário Vasteria"}</h1>
             <Pill color={isDM ? "#c9b0e8" : "var(--t-accent-bright)"}>{isDM ? "MESTRA" : "JOGADORA"}</Pill>
           </div>
-          <div className="mono" style={{ fontSize: 12, color: "var(--t-text-mute)", marginBottom: 6 }}>{handle} · {pronouns}</div>
-          <div style={{ fontSize: 13, color: "var(--t-text-soft)", maxWidth: 620, lineHeight: 1.5 }}>{bio}</div>
+          <div className="mono" style={{ fontSize: 12, color: "var(--t-text-mute)", marginBottom: 6 }}>{handle || "@seu.usuario"} · {pronouns || "pronomes"}</div>
+          <div style={{ fontSize: 13, color: "var(--t-text-soft)", maxWidth: 620, lineHeight: 1.5 }}>{bio || "Adicione uma descrição para o seu perfil."}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 11, color: "var(--t-text-mute)" }} className="mono">
-          <span>3 mesas ativas</span>
-          <span>na Vasteria há 2a 4m</span>
-          <span style={{ color: "var(--t-success)" }}>● online agora</span>
+          <span>Sem mesas ativas</span>
+          <span>Perfil limpo e pronto para uso</span>
+          <span style={{ color: "var(--t-success)" }}>● status indefinido</span>
         </div>
       </div>
 

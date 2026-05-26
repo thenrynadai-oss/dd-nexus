@@ -2,67 +2,7 @@ const Notes = ({ role }) => {
   const { Pill, Btn, SectionTitle } = window.UI;
   const isDM = role === "mestre";
 
-  const allNotes = [
-    {
-      id: "n1", title: "Sir Tellam de Vorlan", category: "NPC", visibility: "mestre",
-      campaign: "A Coroa do Lago Cinza",
-      tags: ["aliado", "nobre", "espadachim"], color: "#9d7bd8",
-      updated: "há 2h",
-      pinned: true,
-      excerpt: "Capitão da guarda de Vorlan. Cabelo grisalho, cicatriz no maxilar. Devedor de favor a Helena. Sabe da existência do culto.",
-      body: "Capitão da guarda de Vorlan. Cabelo grisalho, cicatriz no maxilar esquerdo. Idade ~52.\n\nMOTIVAÇÃO: redimir-se por ter falhado em proteger a antiga rainha. Vê o grupo como sua segunda chance.\n\nSEGREDO: sabe que o culto da Coroa tem um informante dentro do castelo, mas não sabe quem.\n\nVOZ: fala pausadamente, evita contrações, usa metáforas de batalha mesmo em conversa casual.",
-    },
-    {
-      id: "n2", title: "Estalagem da Lua Quebrada", category: "Local", visibility: "todos",
-      campaign: "A Coroa do Lago Cinza",
-      tags: ["estalagem", "vorlan"], color: "#6da5c8", updated: "ontem",
-      excerpt: "Antigo ponto de encontro a oeste de Vorlan. Atendido por Bruna, anã ferreira aposentada. 5 PO por noite.",
-      body: "Antigo ponto de encontro a oeste de Vorlan. A placa rangedora tem uma lua partida ao meio.\n\nAtendido por Bruna, anã ferreira aposentada. Cobra 5 PO por noite (com café da manhã).\n\nO porão tem uma passagem que liga aos esgotos antigos. Apenas Bruna e o grupo sabem.",
-    },
-    {
-      id: "n3", title: "O culto da Coroa Cinzenta", category: "Lore", visibility: "mestre",
-      campaign: "A Coroa do Lago Cinza",
-      tags: ["antagonista", "arco-2", "spoiler"], color: "#c25555", updated: "3 dias",
-      pinned: true,
-      excerpt: "Não são adoradores — são guardiões. Acreditam que a coroa contém a alma da última rainha de Aldoria.",
-      body: "REVERSÃO PRINCIPAL: o grupo descobrirá no arco 3 que o culto não quer libertar a coroa — quer mantê-la selada. O verdadeiro vilão é Lorde Asch, que financiou o grupo no início.\n\nLÍDER: Mãe Vela. Anciã cega, mãos queimadas. Vive nos pântanos de Threwid.\n\nRITO: para abrir o selo, é preciso o sangue de três descendentes da linhagem real. Um deles é Aelar — mas ele não sabe.",
-    },
-    {
-      id: "n4", title: "Resumo — Sessão 14", category: "Sessão", visibility: "todos",
-      campaign: "A Coroa do Lago Cinza",
-      tags: ["resumo", "26-abr"], color: "var(--t-accent)", updated: "há 5h",
-      excerpt: "O grupo chega à Casa Sem Janelas. Aelar identifica pegadas de ferozes; Brann descobre alçapão sob o tapete.",
-      body: "O grupo chegou à Casa Sem Janelas pouco depois do crepúsculo.\n\n• Aelar fez teste de Sobrevivência (DC 14, rolou 19): identificou pegadas de gnolls, três adultos, um filhote.\n• Brann encontrou um alçapão sob o tapete da cozinha (Investigação 17).\n• Liriel detectou magia: a porta tinha encantamento de silêncio.\n• Combate na adega: 3 gnolls, 1 hiena. Ysolde ficou inconsciente por 1 turno.\n\nLOOT: 2 poções de cura, 47 PO, mapa rasgado mostrando rota para o Lago Cinza.",
-    },
-    {
-      id: "n5", title: "Pista — medalhão de Aelar", category: "Personagem", visibility: "jogador",
-      campaign: "A Coroa do Lago Cinza",
-      tags: ["aelar", "história"], color: "var(--t-accent-bright)", updated: "há 1h",
-      excerpt: "O medalhão começa a brilhar perto de gnolls. Anotar: investigar significado das runas com a druida.",
-      body: "O medalhão de prata que Aelar recebeu do pai começou a brilhar levemente perto dos gnolls na sessão 14.\n\nIDEIAS DA JOGADORA:\n— Pode ser detector genérico de criaturas mágicas?\n— Conexão com o pai desaparecido?\n— Pedir à druida em Threwid para ler as runas.\n\nQuestão para Helena: posso fazer Arcanismo passivo durante o sono?",
-    },
-    {
-      id: "n6", title: "Bruna Pedra-Forja", category: "NPC", visibility: "todos",
-      campaign: "A Coroa do Lago Cinza",
-      tags: ["aliada", "comerciante"], color: "#7ba85d", updated: "5 dias",
-      excerpt: "Anã ferreira aposentada. Donna da Estalagem da Lua Quebrada. Tia distante de Brann.",
-      body: "Anã ferreira aposentada (~140 anos). Donna da Estalagem da Lua Quebrada.\n\nÉ tia distante de Brann (jogador descobriu na sessão 11).\n\nVENDE: equipamento de viagem com 10% de desconto para o grupo. Tem 2 poções de cura por semana.",
-    },
-    {
-      id: "n7", title: "Ganchos pendentes", category: "Lore", visibility: "mestre",
-      campaign: "A Coroa do Lago Cinza",
-      tags: ["mestre", "planejamento"], color: "#c8643a", updated: "ontem",
-      excerpt: "5 ganchos plantados, 2 ainda não puxados pelos jogadores. Forçar contato em 2 sessões se não morderem.",
-      body: "GANCHOS PUXADOS:\n✓ Mensageiro de Vorlan (sessão 13)\n✓ Pegadas de gnolls (sessão 14)\n✓ Alçapão da Casa\n\nPENDENTES:\n○ Carta da druida que Aelar tem no bolso há 4 sessões — forçar leitura na próxima\n○ A criança que Liriel curou em Threwid pode reaparecer com info crucial\n\nSE não morderem em 2 sessões, criar evento que force escolha.",
-    },
-    {
-      id: "n8", title: "Threwid — vila e arredores", category: "Local", visibility: "todos",
-      campaign: "A Coroa do Lago Cinza",
-      tags: ["vila", "druida"], color: "#7ba85d", updated: "1 sem.",
-      excerpt: "Vila de 200 habitantes na borda da Floresta Cinzenta. Liderada pelo conselho de anciãos. Druida vive na torre.",
-      body: "Vila de ~200 habitantes na borda da Floresta Cinzenta.\n\nLOCAIS:\n• A torre da druida (Velora)\n• Mercado central (3x semana)\n• Estalagem do Cervo Branco\n• Cemitério com lápides cobertas de musgo bioluminescente\n\nTENSÃO: o conselho está dividido entre cooperar com Vorlan ou manter neutralidade.",
-    },
-  ];
+  const allNotes = [];
 
   const visible = allNotes.filter((n) =>
     isDM ? true : n.visibility !== "mestre"

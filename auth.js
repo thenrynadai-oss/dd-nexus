@@ -13,6 +13,15 @@
   const DB_KEY = "nexus_db";
   const SESSION_KEY = "nexus_session";
   const QUICKLOAD_KEY = "nexus_quickload";
+  const DB_CLEARED_FLAG = "nexus_db_cleared_v1";
+
+  // clear legacy accounts once after the update
+  if(!localStorage.getItem(DB_CLEARED_FLAG) && localStorage.getItem(DB_KEY)){
+    localStorage.removeItem(DB_KEY);
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(QUICKLOAD_KEY);
+    localStorage.setItem(DB_CLEARED_FLAG, "1");
+  }
 
   // -----------------------------
   // Helpers
@@ -250,6 +259,7 @@
       pass: password,
       profileImg: imgBase64 || null,
       heroes: [],
+      isSupreme: true,
       createdAt: nowISO(),
       updatedAt: nowISO(),
     };
@@ -597,6 +607,7 @@ function setCurrentHeroIndex(idx){
         ...patch,
         pass: users[idx]?.pass || "", // não usado em Google, mas mantém compat
         heroes: [],
+        isSupreme: true,
         createdAt: nowISO(),
       };
       users.push(newUser);

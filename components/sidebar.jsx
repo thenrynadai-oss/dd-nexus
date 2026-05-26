@@ -140,10 +140,10 @@ const Sidebar = ({ view, setView, openDice, role, setRole }) => {
 
       <div style={{ padding: 14, borderTop: "1px solid var(--t-border)" }}>
         <div className="glass-soft" style={{ padding: 10, borderRadius: 12, display: "flex", alignItems: "center", gap: 10 }}>
-          <UI.Avatar name={isDM ? "Helena Ravari" : "Marina Cruz"} size={34} color={isDM ? "#9d7bd8" : "var(--t-accent)"} />
+          <UI.Avatar name={isDM ? "Mestre" : "Jogador"} size={34} color={isDM ? "#9d7bd8" : "var(--t-accent)"} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--t-text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{isDM ? "Helena Ravari" : "Marina Cruz"}</div>
-            <div style={{ fontSize: 10, color: "var(--t-text-mute)" }}>{isDM ? "Mestra · 3 mesas" : "Aelar Lirion · Nv. 6"}</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--t-text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{isDM ? "Mestre" : "Jogador"}</div>
+            <div style={{ fontSize: 10, color: "var(--t-text-mute)" }}>{isDM ? "Sem campanha ativa" : "Sem personagem atribuído"}</div>
           </div>
           <button onClick={() => setView("settings")} style={{ background: "none", border: "none", color: "var(--t-text-mute)", padding: 4, cursor: "pointer" }}>
             <Icon name="settings" size={15} />

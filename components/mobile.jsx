@@ -113,7 +113,7 @@ const MobileShell = ({ view, setView, role, children }) => {
 };
 
 const MobileDashboard = ({ setView, role }) => {
-  const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [] } = window.MOCK || {};
+  const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [], CHARACTER = {} } = window.MOCK || {};
   const { Pill, Btn } = window.UI;
   const isDM = role === "mestre";
   const next = CAMPAIGNS[0] || {
@@ -126,7 +126,7 @@ const MobileDashboard = ({ setView, role }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ padding: "8px 4px 4px" }}>
         <div className="mono" style={{ fontSize: 9, letterSpacing: 1.5, color: "var(--t-text-mute)" }}>
-          {isDM ? "BOA NOITE, HELENA" : "BOA NOITE, MARINA"}
+          BOA NOITE
         </div>
         <h1 className="serif" style={{ fontSize: 26, fontWeight: 600, color: "var(--t-text)", margin: "4px 0 0", lineHeight: 1.1 }}>
           {isDM ? "Mesa do Mestre" : "Sua Mesa"}
@@ -159,15 +159,15 @@ const MobileDashboard = ({ setView, role }) => {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {(isDM ? [
-          { l: "Campanhas", v: "2", i: "scroll", c: "var(--t-accent)" },
-          { l: "Jogadores", v: "11", i: "users", c: "var(--t-success)" },
-          { l: "Fichas", v: "14", i: "shield", c: "var(--t-magic)" },
-          { l: "Sessões/sem", v: "3", i: "calendar", c: "var(--t-info)" },
+          { l: "Campanhas", v: CAMPAIGNS.length || "—", i: "scroll", c: "var(--t-accent)" },
+          { l: "Jogadores", v: PLAYERS.length || "—", i: "users", c: "var(--t-success)" },
+          { l: "Fichas", v: CHARACTER.name ? "1" : "—", i: "shield", c: "var(--t-magic)" },
+          { l: "Próximas sessões", v: CAMPAIGNS.some((c) => c.nextSession) ? "Agendadas" : "—", i: "calendar", c: "var(--t-info)" },
         ] : [
-          { l: "Personagem", v: "Aelar", i: "shield", c: "var(--t-accent)" },
-          { l: "PV", v: "42/42", i: "heart", c: "var(--t-danger)" },
-          { l: "Mesas", v: "2", i: "scroll", c: "var(--t-magic)" },
-          { l: "Próxima", v: "Sex 20h", i: "calendar", c: "var(--t-info)" },
+          { l: "Personagem", v: CHARACTER.name || "Nenhuma ficha", i: "shield", c: "var(--t-accent)" },
+          { l: "PV", v: CHARACTER.hp ? `${CHARACTER.hp.current}/${CHARACTER.hp.max}` : "—", i: "heart", c: "var(--t-danger)" },
+          { l: "Mesas", v: CAMPAIGNS.length || "—", i: "scroll", c: "var(--t-magic)" },
+          { l: "Próximo jogo", v: CAMPAIGNS.some((c) => c.nextSession) ? "Agendado" : "—", i: "calendar", c: "var(--t-info)" },
         ]).map((s) => (
           <div key={s.l} className="glass" style={{ padding: 12, borderRadius: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>

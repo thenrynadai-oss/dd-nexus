@@ -19,13 +19,7 @@ const Campaigns = ({ activeCampaign, setActiveCampaign }) => {
     accent: "var(--t-accent)",
   };
   const playersInCampaign = PLAYERS.slice(0, c.players || 0);
-
-  const sessions = [
-    { n: 14, title: "A Casa Sem Janelas", date: "26 abr", recap: "O grupo encontra a estalagem abandonada. Aelar identifica pegadas de ferozes; Brann descobre um alçapão sob o tapete da cozinha." },
-    { n: 13, title: "O Mensageiro de Vorlan", date: "19 abr", recap: "Encontro com Sir Tellam. Combate contra três goblins. Ysolde converte um deles." },
-    { n: 12, title: "Tempestade no Lago", date: "12 abr", recap: "Travessia perigosa. Liriel salva Pedro com Compreensão de Línguas no momento certo." },
-    { n: 11, title: "Despertar em Threwid", date: "5 abr", recap: "Início do segundo arco. Chegada à vila de Threwid. A druida adverte sobre os ferozes." },
-  ];
+  const sessions = c.sessions || [];
 
   return (
     <div data-screen-label="Campanhas">
@@ -77,27 +71,33 @@ const Campaigns = ({ activeCampaign, setActiveCampaign }) => {
             Crônicas da Campanha
           </SectionTitle>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {sessions.map((s) => (
-              <div key={s.n} className="glass" style={{ borderRadius: 14, padding: 18, display: "grid", gridTemplateColumns: "70px 1fr auto", gap: 18, alignItems: "center" }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: 12,
-                  background: "linear-gradient(135deg, var(--t-accent-tint), rgba(218,162,90,0.04))",
-                  border: "1px solid var(--t-border-strong)",
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                }}>
-                  <div className="mono" style={{ fontSize: 9, letterSpacing: 1, color: "rgba(218,180,120,0.6)" }}>SES.</div>
-                  <div className="serif" style={{ fontSize: 22, fontWeight: 600, color: "var(--t-accent-bright)", lineHeight: 1 }}>{s.n}</div>
-                </div>
-                <div>
-                  <div className="serif" style={{ fontSize: 18, fontWeight: 600, color: "var(--t-text)", marginBottom: 4 }}>{s.title}</div>
-                  <div style={{ fontSize: 12.5, color: "rgba(232,227,214,0.65)", lineHeight: 1.55 }}>{s.recap}</div>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                  <span className="mono" style={{ fontSize: 11, color: "var(--t-text-mute)" }}>{s.date}</span>
-                  <button style={{ padding: "5px 10px", borderRadius: 6, background: "transparent", border: "1px solid var(--t-border-strong)", color: "rgba(232,227,214,0.7)", fontSize: 11 }}>Abrir</button>
-                </div>
+            {sessions.length === 0 ? (
+              <div className="glass" style={{ borderRadius: 14, padding: 28, textAlign: "center", color: "var(--t-text-mute)", fontSize: 14 }}>
+                Nenhuma sessão registrada. Adicione a primeira sessão para ver o histórico aqui.
               </div>
-            ))}
+            ) : (
+              sessions.map((s) => (
+                <div key={s.n} className="glass" style={{ borderRadius: 14, padding: 18, display: "grid", gridTemplateColumns: "70px 1fr auto", gap: 18, alignItems: "center" }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: 12,
+                    background: "linear-gradient(135deg, var(--t-accent-tint), rgba(218,162,90,0.04))",
+                    border: "1px solid var(--t-border-strong)",
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <div className="mono" style={{ fontSize: 9, letterSpacing: 1, color: "rgba(218,180,120,0.6)" }}>SES.</div>
+                    <div className="serif" style={{ fontSize: 22, fontWeight: 600, color: "var(--t-accent-bright)", lineHeight: 1 }}>{s.n}</div>
+                  </div>
+                  <div>
+                    <div className="serif" style={{ fontSize: 18, fontWeight: 600, color: "var(--t-text)", marginBottom: 4 }}>{s.title}</div>
+                    <div style={{ fontSize: 12.5, color: "rgba(232,227,214,0.65)", lineHeight: 1.55 }}>{s.recap}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                    <span className="mono" style={{ fontSize: 11, color: "var(--t-text-mute)" }}>{s.date}</span>
+                    <button style={{ padding: "5px 10px", borderRadius: 6, background: "transparent", border: "1px solid var(--t-border-strong)", color: "rgba(232,227,214,0.7)", fontSize: 11 }}>Abrir</button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Campaign switcher */}
@@ -139,22 +139,8 @@ const Campaigns = ({ activeCampaign, setActiveCampaign }) => {
 
           <div>
             <SectionTitle sub="Cenas, NPCs e ganchos preparados">Caderno do Mestre</SectionTitle>
-            <div className="glass" style={{ borderRadius: 14, padding: 18 }}>
-              {[
-                { i: "users", t: "NPCs", c: 12, color: "#9d7bd8" },
-                { i: "map", t: "Locais visitados", c: 8, color: "#6da5c8" },
-                { i: "skull", t: "Vilões ativos", c: 3, color: "#c25555" },
-                { i: "feather", t: "Ganchos pendentes", c: 5, color: "var(--t-accent-bright)" },
-                { i: "coin", t: "Tesouros distribuídos", c: 7, color: "var(--t-accent)" },
-              ].map((it, i, arr) => (
-                <div key={it.t} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i === arr.length - 1 ? "none" : "1px dashed rgba(218,180,120,0.08)" }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: `${it.color}1a`, border: `1px solid ${it.color}40`, display: "flex", alignItems: "center", justifyContent: "center", color: it.color }}>
-                    <Icon name={it.i} size={14} />
-                  </div>
-                  <span style={{ flex: 1, fontSize: 13, color: "var(--t-text-soft)" }}>{it.t}</span>
-                  <span className="serif" style={{ fontSize: 18, color: "var(--t-text)", fontWeight: 600 }}>{it.c}</span>
-                </div>
-              ))}
+            <div className="glass" style={{ borderRadius: 14, padding: 28, textAlign: "center", color: "var(--t-text-mute)", fontSize: 14 }}>
+              Nenhuma informação de mestre disponível. Use notas e estatísticas de campanha para começar a documentar NPCs, locais e ganchos.
             </div>
           </div>
         </div>

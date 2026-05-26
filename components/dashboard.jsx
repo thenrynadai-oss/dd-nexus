@@ -1,6 +1,6 @@
 const Dashboard = ({ setView, setActiveCampaign, role = "mestre" }) => {
   const isDM = role === "mestre";
-  const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [] } = window.MOCK || {};
+  const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [], CHARACTER = {} } = window.MOCK || {};
   const { Pill, Btn, StatBlock, RuneDivider, Avatar, SectionTitle } = window.UI;
   const next = CAMPAIGNS[0] || {
     cover: "linear-gradient(135deg, #111 0%, #222 100%)",
@@ -73,17 +73,57 @@ const Dashboard = ({ setView, setActiveCampaign, role = "mestre" }) => {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
         {isDM ? (
           <>
-            <StatBlock label="Campanhas ativas" value="2" sub="1 pausada" accent="var(--t-accent)" />
-            <StatBlock label="Jogadores" value="11" sub="7 online agora" accent="#7ba85d" />
-            <StatBlock label="Fichas criadas" value="14" sub="6 de nível 6" accent="#9d7bd8" />
-            <StatBlock label="Próximas sessões" value="3" sub="esta semana" accent="#6da5c8" />
+            <StatBlock
+              label="Campanhas ativas"
+              value={CAMPAIGNS.length.toString()}
+              sub={CAMPAIGNS.length === 0 ? "nenhuma campanha" : `${CAMPAIGNS.length} no total`}
+              accent="var(--t-accent)"
+            />
+            <StatBlock
+              label="Jogadores"
+              value={PLAYERS.length.toString()}
+              sub={PLAYERS.length === 0 ? "nenhum jogador" : `${PLAYERS.length} jogadores`}
+              accent="#7ba85d"
+            />
+            <StatBlock
+              label="Fichas criadas"
+              value={CHARACTER.name ? "1" : "0"}
+              sub={CHARACTER.name ? "uma ficha cadastrada" : "nenhuma ficha"}
+              accent="#9d7bd8"
+            />
+            <StatBlock
+              label="Próximas sessões"
+              value="—"
+              sub="sem agendamento"
+              accent="#6da5c8"
+            />
           </>
         ) : (
           <>
-            <StatBlock label="Personagem" value="Aelar" sub="Patrulheiro · Nv. 6" accent="var(--t-accent)" />
-            <StatBlock label="PV atuais" value="42/42" sub="cheio · descanso longo" accent="#c25555" />
-            <StatBlock label="Mesas" value="2" sub="ativas em paralelo" accent="#9d7bd8" />
-            <StatBlock label="Próxima sessão" value="Sex 20h" sub="A Coroa do Lago Cinza" accent="#6da5c8" />
+            <StatBlock
+              label="Personagem"
+              value={CHARACTER.name || "Nenhum personagem"}
+              sub={CHARACTER.name ? `${CHARACTER.class || ""} · Nv. ${CHARACTER.level || 0}` : "sem ficha"}
+              accent="var(--t-accent)"
+            />
+            <StatBlock
+              label="PV atuais"
+              value={CHARACTER.hp ? `${CHARACTER.hp}/${CHARACTER.hpMax}` : "0/0"}
+              sub={CHARACTER.hp ? "status" : "sem dados"}
+              accent="#c25555"
+            />
+            <StatBlock
+              label="Mesas"
+              value={CAMPAIGNS.length.toString()}
+              sub={CAMPAIGNS.length === 0 ? "nenhuma mesa" : `${CAMPAIGNS.length} em curso`}
+              accent="#9d7bd8"
+            />
+            <StatBlock
+              label="Próxima sessão"
+              value="—"
+              sub="sem sessão marcada"
+              accent="#6da5c8"
+            />
           </>
         )}
       </div>
@@ -158,7 +198,11 @@ const Dashboard = ({ setView, setActiveCampaign, role = "mestre" }) => {
           <div>
             <SectionTitle sub="Jogadores online">Mesa</SectionTitle>
             <div className="glass" style={{ borderRadius: 16, padding: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-              {PLAYERS.slice(0, 5).map((p) => (
+              {PLAYERS.length === 0 ? (
+                <div style={{ color: "var(--t-text-mute)", fontSize: 13, textAlign: "center", padding: "24px 0" }}>
+                  Nenhum jogador disponível. Dados reais aparecerão aqui quando houver jogadores cadastrados.
+                </div>
+              ) : PLAYERS.slice(0, 5).map((p) => (
                 <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 10 }}>
                   <div style={{ position: "relative" }}>
                     <Avatar name={p.name} size={34} color={p.accent} />
@@ -182,7 +226,11 @@ const Dashboard = ({ setView, setActiveCampaign, role = "mestre" }) => {
           <div>
             <SectionTitle sub="Últimos eventos da mesa">Crônica</SectionTitle>
             <div className="glass" style={{ borderRadius: 16, padding: 18 }}>
-              {ACTIVITY.map((a, i) => (
+              {ACTIVITY.length === 0 ? (
+                <div style={{ color: "var(--t-text-mute)", fontSize: 13, textAlign: "center", padding: "28px 0" }}>
+                  Nenhuma atividade registrada. Eventos recentes aparecerão aqui quando houver histórico.
+                </div>
+              ) : ACTIVITY.map((a, i) => (
                 <div key={a.id} style={{
                   display: "flex", gap: 12, paddingBottom: i === ACTIVITY.length - 1 ? 0 : 14,
                   marginBottom: i === ACTIVITY.length - 1 ? 0 : 14,

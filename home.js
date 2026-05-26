@@ -272,6 +272,7 @@ function boot(){
 
   const MASTER_EMAILS = [];
   function isMasterUser(u){
+    if(u && u.isSupreme === true) return true;
     const email = String(u && u.email || "").trim().toLowerCase();
     return !!email && MASTER_EMAILS.includes(email);
   }
