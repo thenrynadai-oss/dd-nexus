@@ -101,16 +101,25 @@
   tabRegister.addEventListener("click", () => setMode("register"));
 
   // Upload foto (Cadastro)
-  regPhotoBtn.addEventListener("click", () => regPhotoInput.click());
+  regPhotoBtn.addEventListener("click", () => {
+    if(!regPhotoInput) return;
+    regPhotoInput.value = "";
+    regPhotoInput.click();
+  });
   regPhotoInput.addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
     if(!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.addEventListener("load", (ev) => {
       tempImg = ev.target.result;
       regPhotoPreview.style.backgroundImage = `url(${tempImg})`;
+      regPhotoPreview.style.backgroundSize = "cover";
+      regPhotoPreview.style.backgroundPosition = "center";
       regPhotoPreview.innerHTML = "";
-    };
+    });
+    reader.addEventListener("error", () => {
+      showMsg("Falha ao carregar a imagem. Tente outro arquivo.", "err");
+    });
     reader.readAsDataURL(file);
   });
 
