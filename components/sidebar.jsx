@@ -1,5 +1,9 @@
 const Sidebar = ({ view, setView, openDice, role, setRole }) => {
   const isDM = role === "mestre";
+  const user = window.Auth?.getCurrentUser() || {};
+  const userName = user.nome || (isDM ? "Mestre" : "Jogador");
+  const userApelido = user.apelido ? `@${user.apelido}` : "";
+  const userImg = user.profileImg || null;
   const dmItems = [
     { id: "dashboard", label: "Mesa", icon: "home" },
     { id: "campaigns", label: "Campanhas", icon: "scroll" },
@@ -30,21 +34,34 @@ const Sidebar = ({ view, setView, openDice, role, setRole }) => {
         borderRadius: "12px 12px 0 0",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 10,
-            background: "linear-gradient(135deg, var(--t-accent), #5a2e10)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            border: "1px solid rgba(255,220,170,0.25)",
-            boxShadow: "0 0 24px -4px var(--t-accent-glow)",
-          }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a0e04" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2 L20 7 L20 17 L12 22 L4 17 L4 7 Z" />
-              <path d="M12 8 L12 16 M8 10 L16 14 M16 10 L8 14" />
-            </svg>
-          </div>
-          <div>
-            <div className="serif" style={{ fontSize: 20, fontWeight: 600, color: "var(--t-text)", lineHeight: 1 }}>Vasteria</div>
-            <div className="mono" style={{ fontSize: 9, letterSpacing: 1.5, color: "rgba(218,180,120,0.6)", marginTop: 4 }}>MESA · v2.4</div>
+          {userImg ? (
+            <img src={userImg} style={{
+              width: 38, height: 38, borderRadius: 10, objectFit: "cover",
+              border: "1px solid var(--t-border-strong)",
+              boxShadow: "0 0 16px -4px var(--t-accent-glow)",
+            }} />
+          ) : (
+            <div style={{
+              width: 38, height: 38, borderRadius: 10,
+              background: isDM ? "linear-gradient(135deg, #6e4da0, #3a1f70)" : "linear-gradient(135deg, var(--t-accent), #5a2e10)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              border: "1px solid rgba(255,220,170,0.2)",
+              boxShadow: "0 0 16px -4px var(--t-accent-glow)",
+              fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "serif",
+            }}>
+              {userName.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase() || "?"}
+            </div>
+          )}
+          <div style={{ minWidth: 0 }}>
+            <div className="serif" style={{
+              fontSize: 17, fontWeight: 600, color: "var(--t-text)", lineHeight: 1,
+              textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap",
+            }}>{userName}</div>
+            {userApelido && (
+              <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1, color: "rgba(218,180,120,0.6)", marginTop: 4 }}>
+                {userApelido}
+              </div>
+            )}
           </div>
         </div>
 
@@ -139,10 +156,10 @@ const Sidebar = ({ view, setView, openDice, role, setRole }) => {
 
       <div style={{ padding: 14, borderTop: "1px solid var(--t-border)" }}>
         <div className="glass-soft" style={{ padding: 10, borderRadius: 12, display: "flex", alignItems: "center", gap: 10 }}>
-          <UI.Avatar name={isDM ? "Mestre" : "Jogador"} size={34} color={isDM ? "#9d7bd8" : "var(--t-accent)"} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--t-text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{isDM ? "Mestre" : "Jogador"}</div>
-            <div style={{ fontSize: 10, color: "var(--t-text-mute)" }}>{isDM ? "Sem campanha ativa" : "Sem personagem atribuído"}</div>
+            <div style={{ fontSize: 11, color: "var(--t-text-mute)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+              {isDM ? "Mestre · Sem campanha ativa" : "Jogador · Sem personagem atribuído"}
+            </div>
           </div>
           <button onClick={() => setView("settings")} style={{ background: "none", border: "none", color: "var(--t-text-mute)", padding: 4, cursor: "pointer" }}>
             <Icon name="settings" size={15} />
