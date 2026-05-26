@@ -1,8 +1,8 @@
 window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAu8BqHB-zqXKmeY2eMbTFxfd_-W9xNIbI",
-  authDomain: "vasteria-gate.firebaseapp.com",
-  projectId: "vasteria-gate",
-  storageBucket: "vasteria-gate.firebasestorage.app",
-  messagingSenderId: "732190407959",
-  appId: "1:732190407959:web:0ee5760ccdcf295c220b52"
+  apiKey: "AIzaSyC9zeCmCDloV7Xlpt83HTZ47trmQBZ0LaU",
+  authDomain: "vasteria-gate-dd.firebaseapp.com",
+  projectId: "vasteria-gate-dd",
+  storageBucket: "vasteria-gate-dd.firebasestorage.app",
+  messagingSenderId: "772207439440",
+  appId: "1:772207439440:web:1dc74c935be2ddf8672b55"
 };

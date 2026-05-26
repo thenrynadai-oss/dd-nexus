@@ -13,9 +13,9 @@
 
   function canonicalOrigin(){
     try{
-      if(location && location.hostname === "dd-nexus.vercel.app") return location.origin;
+      if(location && location.origin) return location.origin;
     }catch{}
-    return "https://dd-nexus.vercel.app";
+    return "https://vasteria-gate-dd.web.app";
   }
 
   function buildShareLink(token){
