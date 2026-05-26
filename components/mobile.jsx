@@ -123,7 +123,7 @@ const MobileShell = ({ view, setView, role, children }) => {
 };
 
 const MobileDashboard = ({ setView, role }) => {
-  const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [], CHARACTER = {} } = window.MOCK || {};
+  const { CAMPAIGNS = [], ACTIVITY = [], PLAYERS = [], CHARACTER = {} } = useAppMock();
   const { Pill, Btn } = window.UI;
   const isDM = role === "mestre";
   const next = CAMPAIGNS[0] || null;
@@ -237,7 +237,7 @@ const MobileCharacter = () => {
     abilities: [],
     attacks: [],
     skills: [],
-  } } = window.MOCK || {};
+  } } = useAppMock();
   const c = CHARACTER;
   const sign = (n) => n >= 0 ? `+${n}` : `${n}`;
   const initials = c.name ? c.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase() : "?";
@@ -346,7 +346,7 @@ const MobileCharacter = () => {
 };
 
 const MobileCampaigns = () => {
-  const { CAMPAIGNS = [] } = window.MOCK || {};
+  const { CAMPAIGNS = [] } = useAppMock();
   const { Pill } = window.UI;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -426,7 +426,7 @@ const MobileNotes = ({ role }) => {
 };
 
 const MobileCompendium = () => {
-  const { COMPENDIUM = [] } = window.MOCK || {};
+  const { COMPENDIUM = [] } = useAppMock();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ padding: "8px 4px 0" }}>

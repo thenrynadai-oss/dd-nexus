@@ -1,5 +1,5 @@
 const Compendium = () => {
-  const { COMPENDIUM = [] } = window.MOCK || {};
+  const { COMPENDIUM = [] } = useAppMock();
   const { Pill, Btn } = window.UI;
 
   const [custom, setCustom] = useState(() => {

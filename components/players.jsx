@@ -1,5 +1,5 @@
 const Players = () => {
-  const { PLAYERS = [] } = window.MOCK || {};
+  const { PLAYERS = [] } = useAppMock();
   const { Pill, Btn, Avatar, SectionTitle } = window.UI;
   const [filter, setFilter] = useState("todos");
   const [layout, setLayout] = useState("grid");

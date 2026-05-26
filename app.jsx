@@ -11,6 +11,12 @@ const App = () => {
   const [diceOpen, setDiceOpen] = React.useState(false);
 
   React.useEffect(() => {
+    if (!window.Auth?.getCurrentUser?.()) {
+      window.Auth?.requireSession?.({ redirectTo: "index.html" });
+    }
+  }, []);
+
+  React.useEffect(() => {
     document.body.setAttribute("data-theme", theme);
     try { localStorage.setItem("theme", theme); } catch {}
   }, [theme]);

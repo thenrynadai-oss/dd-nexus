@@ -130,7 +130,7 @@ const DiceTray = ({ open, onClose }) => {
     { die: "d20", roll: 1, total: 1, label: "Atletismo", time: "3m" },
   ]);
   const [rolling, setRolling] = useState(false);
-  const quickDice = window.MOCK?.QUICK_DICE || ["d4", "d6", "d8", "d10", "d12", "d20", "d100"];
+  const { QUICK_DICE = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"] } = useAppMock();
 
   const rollDie = (die) => {
     const sides = parseInt(die.slice(1));
