@@ -41,14 +41,12 @@ const SaveToast = ({ visible, leaving }) => {
         minWidth: 260,
         position: "relative", overflow: "hidden",
       }}>
-        {/* shimmer strip */}
         <div style={{
           position: "absolute", inset: 0, pointerEvents: "none",
           background: "linear-gradient(105deg, transparent 35%, rgba(218,162,90,0.12) 50%, transparent 65%)",
           backgroundSize: "200% 100%",
           animation: "shimmer-h 2.2s linear infinite",
         }} />
-        {/* ícone coroa */}
         <div style={{
           width: 40, height: 40, borderRadius: 12, flexShrink: 0,
           background: "linear-gradient(135deg, rgba(218,162,90,0.25), rgba(218,162,90,0.08))",
@@ -57,19 +55,15 @@ const SaveToast = ({ visible, leaving }) => {
           fontSize: 20,
         }}>✦</div>
         <div>
-          <div className="serif" style={{
-            fontSize: 15, fontWeight: 600, color: "var(--t-accent-bright)", lineHeight: 1.1,
-          }}>Perfil salvo</div>
-          <div style={{ fontSize: 11.5, color: "rgba(218,180,120,0.65)", marginTop: 3 }}>
-            Suas alterações foram aplicadas
-          </div>
+          <div className="serif" style={{ fontSize: 15, fontWeight: 600, color: "var(--t-accent-bright)", lineHeight: 1.1 }}>Perfil salvo</div>
+          <div style={{ fontSize: 11.5, color: "rgba(218,180,120,0.65)", marginTop: 3 }}>Suas alterações foram aplicadas</div>
         </div>
       </div>
     </div>
   );
 };
 
-// Componentes helper fora do Settings para não recriar a cada render
+// Helpers fora do Settings para não recriar a cada render
 const SettingsField = ({ label, hint, children }) => (
   <div style={{ marginBottom: 16 }}>
     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
@@ -87,8 +81,7 @@ const SettingsInput = (props) => (
     border: "1px solid var(--t-border)",
     borderRadius: 8, color: "var(--t-text)",
     fontSize: 13, fontFamily: "inherit",
-    outline: "none",
-    boxSizing: "border-box",
+    outline: "none", boxSizing: "border-box",
   }} onFocus={(e) => e.target.style.borderColor = "var(--t-border-active)"}
      onBlur={(e) => e.target.style.borderColor = "var(--t-border)"} />
 );
@@ -99,15 +92,13 @@ const SettingsToggle = ({ on, onChange, label, desc }) => (
     width: "100%", padding: "12px 14px",
     background: "rgba(0,0,0,0.2)",
     border: `1px solid ${on ? "var(--t-border-strong)" : "var(--t-border)"}`,
-    borderRadius: 10, cursor: "pointer",
-    textAlign: "left",
+    borderRadius: 10, cursor: "pointer", textAlign: "left",
   }}>
     <div style={{
       width: 38, height: 22, borderRadius: 999,
       background: on ? "var(--t-accent)" : "rgba(0,0,0,0.5)",
       border: "1px solid var(--t-border)",
-      position: "relative", flexShrink: 0,
-      transition: "background 180ms",
+      position: "relative", flexShrink: 0, transition: "background 180ms",
     }}>
       <div style={{
         position: "absolute", top: 2, left: on ? 18 : 2,
@@ -135,7 +126,10 @@ const Settings = ({ role, theme, setTheme }) => {
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [profileImg, setProfileImg] = useState(null);
-  const fileInputRef = React.useRef(null);
+  const [bannerImg, setBannerImg] = useState(null);
+  const [avatarHue, setAvatarHue] = useState(180);
+  const avatarFileRef = React.useRef(null);
+  const bannerFileRef = React.useRef(null);
 
   React.useEffect(() => {
     const u = window.Auth?.getCurrentUser() || {};
@@ -143,9 +137,9 @@ const Settings = ({ role, theme, setTheme }) => {
     if (u.apelido) setHandle(u.apelido);
     if (u.email) setEmail(u.email);
     if (u.profileImg) setProfileImg(u.profileImg);
+    if (u.bannerImg) setBannerImg(u.bannerImg);
   }, []);
-  const [pronouns, setPronouns] = useState("");
-  const [avatarHue, setAvatarHue] = useState(180);
+
   const [density, setDensity] = useState("confortável");
   const [animations, setAnimations] = useState(true);
   const [particles, setParticles] = useState(true);
@@ -158,11 +152,18 @@ const Settings = ({ role, theme, setTheme }) => {
   const [showOnline, setShowOnline] = useState(true);
   const [toast, setToast] = useState(false);
   const [toastLeaving, setToastLeaving] = useState(false);
+
   const showToast = () => {
     setToastLeaving(false);
     setToast(true);
     setTimeout(() => setToastLeaving(true), 2400);
     setTimeout(() => setToast(false), 2800);
+  };
+
+  const readFile = (file, cb) => {
+    const r = new FileReader();
+    r.onload = (ev) => cb(ev.target.result);
+    r.readAsDataURL(file);
   };
 
   const themes = [
@@ -186,45 +187,65 @@ const Settings = ({ role, theme, setTheme }) => {
     { id: "privacidade", l: "Privacidade", i: "shield" },
   ];
 
-  const initials = name ? name.split(" ").map((p) => p[0]).slice(0, 2).join("") : "US";
+  const initials = name ? name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase() : "?";
 
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-      {/* Header strip */}
-      <div className="glass" style={{
-        padding: "26px 28px", borderRadius: 16,
-        border: "1px solid var(--t-border)", marginBottom: 18,
-        display: "flex", alignItems: "center", gap: 22,
-      }}>
-        {profileImg ? (
-          <img src={profileImg} style={{
-            width: 84, height: 84, borderRadius: "50%", objectFit: "cover",
-            border: "2px solid var(--t-border-active)",
-            boxShadow: "0 0 32px -4px var(--t-accent-glow)", flexShrink: 0,
-          }} />
-        ) : (
+
+      {/* ── Header com banner estilo Discord ── */}
+      <div className="glass" style={{ borderRadius: 16, border: "1px solid var(--t-border)", marginBottom: 18, overflow: "hidden" }}>
+        {/* Banner */}
+        <div style={{
+          height: 130, position: "relative", overflow: "hidden",
+          background: bannerImg ? "transparent" : "linear-gradient(135deg, rgba(218,162,90,0.12) 0%, rgba(90,46,16,0.25) 100%)",
+        }}>
+          {bannerImg && (
+            <img src={bannerImg} style={{
+              width: "100%", height: "100%", objectFit: "cover", display: "block",
+            }} />
+          )}
           <div style={{
-            width: 84, height: 84, borderRadius: "50%",
-            background: `conic-gradient(from 180deg, hsl(${avatarHue}, 65%, 55%), hsl(${(avatarHue + 60) % 360}, 65%, 45%), hsl(${avatarHue}, 65%, 55%))`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 32, fontWeight: 700, color: "#1a0e04",
-            fontFamily: "var(--t-font-serif)",
-            border: "2px solid var(--t-border-active)",
-            boxShadow: "0 0 32px -4px var(--t-accent-glow)", flexShrink: 0,
-          }}>{initials}</div>
-        )}
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <h1 className="serif" style={{ fontSize: 30, fontWeight: 600, color: "var(--t-text)", margin: 0 }}>{name || "Usuário Vasteria"}</h1>
-            <Pill color={isDM ? "#c9b0e8" : "var(--t-accent-bright)"}>{isDM ? "MESTRA" : "JOGADORA"}</Pill>
-          </div>
-          <div className="mono" style={{ fontSize: 12, color: "var(--t-text-mute)", marginBottom: 6 }}>{handle || "@seu.usuario"} · {pronouns || "pronomes"}</div>
-          <div style={{ fontSize: 13, color: "var(--t-text-soft)", maxWidth: 620, lineHeight: 1.5 }}>{bio || "Adicione uma descrição para o seu perfil."}</div>
+            position: "absolute", inset: 0,
+            background: "linear-gradient(180deg, transparent 40%, rgba(10,7,15,0.75) 100%)",
+          }} />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 11, color: "var(--t-text-mute)" }} className="mono">
-          <span>Sem mesas ativas</span>
-          <span>Perfil limpo e pronto para uso</span>
-          <span style={{ color: "var(--t-success)" }}>● status indefinido</span>
+
+        {/* Perfil abaixo do banner */}
+        <div style={{ padding: "0 28px 22px", position: "relative" }}>
+          {/* Avatar sobreposto ao banner */}
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: -44 }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              {profileImg ? (
+                <img src={profileImg} style={{
+                  width: 86, height: 86, borderRadius: "50%", objectFit: "cover",
+                  border: "3px solid var(--t-bg-base)",
+                  boxShadow: "0 0 24px -4px var(--t-accent-glow)",
+                }} />
+              ) : (
+                <div style={{
+                  width: 86, height: 86, borderRadius: "50%",
+                  background: `conic-gradient(from 180deg, hsl(${avatarHue},65%,55%), hsl(${(avatarHue+60)%360},65%,45%), hsl(${avatarHue},65%,55%))`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 32, fontWeight: 700, color: "#1a0e04",
+                  fontFamily: "var(--t-font-serif)",
+                  border: "3px solid var(--t-bg-base)",
+                  boxShadow: "0 0 24px -4px var(--t-accent-glow)",
+                }}>{initials}</div>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 8, paddingBottom: 4 }}>
+              <Pill color={isDM ? "#c9b0e8" : "var(--t-accent-bright)"}>{isDM ? "MESTRE" : "JOGADOR"}</Pill>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <h1 className="serif" style={{ fontSize: 28, fontWeight: 600, color: "var(--t-text)", margin: "0 0 4px" }}>{name || "Usuário Vasteria"}</h1>
+            <div className="mono" style={{ fontSize: 12, color: "var(--t-text-mute)", marginBottom: 6 }}>
+              {handle ? `@${handle}` : "@seu.usuario"}
+              {email && <span style={{ marginLeft: 10, color: "rgba(218,180,120,0.45)" }}>· {email}</span>}
+            </div>
+            {bio && <div style={{ fontSize: 13, color: "var(--t-text-soft)", lineHeight: 1.5, maxWidth: 520 }}>{bio}</div>}
+          </div>
         </div>
       </div>
 
@@ -232,8 +253,7 @@ const Settings = ({ role, theme, setTheme }) => {
       <div style={{
         display: "flex", gap: 4, marginBottom: 18, padding: 4,
         background: "rgba(0,0,0,0.3)", borderRadius: 12,
-        border: "1px solid var(--t-border)",
-        overflowX: "auto",
+        border: "1px solid var(--t-border)", overflowX: "auto",
       }}>
         {Tabs.map((t) => {
           const a = tab === t.id;
@@ -244,8 +264,7 @@ const Settings = ({ role, theme, setTheme }) => {
               background: a ? "var(--t-accent-tint)" : "transparent",
               border: a ? "1px solid var(--t-border-active)" : "1px solid transparent",
               color: a ? "var(--t-accent-bright)" : "var(--t-text-mute)",
-              fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap",
-              cursor: "pointer",
+              fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer",
             }}>
               <Icon name={t.i} size={13} />{t.l}
             </button>
@@ -253,14 +272,19 @@ const Settings = ({ role, theme, setTheme }) => {
         })}
       </div>
 
-      {/* CONTA */}
+      {/* ── CONTA ── */}
       {tab === "conta" && (
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 18 }}>
+
+          {/* Identidade */}
           <div className="glass" style={{ padding: 24, borderRadius: 14, border: "1px solid var(--t-border)" }}>
             <SectionTitle>Identidade</SectionTitle>
-            <Field label="Nome de exibição"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-            <Field label="Identificador" hint="único"><Input value={handle} onChange={(e) => setHandle(e.target.value)} /></Field>
-            <Field label="Pronomes"><Input value={pronouns} onChange={(e) => setPronouns(e.target.value)} placeholder="ele/dele, ela/dela, elu/delu…" /></Field>
+            <Field label="Nome de exibição">
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
+            </Field>
+            <Field label="Identificador" hint="único">
+              <Input value={handle} onChange={(e) => setHandle(e.target.value)} />
+            </Field>
             <Field label="Bio" hint={`${bio.length}/240`}>
               <textarea value={bio} onChange={(e) => setBio(e.target.value.slice(0, 240))} rows={3} style={{
                 width: "100%", padding: "10px 12px",
@@ -268,32 +292,87 @@ const Settings = ({ role, theme, setTheme }) => {
                 border: "1px solid var(--t-border)",
                 borderRadius: 8, color: "var(--t-text)",
                 fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none",
+                boxSizing: "border-box",
               }} />
             </Field>
-            <Field label="E-mail"><Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" /></Field>
+
+            {/* Email read-only */}
+            <Field label="E-mail">
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 12px",
+                background: "rgba(0,0,0,0.15)",
+                border: "1px solid var(--t-border)",
+                borderRadius: 8,
+              }}>
+                <Icon name="shield" size={13} style={{ color: "var(--t-text-faint)", flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: "var(--t-text-mute)", flex: 1 }}>{email || "—"}</span>
+                <span className="mono" style={{ fontSize: 9.5, color: "var(--t-text-faint)", letterSpacing: 1 }}>CONTA</span>
+              </div>
+            </Field>
+
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
               <Btn onClick={() => {
-                const res = window.Auth?.updateCurrentUser({ nome: name, apelido: handle, email, profileImg });
+                const res = window.Auth?.updateCurrentUser({ nome: name, apelido: handle, profileImg, bannerImg });
                 if (res && !res.ok) { alert(res.msg || "Erro ao salvar."); return; }
                 window.dispatchEvent(new Event("vg:auth-update"));
                 showToast();
               }}>Salvar alterações</Btn>
               <Btn variant="ghost" onClick={() => {
                 const u = window.Auth?.getCurrentUser() || {};
-                setName(u.nome || ""); setHandle(u.apelido || ""); setEmail(u.email || ""); setProfileImg(u.profileImg || null);
+                setName(u.nome || "");
+                setHandle(u.apelido || "");
+                setProfileImg(u.profileImg || null);
+                setBannerImg(u.bannerImg || null);
               }}>Cancelar</Btn>
             </div>
           </div>
+
+          {/* Coluna direita */}
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+
+            {/* Banner */}
             <div className="glass" style={{ padding: 22, borderRadius: 14, border: "1px solid var(--t-border)" }}>
-              <SectionTitle>Avatar</SectionTitle>
-              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }}
+              <SectionTitle>Banner do perfil</SectionTitle>
+              <input ref={bannerFileRef} type="file" accept="image/*,image/gif" style={{ display: "none" }}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = (ev) => setProfileImg(ev.target.result);
-                  reader.readAsDataURL(file);
+                  readFile(file, setBannerImg);
+                  e.target.value = "";
+                }} />
+              {/* Preview do banner */}
+              <div style={{
+                height: 80, borderRadius: 10, marginBottom: 12, overflow: "hidden",
+                background: bannerImg ? "transparent" : "rgba(0,0,0,0.3)",
+                border: "1px solid var(--t-border)",
+                position: "relative",
+              }}>
+                {bannerImg ? (
+                  <img src={bannerImg} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 11, color: "var(--t-text-faint)" }}>sem banner</span>
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn size="sm" variant="ghost" onClick={() => bannerFileRef.current?.click()}>↑ Enviar banner</Btn>
+                {bannerImg && <Btn size="sm" variant="danger" onClick={() => setBannerImg(null)}>Remover</Btn>}
+              </div>
+              <div style={{ fontSize: 10.5, color: "var(--t-text-faint)", marginTop: 8 }}>
+                Suporta imagens e GIFs animados
+              </div>
+            </div>
+
+            {/* Avatar */}
+            <div className="glass" style={{ padding: 22, borderRadius: 14, border: "1px solid var(--t-border)" }}>
+              <SectionTitle>Ícone da conta</SectionTitle>
+              <input ref={avatarFileRef} type="file" accept="image/*,image/gif" style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  readFile(file, setProfileImg);
                   e.target.value = "";
                 }} />
               <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
@@ -305,7 +384,7 @@ const Settings = ({ role, theme, setTheme }) => {
                 ) : (
                   <div style={{
                     width: 72, height: 72, borderRadius: "50%",
-                    background: `conic-gradient(from 180deg, hsl(${avatarHue}, 65%, 55%), hsl(${(avatarHue + 60) % 360}, 65%, 45%), hsl(${avatarHue}, 65%, 55%))`,
+                    background: `conic-gradient(from 180deg, hsl(${avatarHue},65%,55%), hsl(${(avatarHue+60)%360},65%,45%), hsl(${avatarHue},65%,55%))`,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 26, fontWeight: 700, color: "#1a0e04",
                     fontFamily: "var(--t-font-serif)",
@@ -320,18 +399,25 @@ const Settings = ({ role, theme, setTheme }) => {
                     </>
                   )}
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    <Btn size="sm" variant="ghost" onClick={() => fileInputRef.current?.click()}>↑ Enviar foto</Btn>
+                    <Btn size="sm" variant="ghost" onClick={() => avatarFileRef.current?.click()}>↑ Enviar foto</Btn>
                     {profileImg && <Btn size="sm" variant="danger" onClick={() => setProfileImg(null)}>Remover</Btn>}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: "var(--t-text-faint)", marginTop: 8 }}>
+                    Suporta imagens e GIFs animados
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Senha */}
             <div className="glass" style={{ padding: 22, borderRadius: 14, border: "1px solid var(--t-border)" }}>
               <SectionTitle>Senha</SectionTitle>
               <Field label="Senha atual"><Input type="password" placeholder="••••••••" /></Field>
               <Field label="Nova senha"><Input type="password" placeholder="•••••••••" /></Field>
               <Btn size="sm">Trocar senha</Btn>
             </div>
+
+            {/* Zona de perigo */}
             <div className="glass" style={{ padding: 22, borderRadius: 14, border: "1px solid var(--t-border)" }}>
               <SectionTitle>Zona de perigo</SectionTitle>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -343,29 +429,26 @@ const Settings = ({ role, theme, setTheme }) => {
         </div>
       )}
 
-      {/* TEMA */}
+      {/* ── TEMA ── */}
       {tab === "tema" && (
         <div className="glass" style={{ padding: 24, borderRadius: 14, border: "1px solid var(--t-border)" }}>
           <SectionTitle>Tema do site</SectionTitle>
           <p style={{ fontSize: 13, color: "var(--t-text-soft)", marginBottom: 18, maxWidth: 600 }}>
-            Escolha a atmosfera da sua plataforma. Aplica em tudo: fontes, cores, animações de fundo. Você pode trocar quando quiser.
+            Escolha a atmosfera da sua plataforma. Aplica em tudo: fontes, cores, animações de fundo.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
             {themes.map((t) => {
               const a = theme === t.id;
               return (
                 <button key={t.id} onClick={() => setTheme(t.id)} style={{
-                  padding: 0, overflow: "hidden",
-                  borderRadius: 12, cursor: "pointer", textAlign: "left",
+                  padding: 0, overflow: "hidden", borderRadius: 12, cursor: "pointer", textAlign: "left",
                   border: a ? "2px solid var(--t-accent)" : "1px solid var(--t-border)",
-                  background: "rgba(0,0,0,0.3)",
-                  position: "relative",
+                  background: "rgba(0,0,0,0.3)", position: "relative",
                 }}>
                   <div style={{
                     height: 90,
                     background: `linear-gradient(135deg, ${t.c1} 0%, ${t.c2}aa 100%)`,
-                    position: "relative",
-                    display: "flex", alignItems: "flex-end", padding: 12,
+                    position: "relative", display: "flex", alignItems: "flex-end", padding: 12,
                   }}>
                     <div style={{ width: 18, height: 18, borderRadius: "50%", background: t.c2, boxShadow: `0 0 12px ${t.c2}` }} />
                     {a && <div style={{ position: "absolute", top: 8, right: 8, width: 22, height: 22, borderRadius: "50%", background: "var(--t-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "#1a0e04" }}>
@@ -392,7 +475,7 @@ const Settings = ({ role, theme, setTheme }) => {
         </div>
       )}
 
-      {/* INTERFACE */}
+      {/* ── INTERFACE ── */}
       {tab === "interface" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
           <div className="glass" style={{ padding: 22, borderRadius: 14, border: "1px solid var(--t-border)" }}>
@@ -404,8 +487,7 @@ const Settings = ({ role, theme, setTheme }) => {
                   background: density === d ? "var(--t-accent-tint)" : "rgba(0,0,0,0.2)",
                   border: density === d ? "1px solid var(--t-border-active)" : "1px solid var(--t-border)",
                   color: density === d ? "var(--t-accent-bright)" : "var(--t-text-soft)",
-                  fontSize: 13, textAlign: "left", cursor: "pointer",
-                  textTransform: "capitalize",
+                  fontSize: 13, textAlign: "left", cursor: "pointer", textTransform: "capitalize",
                 }}>{d}</button>
               ))}
             </div>
@@ -420,12 +502,12 @@ const Settings = ({ role, theme, setTheme }) => {
         </div>
       )}
 
-      {/* DADOS */}
+      {/* ── DADOS ── */}
       {tab === "dados" && (
         <div className="glass" style={{ padding: 24, borderRadius: 14, border: "1px solid var(--t-border)" }}>
           <SectionTitle>Mesa de dados</SectionTitle>
           <Toggle on={diceSound} onChange={setDiceSound} label="Som ao rolar" desc="Clique satisfatório quando os dados pousam" />
-          <div style={{ height: 12 }}></div>
+          <div style={{ height: 12 }} />
           <Field label="Estilo dos dados">
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
               {[
@@ -449,7 +531,7 @@ const Settings = ({ role, theme, setTheme }) => {
         </div>
       )}
 
-      {/* NOTIFICAÇÕES */}
+      {/* ── NOTIFICAÇÕES ── */}
       {tab === "notificações" && (
         <div className="glass" style={{ padding: 24, borderRadius: 14, border: "1px solid var(--t-border)" }}>
           <SectionTitle>Quando me avisar</SectionTitle>
@@ -461,7 +543,7 @@ const Settings = ({ role, theme, setTheme }) => {
         </div>
       )}
 
-      {/* PRIVACIDADE */}
+      {/* ── PRIVACIDADE ── */}
       {tab === "privacidade" && (
         <div className="glass" style={{ padding: 24, borderRadius: 14, border: "1px solid var(--t-border)" }}>
           <SectionTitle>Privacidade</SectionTitle>
@@ -469,7 +551,7 @@ const Settings = ({ role, theme, setTheme }) => {
             <strong style={{ color: "var(--t-accent-bright)" }}>Vasteria é privada.</strong> Só pessoas convidadas podem entrar. Suas notas, fichas e mesas ficam visíveis apenas para os participantes que você escolher.
           </div>
           <Toggle on={showOnline} onChange={setShowOnline} label="Mostrar quando estou online" desc="Outros membros das suas mesas veem o ponto verde" />
-          <div style={{ height: 14 }}></div>
+          <div style={{ height: 14 }} />
           <SectionTitle>Sessões ativas</SectionTitle>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[
@@ -480,7 +562,9 @@ const Settings = ({ role, theme, setTheme }) => {
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--t-border)", borderRadius: 10 }}>
                 <Icon name="shield" size={15} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: "var(--t-text)" }}>{s.d}{s.c && <span style={{ marginLeft: 8, fontSize: 10, color: "var(--t-success)" }}>● ATUAL</span>}</div>
+                  <div style={{ fontSize: 13, color: "var(--t-text)" }}>
+                    {s.d}{s.c && <span style={{ marginLeft: 8, fontSize: 10, color: "var(--t-success)" }}>● ATUAL</span>}
+                  </div>
                   <div style={{ fontSize: 11, color: "var(--t-text-mute)" }}>{s.t}</div>
                 </div>
                 {!s.c && <button style={{ background: "none", border: "1px solid var(--t-border)", color: "var(--t-text-mute)", padding: "5px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>desconectar</button>}
@@ -489,6 +573,7 @@ const Settings = ({ role, theme, setTheme }) => {
           </div>
         </div>
       )}
+
       <SaveToast visible={toast} leaving={toastLeaving} />
     </div>
   );
