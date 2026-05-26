@@ -6,6 +6,25 @@
 (() => {
   "use strict";
 
+  const REDIRECT_PARAM = "next";
+
+  function getRedirectTarget(){
+    try{
+      const next = new URLSearchParams(window.location.search).get(REDIRECT_PARAM);
+      if(!next) return null;
+      const target = new URL(next, window.location.href);
+      if(target.origin !== window.location.origin) return null;
+      if(target.protocol === "file:") return target.href;
+      return (target.pathname + target.search).replace(/^\/+/, "") || null;
+    }catch{
+      return null;
+    }
+  }
+
+  function redirectAfterAuth(){
+    return getRedirectTarget() || "home.html";
+  }
+
   // Theme + background
   window.addEventListener("load", async () => {
     // Aplica tema salvo, se existir
@@ -14,7 +33,7 @@
 
     // Se já estiver logado, pula para o hub
     const u = window.Auth?.getCurrentUser?.();
-    if(u) { window.location.href = "home.html"; return; }
+    if(u) { window.location.href = redirectAfterAuth(); return; }
 
     // Cloud (Firebase) — se configurado, faz auto-login
     if(window.VGCloud && VGCloud.enabled){
@@ -34,7 +53,7 @@
             provider,
           });
           window.Auth.setSessionUID(fbUser.uid);
-          window.location.href = "home.html";
+          window.location.href = redirectAfterAuth();
         }catch(e){}
       });
 
@@ -200,7 +219,7 @@
         }catch(e){}
 
         showMsg("Conta Cloud criada! Indo para o HUB…");
-        setTimeout(() => window.location.href = "home.html", 350);
+        setTimeout(() => window.location.href = redirectAfterAuth(), 350);
         return;
 
       }catch(e){
@@ -236,7 +255,7 @@
     }
 
     showMsg("Conta criada! Indo para o HUB…");
-    setTimeout(() => window.location.href = "home.html", 350);
+    setTimeout(() => window.location.href = redirectAfterAuth(), 350);
   }
 
   // Login
@@ -280,7 +299,7 @@
         }catch(e){}
 
         showMsg("Conectado no Cloud! Indo para o HUB…");
-        setTimeout(() => window.location.href = "home.html", 250);
+        setTimeout(() => window.location.href = redirectAfterAuth(), 250);
         return;
 
       }catch(e){
@@ -298,7 +317,7 @@
     }
 
     showMsg("Conectado! Indo para o HUB…");
-    setTimeout(() => window.location.href = "home.html", 250);
+    setTimeout(() => window.location.href = redirectAfterAuth(), 250);
   }
 
   btnRegister.addEventListener("click", doRegister);
@@ -327,7 +346,7 @@
       });
       window.Auth.setSessionUID(fbUser.uid);
       showMsg("Conectado com Google! Indo para o HUB…");
-      setTimeout(() => window.location.href = "home.html", 250);
+      setTimeout(() => window.location.href = redirectAfterAuth(), 250);
     }catch(e){
       console.warn(e);
       const code = (e && (e.code || e.message)) ? String(e.code || e.message) : "";
@@ -382,7 +401,7 @@
       window.Auth.setSessionUID(fbUser.uid);
 
       showMsg("Conta Google conectada! Indo para o HUB…");
-      setTimeout(() => window.location.href = "home.html", 250);
+      setTimeout(() => window.location.href = redirectAfterAuth(), 250);
     }catch(e){
       console.warn(e);
       const code = (e && (e.code || e.message)) ? String(e.code || e.message) : "";

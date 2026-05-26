@@ -135,6 +135,46 @@
     localStorage.removeItem(SESSION_KEY);
   }
 
+  const REDIRECT_PARAM = "next";
+  const LOGIN_PAGE = "index.html";
+
+  function getUrlParam(name){
+    try{ return new URLSearchParams(window.location.search).get(name); }catch{ return null; }
+  }
+
+  function normalizeRedirectTarget(raw){
+    if(!raw) return null;
+    try{
+      const url = new URL(raw, window.location.href);
+      if(url.origin !== window.location.origin) return null;
+      if(url.protocol === "file:") return url.href;
+      return (url.pathname + url.search).replace(/^\//, "") || null;
+    }catch{
+      return null;
+    }
+  }
+
+  function getRedirectTarget(){
+    return normalizeRedirectTarget(getUrlParam(REDIRECT_PARAM));
+  }
+
+  function buildLoginUrl(nextPath){
+    const url = new URL(LOGIN_PAGE, window.location.href);
+    if(nextPath) url.searchParams.set(REDIRECT_PARAM, nextPath);
+    return url.href;
+  }
+
+  function getCurrentPageName(){
+    const path = window.location.pathname || "";
+    const name = path.split("/").pop() || "";
+    return name || "index.html";
+  }
+
+  function isLoginPage(){
+    const page = getCurrentPageName().toLowerCase();
+    return page === "index.html" || page === "index.htm" || page === "";
+  }
+
   function findUserByIdentifier(users, identifier){
     const raw = (identifier || "").trim();
     if(!raw) return { idx:-1, user:null };
@@ -321,10 +361,18 @@
     return null;
   }
 
-  function requireSession({ redirectTo } = {}){
+  function requireSession(opts = {}){
+    if(typeof opts === "string") opts = { redirectTo: opts };
     const u = getCurrentUser();
     if(u) return true;
-    if(redirectTo) window.location.href = redirectTo;
+
+    const redirectTo = opts.redirectTo || LOGIN_PAGE;
+    const nextPath = window.location.pathname + window.location.search;
+    const url = new URL(redirectTo, window.location.href);
+    if(url.pathname.toLowerCase().endsWith("index.html") || url.pathname.toLowerCase().endsWith("index.htm")){
+      url.searchParams.set(REDIRECT_PARAM, nextPath);
+    }
+    window.location.href = url.href;
     return false;
   }
 
@@ -629,6 +677,20 @@ function setCurrentHeroIndex(idx){
     return { ok:true };
   }
 
+  function redirectUnauthenticatedPage(){
+    if(isLoginPage()) return;
+    if(getCurrentUser()) return;
+    const nextPath = window.location.pathname + window.location.search;
+    window.location.replace(buildLoginUrl(nextPath));
+  }
+
+  if(typeof window !== "undefined"){
+    if(document.readyState === "loading"){
+      window.addEventListener("DOMContentLoaded", redirectUnauthenticatedPage);
+    } else {
+      redirectUnauthenticatedPage();
+    }
+  }
 
   // expõe global
   window.Auth = {
