@@ -57,7 +57,6 @@ const App = () => {
           {view === "players" && <MobileDashboard setView={setView} role={role} />}
         </MobileShell>
         <ThemeAnim theme={theme} />
-        <ThemeSwitcher theme={theme} setTheme={setTheme} viewport={viewport} setViewport={setViewport} />
       </>
     );
   }
@@ -86,7 +85,6 @@ const App = () => {
 
       <UI.DiceTray open={diceOpen} onClose={() => setDiceOpen(false)} />
       <ThemeAnim theme={theme} />
-      <ThemeSwitcher theme={theme} setTheme={setTheme} viewport={viewport} setViewport={setViewport} />
     </div>
   );
 };
