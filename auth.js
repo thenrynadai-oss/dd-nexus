@@ -234,7 +234,7 @@
     if(!contactRaw) return { ok:false, msg:"Preencha Email ou Celular." };
     if(isEmail && !email.includes("@")) return { ok:false, msg:"Email inválido." };
     if(!isEmail && phone.length < 8) return { ok:false, msg:"Celular inválido." };
-    if(password.length < 4) return { ok:false, msg:"Senha muito curta (mín. 4)." };
+    if(password.length < 6) return { ok:false, msg:"Senha muito curta (mín. 6 caracteres)." };
 
     // unicidade do apelido
     if(users.some(u => normalizeNick(u.apelido) === nickKey)){

@@ -217,7 +217,13 @@
           return;
         }
 
-        showMsg("Falha ao criar conta no Cloud. " + (code ? ("Detalhe: " + code) : "Verifique email/senha e as rules do Firebase."), "err");
+        if(code.includes("auth/weak-password")){
+          showMsg("Senha muito curta. Use pelo menos 6 caracteres.", "err");
+        } else if(code.includes("auth/invalid-email")){
+          showMsg("Email inválido. Verifique e tente novamente.", "err");
+        } else {
+          showMsg("Falha ao criar conta. " + (code ? ("(" + code + ")") : "Verifique os dados e tente novamente."), "err");
+        }
         return;
       }
     }
