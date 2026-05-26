@@ -313,10 +313,12 @@ const Settings = ({ role, theme, setTheme }) => {
 
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
               <Btn onClick={() => {
-                const res = window.Auth?.updateCurrentUser({ nome: name, apelido: handle, profileImg, bannerImg });
-                if (res && !res.ok) { alert(res.msg || "Erro ao salvar."); return; }
+                if (!window.Auth) { alert("Auth não disponível. Recarregue a página."); return; }
+                const res = window.Auth.updateCurrentUser({ nome: name, apelido: handle, profileImg, bannerImg });
+                if (!res || !res.ok) { alert(res?.msg || "Erro ao salvar."); return; }
                 window.dispatchEvent(new Event("vg:auth-update"));
                 showToast();
+                setTimeout(() => window.location.reload(), 1600);
               }}>Salvar alterações</Btn>
               <Btn variant="ghost" onClick={() => {
                 const u = window.Auth?.getCurrentUser() || {};
