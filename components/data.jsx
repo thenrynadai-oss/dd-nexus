@@ -303,7 +303,7 @@ const MOCK_COMPENDIUM_SPELLS = MOCK_SPELL_LISTS.flatMap((level, lv) =>
     id: "mock_" + sp.name.toLowerCase().replace(/\s+/g, "_"),
     type: "Magia",
     name: sp.name,
-    lvl: lv === 0 ? "Truque" : `Nível ${lv}`,
+    lvl: lv === 0 ? "Truque" : `${lv}º nível`,
     school: ["Evocação","Transmutação","Ilusão","Conjuração","Necromancia","Adivinhação","Encantamento","Abjuração"][lv % 8],
     cast: lv === 0 ? "1 ação" : lv <= 3 ? "1 ação" : "1 ação (ritual)",
     range: ["Toque","9 metros","18 metros","30 metros","60 metros","90 metros","150 metros","À vista","Ilimitado","Qualquer plano"][lv],

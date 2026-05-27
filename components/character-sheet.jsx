@@ -235,9 +235,15 @@ const AddSpellModal = ({ targetLevel, onAdd, onClose }) => {
   const [query, setQuery] = React.useState("");
   const [expanded, setExpanded] = React.useState(null);
 
+  const spellLvToNum = (v) => {
+    if (v === undefined || v === null) return 0;
+    if (typeof v === "number") return v;
+    if (v === "Truque") return 0;
+    const m = String(v).match(/\d+/);
+    return m ? parseInt(m[0]) : 0;
+  };
   const filtered = allSpells.filter(s => {
-    const spLv = String(s.lvl ?? s.level ?? "0");
-    if (filterLv !== "todos" && spLv !== filterLv) return false;
+    if (filterLv !== "todos" && spellLvToNum(s.lvl ?? s.level) !== parseInt(filterLv)) return false;
     if (query && !s.name.toLowerCase().includes(query.toLowerCase())) return false;
     return true;
   });
@@ -294,7 +300,7 @@ const AddSpellModal = ({ targetLevel, onAdd, onClose }) => {
                   <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t-text)" }}>{sp.name}</div>
                   {(sp.school || sp.lvl !== undefined) && (
                     <div className="mono" style={{ fontSize: 10, color: "var(--t-text-mute)", marginTop: 2 }}>
-                      {[sp.lvl !== undefined ? (sp.lvl === 0 ? "Truque" : `Nível ${sp.lvl}`) : null, sp.school].filter(Boolean).join(" · ")}
+                      {[sp.lvl !== undefined ? (typeof sp.lvl === "string" ? sp.lvl : sp.lvl === 0 ? "Truque" : `Nível ${sp.lvl}`) : null, sp.school].filter(Boolean).join(" · ")}
                     </div>
                   )}
                 </div>
