@@ -41,13 +41,16 @@ const DEFAULT_STORE = {
 
 function loadAppStore() {
   const user = window.Auth?.getCurrentUser?.();
+  const userCompendium = Array.isArray(user?.compendium) ? user.compendium
+    : Array.isArray(user?.COMPENDIUM) ? user.COMPENDIUM : [];
+  const userIds = new Set(userCompendium.map(e => e.id));
   const store = {
     CAMPAIGNS: Array.isArray(user?.campaigns) ? user.campaigns : Array.isArray(user?.CAMPAIGNS) ? user.CAMPAIGNS : [],
     PLAYERS: Array.isArray(user?.players) ? user.players : Array.isArray(user?.PLAYERS) ? user.PLAYERS : [],
     ACTIVITY: Array.isArray(user?.activity) ? user.activity : Array.isArray(user?.ACTIVITY) ? user.ACTIVITY : [],
     CHARACTER: user?.character ? { ...DEFAULT_CHARACTER, ...user.character } : user?.CHARACTER ? { ...DEFAULT_CHARACTER, ...user.CHARACTER } : { ...DEFAULT_CHARACTER },
     QUICK_DICE: DEFAULT_STORE.QUICK_DICE,
-    COMPENDIUM: Array.isArray(user?.compendium) ? user.compendium : Array.isArray(user?.COMPENDIUM) ? user.COMPENDIUM : [],
+    COMPENDIUM: [...MOCK_COMPENDIUM_SPELLS.filter(e => !userIds.has(e.id)), ...userCompendium],
     NOTES: Array.isArray(user?.notes) ? user.notes : Array.isArray(user?.NOTES) ? user.NOTES : [],
   };
   window.MOCK = store;
