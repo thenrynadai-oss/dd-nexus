@@ -162,6 +162,153 @@ function createDefaultNote(fields = {}) {
   };
 }
 
+const MOCK_SPELL_LISTS = [
+  // Lv 0 — Truques
+  [
+    { name: "Prestidigitação", prepared: true },
+    { name: "Luz", prepared: true },
+    { name: "Chamas Sagradas", prepared: true },
+    { name: "Toque Gelado", prepared: true },
+    { name: "Raio de Gelo", prepared: true },
+    { name: "Taumaturgia", prepared: true },
+    { name: "Explosão Eldritch", prepared: true },
+    { name: "Orientação", prepared: true },
+    { name: "Produzir Chama", prepared: true },
+    { name: "Druidcraft", prepared: true },
+  ],
+  // Lv 1
+  [
+    { name: "Míssil Mágico", prepared: true },
+    { name: "Escudo", prepared: true },
+    { name: "Sono", prepared: false },
+    { name: "Bênção", prepared: true },
+    { name: "Cura de Ferimentos", prepared: true },
+    { name: "Identificar", prepared: false },
+    { name: "Armadura Mágica", prepared: true },
+    { name: "Comando", prepared: false },
+    { name: "Queda Leve", prepared: false },
+    { name: "Absorver Elementos", prepared: false },
+  ],
+  // Lv 2
+  [
+    { name: "Invisibilidade", prepared: true },
+    { name: "Teia", prepared: true },
+    { name: "Sugestão", prepared: false },
+    { name: "Levitação", prepared: true },
+    { name: "Imagem Espelhada", prepared: true },
+    { name: "Raio Ardente", prepared: false },
+    { name: "Escuridão", prepared: false },
+    { name: "Silêncio", prepared: true },
+    { name: "Força do Touro", prepared: false },
+    { name: "Detectar Pensamentos", prepared: false },
+  ],
+  // Lv 3
+  [
+    { name: "Bola de Fogo", prepared: true },
+    { name: "Relâmpago", prepared: true },
+    { name: "Voo", prepared: true },
+    { name: "Contrafeitiço", prepared: false },
+    { name: "Ressurreição Menor", prepared: true },
+    { name: "Dissipar Magia", prepared: false },
+    { name: "Luz do Dia", prepared: false },
+    { name: "Falar com Mortos", prepared: false },
+    { name: "Forma de Névoa", prepared: false },
+    { name: "Pisca-Desloca", prepared: false },
+  ],
+  // Lv 4
+  [
+    { name: "Banimento", prepared: true },
+    { name: "Polimorfismo", prepared: true },
+    { name: "Pele de Pedra", prepared: false },
+    { name: "Ilusão Maior", prepared: false },
+    { name: "Porta Dimensional", prepared: true },
+    { name: "Guardar Feitiço", prepared: false },
+    { name: "Morte Falsa", prepared: false },
+    { name: "Liberdade de Movimento", prepared: false },
+    { name: "Confusão", prepared: false },
+    { name: "Criar Alimento e Água", prepared: false },
+  ],
+  // Lv 5
+  [
+    { name: "Telecinese", prepared: true },
+    { name: "Ressurreição", prepared: true },
+    { name: "Cura em Massa", prepared: true },
+    { name: "Cone de Frio", prepared: false },
+    { name: "Dominação de Pessoa", prepared: false },
+    { name: "Transmutação de Pedra", prepared: false },
+    { name: "Prisão Mental", prepared: false },
+    { name: "Nuvem de Morte", prepared: false },
+    { name: "Animar Objetos", prepared: false },
+    { name: "Contato com Outros Planos", prepared: false },
+  ],
+  // Lv 6
+  [
+    { name: "Desintegrar", prepared: true },
+    { name: "Cadeia de Relâmpagos", prepared: true },
+    { name: "Visão Verdadeira", prepared: false },
+    { name: "Criar Mortos-Vivos", prepared: false },
+    { name: "Fome de Hadar", prepared: false },
+    { name: "Globo de Invulnerabilidade", prepared: false },
+    { name: "Mover Terra", prepared: false },
+    { name: "Dispersão de Magia em Massa", prepared: false },
+    { name: "Sunbeam", prepared: false },
+    { name: "Verdadeira Visão", prepared: false },
+  ],
+  // Lv 7
+  [
+    { name: "Teleporte", prepared: true },
+    { name: "Forma Etérea", prepared: false },
+    { name: "Dedos da Morte", prepared: false },
+    { name: "Mão Arcana", prepared: false },
+    { name: "Prisão Etérea", prepared: false },
+    { name: "Ressurreição Plena", prepared: true },
+    { name: "Reverso da Gravidade", prepared: false },
+    { name: "Símbolo", prepared: false },
+    { name: "Visão Remota", prepared: false },
+    { name: "Tempestade de Fogo", prepared: false },
+  ],
+  // Lv 8
+  [
+    { name: "Dominação de Monstro", prepared: true },
+    { name: "Terremoto", prepared: false },
+    { name: "Explosão Solar", prepared: false },
+    { name: "Labirinto", prepared: false },
+    { name: "Mente em Branco", prepared: false },
+    { name: "Clonar", prepared: false },
+    { name: "Antimagia", prepared: false },
+    { name: "Controle do Clima", prepared: false },
+    { name: "Raiva da Natureza", prepared: false },
+    { name: "Espada Relâmpago", prepared: false },
+  ],
+  // Lv 9
+  [
+    { name: "Desejo", prepared: true },
+    { name: "Parar o Tempo", prepared: false },
+    { name: "Tempestade de Vingança", prepared: false },
+    { name: "Verdadeira Ressurreição", prepared: true },
+    { name: "Portal", prepared: false },
+    { name: "Metamorfose", prepared: false },
+    { name: "Voo em Massa", prepared: false },
+    { name: "Projeção Astral", prepared: false },
+    { name: "Palavra do Poder: Matar", prepared: false },
+    { name: "Prisão de Força", prepared: false },
+  ],
+];
+
+const MOCK_COMPENDIUM_SPELLS = MOCK_SPELL_LISTS.flatMap((level, lv) =>
+  level.map(sp => ({
+    id: "mock_" + sp.name.toLowerCase().replace(/\s+/g, "_"),
+    type: "Magia",
+    name: sp.name,
+    lvl: lv === 0 ? "Truque" : `Nível ${lv}`,
+    school: ["Evocação","Transmutação","Ilusão","Conjuração","Necromancia","Adivinhação","Encantamento","Abjuração"][lv % 8],
+    cast: lv === 0 ? "1 ação" : lv <= 3 ? "1 ação" : "1 ação (ritual)",
+    range: ["Toque","9 metros","18 metros","30 metros","60 metros","90 metros","150 metros","À vista","Ilimitado","Qualquer plano"][lv],
+    duration: lv === 0 ? "Instantânea" : lv <= 2 ? "Concentração, 1 minuto" : lv <= 5 ? "Concentração, 10 minutos" : "Concentração, 1 hora",
+    desc: `${sp.name} é uma magia de ${lv === 0 ? "truque" : `nível ${lv}`} da escola de ${ ["Evocação","Transmutação","Ilusão","Conjuração","Necromancia","Adivinhação","Encantamento","Abjuração"][lv % 8] }. Consulte o livro de regras para detalhes completos.`,
+  }))
+);
+
 window.AppData = {
   load: loadAppStore,
   save: saveAppStore,
@@ -203,6 +350,22 @@ window.AppData = {
   refresh() {
     loadAppStore();
     window.dispatchEvent(new Event("vg:appdata-update"));
+  },
+  injectMockSpells() {
+    const current = loadAppStore();
+    const character = {
+      ...current.CHARACTER,
+      spellLists: MOCK_SPELL_LISTS,
+      spellcastingClass: "Mago, Clérigo",
+      spellcastingAttr: "Int",
+      spellSlots: [1,2,3,4,5,6,7,8,9].map(lv => ({ level: lv, total: Math.max(1, 5 - Math.floor(lv / 2)), used: 0 })),
+    };
+    const existingCompendium = current.COMPENDIUM || [];
+    const existingIds = new Set(existingCompendium.map(e => e.id));
+    const newEntries = MOCK_COMPENDIUM_SPELLS.filter(e => !existingIds.has(e.id));
+    const res = saveAppStore({ character, compendium: [...existingCompendium, ...newEntries] });
+    console.log("[VG] Mock spells injetados:", MOCK_SPELL_LISTS.reduce((a, l) => a + l.length, 0), "magias,", newEntries.length, "entradas no compêndio");
+    return res;
   },
 };
 
