@@ -1,3 +1,26 @@
+// ── banner resize helper ──────────────────────────────────────────────────────
+function _resizeBanner(file, maxW = 1200, maxH = 400) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = ev => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+        const w = Math.round(img.width * ratio);
+        const h = Math.round(img.height * ratio);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 const CreateCampaignModal = ({ onClose, onSave }) => {
   const systems = ["D&D 5E", "Pathfinder 2E", "Call of Cthulhu", "Savage Worlds", "Outro"];
   const coverOptions = [
@@ -8,9 +31,22 @@ const CreateCampaignModal = ({ onClose, onSave }) => {
     "linear-gradient(135deg, rgba(72,154,185,0.35), rgba(20,50,90,0.45))",
   ];
   const [form, setForm] = React.useState({
-    name: "", system: "D&D 5E", setting: "", summary: "", status: "ativa", cover: coverOptions[0],
+    name: "", system: "D&D 5E", setting: "", summary: "", status: "ativa", cover: coverOptions[0], bannerImg: "",
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const [dragging, setDragging] = React.useState(false);
+  const [bannerHover, setBannerHover] = React.useState(false);
+  const [bannerLoading, setBannerLoading] = React.useState(false);
+  const bannerRef = React.useRef();
+
+  const handleBannerFile = async (file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    setBannerLoading(true);
+    try {
+      const data = await _resizeBanner(file);
+      set("bannerImg", data);
+    } finally { setBannerLoading(false); }
+  };
 
   const handleSave = () => {
     if (!form.name.trim()) return;
@@ -33,21 +69,82 @@ const CreateCampaignModal = ({ onClose, onSave }) => {
           </button>
         </div>
 
-        {/* Cover preview */}
-        <div style={{ height: 72, borderRadius: 12, background: form.cover, marginBottom: 10, border: "1px solid var(--t-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {/* Banner upload zone */}
+        <input ref={bannerRef} type="file" accept="image/*" style={{ display: "none" }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleBannerFile(f); e.target.value = ""; }} />
+        <div
+          onClick={() => bannerRef.current?.click()}
+          onMouseEnter={() => setBannerHover(true)}
+          onMouseLeave={() => setBannerHover(false)}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files?.[0]; if (f) handleBannerFile(f); }}
+          style={{
+            height: 110, borderRadius: 14, marginBottom: 10, cursor: "pointer",
+            position: "relative", overflow: "hidden",
+            background: form.bannerImg ? `url(${form.bannerImg}) center/cover no-repeat` : form.cover,
+            border: dragging ? "1.5px dashed var(--t-accent-bright)" : "1px solid var(--t-border)",
+            transition: "border-color 150ms",
+          }}
+        >
+          {/* Gradient overlay */}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 30%, rgba(8,5,18,0.72) 100%)" }} />
+
+          {/* Campaign name */}
           {form.name && (
-            <div className="serif" style={{ fontSize: 17, color: "rgba(255,255,255,0.85)", textShadow: "0 2px 8px rgba(0,0,0,0.6)", padding: "0 16px", textAlign: "center" }}>
+            <div className="serif" style={{ position: "absolute", bottom: 10, left: 14, fontSize: 16, color: "rgba(255,255,255,0.9)", textShadow: "0 2px 8px rgba(0,0,0,0.7)" }}>
               {form.name}
             </div>
           )}
+
+          {/* Hover / drag overlay */}
+          {!bannerLoading && (bannerHover || dragging) && (
+            <div style={{
+              position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 6,
+              background: dragging ? "rgba(218,162,90,0.12)" : "rgba(0,0,0,0.35)",
+            }}>
+              <div style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(0,0,0,0.55)", border: "1px solid rgba(218,180,120,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="upload" size={16} style={{ color: "var(--t-accent-bright)" }} />
+              </div>
+              <span style={{ fontSize: 11.5, color: "rgba(218,180,120,0.85)", fontWeight: 600, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
+                {form.bannerImg ? "Trocar banner" : dragging ? "Solte aqui" : "Adicionar banner"}
+              </span>
+              <span style={{ fontSize: 10, color: "rgba(218,180,120,0.45)" }}>PNG · JPG · WEBP</span>
+            </div>
+          )}
+          {bannerLoading && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)" }}>
+              <span className="mono" style={{ fontSize: 11, color: "var(--t-accent-bright)" }}>processando…</span>
+            </div>
+          )}
+
+          {/* "add banner" hint when empty and no hover */}
+          {!form.bannerImg && (
+            <div style={{ position: "absolute", top: 10, right: 10 }}>
+              <div style={{ padding: "4px 10px", borderRadius: 8, background: "rgba(0,0,0,0.45)", border: "1px solid rgba(218,180,120,0.25)", display: "flex", alignItems: "center", gap: 5 }}>
+                <Icon name="upload" size={11} style={{ color: "rgba(218,180,120,0.6)" }} />
+                <span className="mono" style={{ fontSize: 9.5, color: "rgba(218,180,120,0.6)", letterSpacing: 0.5 }}>Banner</span>
+              </div>
+            </div>
+          )}
+          {form.bannerImg && (
+            <button
+              onClick={e => { e.stopPropagation(); set("bannerImg", ""); }}
+              style={{ position: "absolute", top: 8, right: 8, width: 26, height: 26, borderRadius: 7, background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(232,227,214,0.7)", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              title="Remover banner"
+            >✕</button>
+          )}
         </div>
+
+        {/* Gradient swatches */}
         <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
           {coverOptions.map((c, i) => (
             <button key={i} onClick={() => set("cover", c)} style={{
               width: 32, height: 32, borderRadius: 7, background: c, cursor: "pointer", flexShrink: 0,
-              border: form.cover === c ? "2px solid var(--t-accent-bright)" : "2px solid rgba(255,255,255,0.1)",
+              border: form.cover === c && !form.bannerImg ? "2px solid var(--t-accent-bright)" : "2px solid rgba(255,255,255,0.1)",
             }} />
           ))}
+          <span style={{ alignSelf: "center", fontSize: 10.5, color: "var(--t-text-faint)", marginLeft: 2 }}>cor de fundo</span>
         </div>
 
         <div style={{ marginBottom: 14 }}>
