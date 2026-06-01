@@ -1,6 +1,8 @@
 const App = () => {
   const [view, setView] = React.useState("dashboard");
-  const [role, setRole] = React.useState("mestre");
+  const [role, setRole] = React.useState(() => {
+    try { return window.Auth?.getCurrentUser?.()?.role || "mestre"; } catch { return "mestre"; }
+  });
   const [theme, setTheme] = React.useState(() => {
     try { return localStorage.getItem("theme") || "default"; } catch { return "default"; }
   });
@@ -84,7 +86,7 @@ const App = () => {
       {view === "dashboard" && <Dashboard setView={setView} setActiveCampaign={setActiveCampaign} role={role} />}
       {view === "campaigns" && <Campaigns activeCampaign={activeCampaign} setActiveCampaign={setActiveCampaign} role={role} />}
       {view === "character" && <CharacterSheet role={role} />}
-      {view === "players" && isDM && <Players setView={setView} />}
+      {view === "players" && isDM && <Players setView={setView} setRole={setRole} role={role} />}
       {view === "notes" && <Notes role={role} />}
       {view === "compendium" && <Compendium />}
       {view === "settings" && <Settings role={role} theme={theme} setTheme={setTheme} />}
