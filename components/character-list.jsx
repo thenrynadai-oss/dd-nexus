@@ -83,12 +83,35 @@ const HeroCard = ({ hero, idx, onClick }) => {
   );
 };
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+function _getLegacyChar() {
+  try {
+    const db = JSON.parse(localStorage.getItem("nexus_db") || "[]");
+    const uid = localStorage.getItem("nexus_session");
+    const user = db.find(u => u.uid === uid);
+    return user?.character || user?.CHARACTER || null;
+  } catch { return null; }
+}
+
+function _loadHeroes() {
+  // Migrate legacy user.character into heroes[] if missing
+  const heroes = window.Auth?.getHeroes?.() || [];
+  const legacy = _getLegacyChar();
+  if (legacy?.name && !heroes.some(h => h.name === legacy.name)) {
+    window.Auth?.addHero?.(legacy);
+    const updated = window.Auth?.getHeroes?.() || [];
+    window.dispatchEvent(new Event("vg:auth-update"));
+    return updated;
+  }
+  return heroes;
+}
+
 // ── CharacterList ─────────────────────────────────────────────────────────────
 const CharacterList = ({ setView, setActiveHeroIndex }) => {
-  const [heroes, setHeroes] = React.useState(() => window.Auth?.getHeroes?.() || []);
+  const [heroes, setHeroes] = React.useState(_loadHeroes);
 
   React.useEffect(() => {
-    const refresh = () => setHeroes(window.Auth?.getHeroes?.() || []);
+    const refresh = () => setHeroes(_loadHeroes());
     window.addEventListener("vg:auth-update", refresh);
     window.addEventListener("vg:appdata-update", refresh);
     return () => {
