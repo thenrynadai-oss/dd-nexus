@@ -208,10 +208,242 @@ const CreateCampaignModal = ({ onClose, onSave }) => {
   );
 };
 
+// ── session helpers ───────────────────────────────────────────────────────────
+const SESSION_TYPES = [
+  { id: "combat",      emoji: "⚔",  label: "Combate",    color: "#c25555" },
+  { id: "exploration", emoji: "🗺", label: "Exploração", color: "#7ba85d" },
+  { id: "roleplay",    emoji: "🎭", label: "Roleplay",   color: "#9d7bd8" },
+  { id: "interlude",   emoji: "🏰", label: "Interlúdio", color: "#5b87c4" },
+  { id: "climax",      emoji: "🌊", label: "Clímax",     color: "#c8933a" },
+];
+
+function _addSession(campaignId, session) {
+  const current = window.AppData?.load?.();
+  if (!current) return null;
+  const updated = (current.CAMPAIGNS || []).map(c =>
+    c.id === campaignId
+      ? { ...c, sessions: [...(Array.isArray(c.sessions) ? c.sessions : []), session] }
+      : c
+  );
+  window.AppData?.update?.("campaigns", updated);
+  window.AppData?.refresh?.();
+  return updated.find(c => c.id === campaignId) || null;
+}
+
+// ── NewSessionModal ───────────────────────────────────────────────────────────
+const NewSessionModal = ({ campaign, onClose, onSaved }) => {
+  const nextN = (Array.isArray(campaign.sessions) ? campaign.sessions.length : 0) + 1;
+  const today = new Date().toLocaleDateString("pt-BR");
+  const [form, setForm] = React.useState({
+    title: `Sessão ${nextN}`, date: today, type: "exploration",
+    recap: "", highlights: "", xp: "",
+  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSave = () => {
+    if (!form.recap.trim() && !form.title.trim()) return;
+    const session = {
+      id: `s_${Date.now()}`,
+      n: nextN,
+      title: form.title.trim() || `Sessão ${nextN}`,
+      date: form.date,
+      type: form.type,
+      recap: form.recap.trim(),
+      highlights: form.highlights.trim(),
+      xp: parseInt(form.xp) || 0,
+    };
+    const updated = _addSession(campaign.id, session);
+    if (updated) onSaved(updated);
+    onClose();
+  };
+
+  const inp = { width: "100%", padding: "10px 14px", borderRadius: 10, background: "rgba(0,0,0,0.4)", border: "1px solid var(--t-border)", color: "var(--t-text)", fontSize: 13, outline: "none", boxSizing: "border-box" };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(14px)" }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="glass-strong" style={{ width: 580, borderRadius: 24, padding: "32px 36px", maxHeight: "90vh", overflowY: "auto" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 26 }}>
+          <div>
+            <div className="serif" style={{ fontSize: 26, fontWeight: 600, color: "var(--t-text)", lineHeight: 1.1 }}>Nova Sessão</div>
+            <div className="mono" style={{ fontSize: 10, color: "rgba(218,180,120,0.5)", marginTop: 4, letterSpacing: 0.8 }}>
+              {campaign.name} · #{nextN}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--t-text-mute)", cursor: "pointer", padding: 6 }}>
+            <Icon name="close" size={18} />
+          </button>
+        </div>
+
+        {/* Title + date row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: 12, marginBottom: 18 }}>
+          <div>
+            <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>TÍTULO DA SESSÃO</div>
+            <input value={form.title} onChange={e => set("title", e.target.value)} autoFocus style={inp} placeholder={`Sessão ${nextN}`} />
+          </div>
+          <div>
+            <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>DATA</div>
+            <input value={form.date} onChange={e => set("date", e.target.value)} style={inp} placeholder="dd/mm/aaaa" />
+          </div>
+        </div>
+
+        {/* Session type */}
+        <div style={{ marginBottom: 20 }}>
+          <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 8 }}>TIPO DE SESSÃO</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {SESSION_TYPES.map(t => (
+              <button key={t.id} onClick={() => set("type", t.id)} style={{
+                padding: "7px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12.5, fontWeight: 600,
+                background: form.type === t.id ? `${t.color}22` : "rgba(0,0,0,0.3)",
+                border: `1px solid ${form.type === t.id ? t.color + "88" : "var(--t-border)"}`,
+                color: form.type === t.id ? t.color : "var(--t-text-mute)",
+                transition: "all 160ms", display: "flex", alignItems: "center", gap: 6,
+              }}>
+                <span>{t.emoji}</span> {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Recap */}
+        <div style={{ marginBottom: 16 }}>
+          <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>O QUE ROLOU — RESUMO *</div>
+          <textarea value={form.recap} onChange={e => set("recap", e.target.value)} rows={5}
+            placeholder="Narre o que aconteceu nesta sessão — batalhas, revelações, decisões importantes, NPCs encontrados..."
+            style={{ ...inp, resize: "vertical", lineHeight: 1.65, fontFamily: "inherit" }} />
+        </div>
+
+        {/* Highlights */}
+        <div style={{ marginBottom: 16 }}>
+          <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>
+            DESTAQUES <span style={{ color: "var(--t-text-faint)" }}>· opcional</span>
+          </div>
+          <textarea value={form.highlights} onChange={e => set("highlights", e.target.value)} rows={2}
+            placeholder="Momentos épicos, mortes, traições, segredos revelados..."
+            style={{ ...inp, resize: "vertical", lineHeight: 1.65, fontFamily: "inherit" }} />
+        </div>
+
+        {/* XP */}
+        <div style={{ marginBottom: 28 }}>
+          <div className="mono" style={{ fontSize: 9.5, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>
+            XP GANHO <span style={{ color: "var(--t-text-faint)" }}>· opcional</span>
+          </div>
+          <input type="number" min="0" value={form.xp} onChange={e => set("xp", e.target.value)}
+            placeholder="0" style={{ ...inp, width: 120 }} />
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={handleSave} disabled={!form.recap.trim()}
+            style={{ flex: 1, padding: "13px 0", borderRadius: 11,
+              background: form.recap.trim() ? "var(--t-accent)" : "rgba(218,162,90,0.12)",
+              border: "none", color: form.recap.trim() ? "#1a0e04" : "var(--t-text-mute)",
+              fontSize: 14, fontWeight: 700, cursor: form.recap.trim() ? "pointer" : "default" }}>
+            Registrar Sessão
+          </button>
+          <button onClick={onClose} style={{ padding: "13px 22px", borderRadius: 11, background: "transparent", border: "1px solid var(--t-border)", color: "var(--t-text-mute)", fontSize: 14, cursor: "pointer" }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── SessionCard ───────────────────────────────────────────────────────────────
+const SessionCard = ({ session, isLast }) => {
+  const [expanded, setExpanded] = React.useState(false);
+  const sType = SESSION_TYPES.find(t => t.id === session.type) || SESSION_TYPES[1];
+  const hasHighlights = !!session.highlights;
+  const hasXP = session.xp > 0;
+
+  return (
+    <div style={{ display: "flex", gap: 0, position: "relative" }}>
+      {/* Timeline */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, width: 52, paddingTop: 4 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+          background: "linear-gradient(135deg, var(--t-accent-tint), rgba(218,162,90,0.04))",
+          border: "1px solid var(--t-border-strong)",
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 0 16px -6px var(--t-accent-glow)",
+        }}>
+          <div className="mono" style={{ fontSize: 7.5, letterSpacing: 0.8, color: "rgba(218,180,120,0.5)" }}>S</div>
+          <div className="serif" style={{ fontSize: 18, fontWeight: 700, color: "var(--t-accent-bright)", lineHeight: 1 }}>{session.n}</div>
+        </div>
+        {!isLast && <div style={{ width: 1, flex: 1, minHeight: 16, background: "linear-gradient(to bottom, var(--t-border-strong), transparent)", marginTop: 6 }} />}
+      </div>
+
+      {/* Card body */}
+      <div className="glass" style={{ flex: 1, borderRadius: 14, marginLeft: 12, marginBottom: isLast ? 0 : 10, overflow: "hidden",
+        border: "1px solid var(--t-border)", transition: "border-color 160ms" }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = "var(--t-border-strong)"}
+        onMouseLeave={e => e.currentTarget.style.borderColor = "var(--t-border)"}
+      >
+        <div style={{ padding: "14px 18px" }}>
+          {/* Row 1: title + meta */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+            <div className="serif" style={{ fontSize: 17, fontWeight: 600, color: "var(--t-text)", lineHeight: 1.2 }}>
+              {session.title}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
+              {hasXP && (
+                <div className="mono" style={{ fontSize: 9.5, padding: "2px 7px", borderRadius: 10, background: "rgba(218,162,90,0.12)", border: "1px solid rgba(218,162,90,0.3)", color: "var(--t-accent-bright)", letterSpacing: 0.5 }}>
+                  +{session.xp} XP
+                </div>
+              )}
+              <div style={{ padding: "2px 9px", borderRadius: 12, fontSize: 11, fontWeight: 600,
+                background: `${sType.color}18`, border: `1px solid ${sType.color}50`, color: sType.color }}>
+                {sType.emoji} {sType.label}
+              </div>
+              <span className="mono" style={{ fontSize: 10.5, color: "var(--t-text-faint)" }}>{session.date}</span>
+            </div>
+          </div>
+
+          {/* Recap preview */}
+          <div style={{ fontSize: 13, color: "rgba(232,227,214,0.65)", lineHeight: 1.65,
+            display: expanded ? "block" : "-webkit-box", WebkitLineClamp: expanded ? "unset" : 2,
+            WebkitBoxOrient: "vertical", overflow: expanded ? "visible" : "hidden" }}>
+            {session.recap}
+          </div>
+
+          {/* Expanded content */}
+          {expanded && hasHighlights && (
+            <div style={{ marginTop: 14, padding: "12px 14px", borderRadius: 10,
+              background: "rgba(157,123,216,0.06)", border: "1px solid rgba(157,123,216,0.15)" }}>
+              <div className="mono" style={{ fontSize: 8.5, letterSpacing: 1.4, color: "rgba(157,123,216,0.6)", marginBottom: 6 }}>DESTAQUES</div>
+              <div style={{ fontSize: 12.5, color: "rgba(232,227,214,0.6)", lineHeight: 1.6 }}>{session.highlights}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Expand toggle */}
+        {(session.recap.length > 120 || hasHighlights) && (
+          <button onClick={() => setExpanded(e => !e)} style={{
+            width: "100%", padding: "8px 18px", borderTop: "1px dashed rgba(218,180,120,0.08)",
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--t-text-faint)", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            transition: "color 140ms",
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = "var(--t-accent-bright)"}
+            onMouseLeave={e => e.currentTarget.style.color = "var(--t-text-faint)"}
+          >
+            <Icon name="chevron" size={11} style={{ transform: expanded ? "rotate(-90deg)" : "rotate(90deg)", transition: "transform 200ms" }} />
+            {expanded ? "Recolher" : "Ver completo"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Campaigns ─────────────────────────────────────────────────────────────────
 const Campaigns = ({ activeCampaign, setActiveCampaign }) => {
   const { CAMPAIGNS = [], PLAYERS = [] } = useAppMock();
   const { Pill, Btn, SectionTitle, Avatar } = window.UI;
   const [showCreate, setShowCreate] = useState(false);
+  const [showSessionModal, setShowSessionModal] = useState(false);
 
   const handleCreated = (campaign) => {
     setActiveCampaign(campaign);
@@ -256,13 +488,20 @@ const Campaigns = ({ activeCampaign, setActiveCampaign }) => {
   const campaignAccent = c.accent || "var(--t-accent)";
   const levelLabel = typeof c.level === "string" ? c.level.replace("Nível ", "") : (c.level || "—");
 
+  const liveSessions = (() => {
+    const cur = window.AppData?.load?.();
+    const found = (cur?.CAMPAIGNS || []).find(x => x.id === c?.id);
+    return Array.isArray(found?.sessions) ? found.sessions : sessions;
+  })();
+
   return (
     <div data-screen-label="Campanhas">
       {showCreate && <CreateCampaignModal onClose={() => setShowCreate(false)} onSave={handleCreated} />}
+      {showSessionModal && <NewSessionModal campaign={{ ...c, sessions: liveSessions }} onClose={() => setShowSessionModal(false)} onSaved={updated => setActiveCampaign(updated)} />}
 
       {/* Active campaign hero */}
       <div className="glass" style={{ borderRadius: 22, padding: 32, marginBottom: 24, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: c.cover, opacity: 0.4 }} />
+        <div style={{ position: "absolute", inset: 0, background: c.bannerImg ? `url(${c.bannerImg}) center/cover no-repeat` : c.cover, opacity: 0.45 }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(120deg, rgba(10,7,15,0.92), rgba(10,7,15,0.4))" }} />
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 28, marginBottom: 22 }}>
@@ -280,14 +519,14 @@ const Campaigns = ({ activeCampaign, setActiveCampaign }) => {
               )}
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-              <Btn icon="play" size="lg">Iniciar Sessão {sessionCount + 1}</Btn>
+              <Btn icon="play" size="lg" onClick={() => setShowSessionModal(true)}>Registrar Sessão {liveSessions.length + 1}</Btn>
               <Btn variant="ghost" icon="map" size="sm">Mapa do mundo</Btn>
             </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
             {[
-              { l: "Sessões", v: sessionCount, i: "calendar" },
+              { l: "Sessões", v: liveSessions.length, i: "calendar" },
               { l: "Nível médio", v: levelLabel || "—", i: "crown" },
               { l: "Jogadores", v: c.players || 0, i: "users" },
               { l: "Próxima", v: c.nextSession || "—", i: "moon" },
@@ -308,33 +547,46 @@ const Campaigns = ({ activeCampaign, setActiveCampaign }) => {
       {/* Two columns */}
       <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 22 }}>
         <div>
-          <SectionTitle sub="Histórico de sessões" action={<Btn variant="ghost" icon="plus" size="sm" onClick={() => setShowCreate(true)}>Nova campanha</Btn>}>
+          <SectionTitle sub={`${liveSessions.length} sessão${liveSessions.length !== 1 ? "s" : ""} registrada${liveSessions.length !== 1 ? "s" : ""}`}
+            action={
+              <button onClick={() => setShowSessionModal(true)} style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10,
+                background: "var(--t-accent-soft)", border: "1px solid var(--t-border-strong)",
+                color: "var(--t-accent-bright)", fontSize: 12, fontWeight: 600, cursor: "pointer",
+              }}>
+                <Icon name="plus" size={12} /> Nova Sessão
+              </button>
+            }>
             Crônicas da Campanha
           </SectionTitle>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {sessions.length === 0 ? (
-              <div className="glass" style={{ borderRadius: 14, padding: 28, textAlign: "center", color: "var(--t-text-mute)", fontSize: 14 }}>
-                Nenhuma sessão registrada. Inicie a primeira sessão para começar o histórico.
-              </div>
-            ) : (
-              sessions.map(s => (
-                <div key={s.n} className="glass" style={{ borderRadius: 14, padding: 18, display: "grid", gridTemplateColumns: "70px 1fr auto", gap: 18, alignItems: "center" }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 12, background: "linear-gradient(135deg, var(--t-accent-tint), rgba(218,162,90,0.04))", border: "1px solid var(--t-border-strong)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                    <div className="mono" style={{ fontSize: 9, letterSpacing: 1, color: "rgba(218,180,120,0.6)" }}>SES.</div>
-                    <div className="serif" style={{ fontSize: 22, fontWeight: 600, color: "var(--t-accent-bright)", lineHeight: 1 }}>{s.n}</div>
-                  </div>
-                  <div>
-                    <div className="serif" style={{ fontSize: 18, fontWeight: 600, color: "var(--t-text)", marginBottom: 4 }}>{s.title}</div>
-                    <div style={{ fontSize: 12.5, color: "rgba(232,227,214,0.65)", lineHeight: 1.55 }}>{s.recap}</div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                    <span className="mono" style={{ fontSize: 11, color: "var(--t-text-mute)" }}>{s.date}</span>
-                    <button style={{ padding: "5px 10px", borderRadius: 6, background: "transparent", border: "1px solid var(--t-border-strong)", color: "rgba(232,227,214,0.7)", fontSize: 11 }}>Abrir</button>
-                  </div>
+
+          {liveSessions.length === 0 ? (
+            <div className="glass" style={{ borderRadius: 18, padding: "40px 28px", textAlign: "center", position: "relative", overflow: "hidden", border: "1px dashed rgba(218,180,120,0.12)" }}>
+              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 400px 200px at 50% 60%, rgba(218,162,90,0.04), transparent 70%)" }} />
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>📜</div>
+                <div className="serif" style={{ fontSize: 20, fontWeight: 600, color: "var(--t-text)", marginBottom: 8 }}>
+                  Nenhuma sessão registrada ainda
                 </div>
-              ))
-            )}
-          </div>
+                <div style={{ fontSize: 13, color: "var(--t-text-mute)", lineHeight: 1.6, maxWidth: 380, margin: "0 auto 22px" }}>
+                  Registre o que rolou em cada sessão — batalhas, revelações, momentos épicos — e construa a crônica da sua campanha.
+                </div>
+                <button onClick={() => setShowSessionModal(true)} style={{
+                  padding: "10px 24px", borderRadius: 11, background: "var(--t-accent-soft)",
+                  border: "1px solid var(--t-border-strong)", color: "var(--t-accent-bright)",
+                  fontSize: 13, fontWeight: 600, cursor: "pointer",
+                }}>
+                  + Registrar Primeira Sessão
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ paddingLeft: 4 }}>
+              {[...liveSessions].reverse().map((s, i) => (
+                <SessionCard key={s.id || s.n} session={s} isLast={i === liveSessions.length - 1} />
+              ))}
+            </div>
+          )}
 
           {/* Campaign switcher */}
           {CAMPAIGNS.filter(x => x.id !== c.id).length > 0 && (
