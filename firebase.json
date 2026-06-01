@@ -21,7 +21,7 @@
     ],
     "headers": [
       {
-        "source": "**/*.@(js|css|html)",
+        "source": "**/*.@(js|jsx|css|html)",
         "headers": [
           { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
         ]
