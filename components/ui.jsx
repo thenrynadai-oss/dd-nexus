@@ -158,7 +158,7 @@ const DiceTray = ({ open, onClose }) => {
         </button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 14 }}>
-        {quickDice.map((d) => (
+        {QUICK_DICE.map((d) => (
           <button key={d} onClick={() => rollDie(d)}
             style={{
               padding: "12px 0", borderRadius: 10,
