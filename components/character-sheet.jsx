@@ -161,42 +161,116 @@ const CSProfRow = ({ label, attrLabel, value, prof, expert, onToggle }) => (
 );
 
 // ─── CharacterPhotoModal ──────────────────────────────────────────────────────
+function _resizeToDataURL(file, maxSide = 800) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(maxSide / img.width, maxSide / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.88));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 const CharacterPhotoModal = ({ photo, onSave, onClose }) => {
-  const [url, setUrl] = React.useState(photo || "");
+  const [preview, setPreview] = React.useState(photo || "");
+  const [dragging, setDragging] = React.useState(false);
+  const [loading, setLoading]   = React.useState(false);
+  const fileRef = React.useRef(null);
+
+  async function handleFile(file) {
+    if (!file || !file.type.startsWith("image/")) return;
+    setLoading(true);
+    const data = await _resizeToDataURL(file);
+    setPreview(data);
+    setLoading(false);
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    handleFile(e.dataTransfer.files[0]);
+  }
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(14px)" }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="glass-strong" style={{ width: 440, borderRadius: 22, padding: 30 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <div className="serif" style={{ fontSize: 24, fontWeight: 600, color: "var(--t-text)" }}>Personalizar Personagem</div>
+      <div className="glass-strong" style={{ width: 460, borderRadius: 22, padding: 30 }}>
+
+        {/* Cabeçalho */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
+          <div className="serif" style={{ fontSize: 22, fontWeight: 600, color: "var(--t-text)" }}>Personalizar Personagem</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--t-text-mute)", cursor: "pointer", padding: 6 }}><Icon name="close" size={16} /></button>
         </div>
 
-        <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 22 }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 14, flexShrink: 0, overflow: "hidden",
-            background: "linear-gradient(135deg, rgba(218,162,90,0.12), rgba(157,123,216,0.08))",
-            border: "1px solid var(--t-border-strong)",
+        {/* Zona de drop */}
+        <div
+          onClick={() => !loading && fileRef.current?.click()}
+          onDrop={onDrop}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDragEnd={() => setDragging(false)}
+          style={{
+            height: 200, borderRadius: 14, marginBottom: 20,
+            border: `2px dashed ${dragging ? "var(--t-accent-bright)" : preview ? "var(--t-border-strong)" : "var(--t-border)"}`,
+            background: dragging
+              ? "rgba(218,162,90,0.09)"
+              : preview ? "transparent" : "rgba(218,162,90,0.025)",
+            cursor: loading ? "wait" : "pointer",
+            position: "relative", overflow: "hidden",
             display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            {url
-              ? <img src={url} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.target.style.display = "none"} />
-              : <Icon name="shield" size={26} style={{ color: "rgba(218,180,120,0.28)" }} />
-            }
-          </div>
-          <div style={{ flex: 1 }}>
-            <div className="mono" style={{ fontSize: 9, letterSpacing: 1.2, color: "var(--t-text-mute)", marginBottom: 6 }}>URL DA IMAGEM DO PERSONAGEM</div>
-            <input value={url} onChange={e => setUrl(e.target.value)}
-              placeholder="https://i.imgur.com/sua-arte.jpg"
-              style={csModalInp} />
-            <div style={{ fontSize: 10.5, color: "var(--t-text-faint)", marginTop: 6 }}>
-              Cole o link direto da imagem (imgur, discord CDN, etc.)
+            transition: "border-color 160ms, background 160ms",
+          }}
+        >
+          {loading ? (
+            <div style={{ textAlign: "center", color: "var(--t-text-mute)", fontSize: 13 }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>
+              Processando imagem…
             </div>
-          </div>
+          ) : preview ? (
+            <>
+              <img src={preview} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                onError={() => setPreview("")} />
+              {/* Overlay hover */}
+              <div className="photo-overlay" style={{
+                position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: 6,
+                background: "rgba(0,0,0,0.52)", opacity: 0, transition: "opacity 180ms",
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = 1}
+              onMouseLeave={e => e.currentTarget.style.opacity = 0}
+              >
+                <div style={{ fontSize: 22 }}>🔄</div>
+                <div style={{ color: "#fff", fontSize: 12, fontWeight: 600 }}>Trocar imagem</div>
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign: "center", pointerEvents: "none", padding: "0 24px" }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🖼️</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t-text-soft)", marginBottom: 6 }}>
+                Arraste sua imagem aqui
+              </div>
+              <div style={{ fontSize: 12.5, color: "var(--t-text-mute)", marginBottom: 4 }}>
+                ou clique para escolher um arquivo
+              </div>
+              <div style={{ fontSize: 10.5, color: "var(--t-text-faint)" }}>PNG · JPG · WEBP</div>
+            </div>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
+            onChange={e => handleFile(e.target.files[0])} />
         </div>
 
-        <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(218,162,90,0.04)", border: "1px solid var(--t-border)", marginBottom: 22 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        {/* Compartilhar - em breve */}
+        <div style={{ padding: "13px 16px", borderRadius: 12, background: "rgba(218,162,90,0.04)", border: "1px solid var(--t-border)", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
             <Icon name="share" size={13} style={{ color: "var(--t-accent)" }} />
             <div className="mono" style={{ fontSize: 9, letterSpacing: 1.2, color: "var(--t-text-mute)" }}>COMPARTILHAR FICHA</div>
           </div>
@@ -205,16 +279,20 @@ const CharacterPhotoModal = ({ photo, onSave, onClose }) => {
           </div>
         </div>
 
+        {/* Botões */}
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => onSave(url)} style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: "var(--t-accent)", border: "none", color: "#1a0e04", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+          <button onClick={() => onSave(preview)} disabled={loading || !preview}
+            style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: preview && !loading ? "var(--t-accent)" : "rgba(218,162,90,0.25)", border: "none", color: "#1a0e04", fontSize: 13, fontWeight: 700, cursor: preview && !loading ? "pointer" : "not-allowed" }}>
             Salvar foto
           </button>
           {photo && (
-            <button onClick={() => { onSave(""); }} style={{ padding: "12px 16px", borderRadius: 10, background: "transparent", border: "1px solid rgba(194,85,85,0.35)", color: "#c25555", fontSize: 13, cursor: "pointer" }}>
+            <button onClick={() => { setPreview(""); onSave(""); }}
+              style={{ padding: "12px 16px", borderRadius: 10, background: "transparent", border: "1px solid rgba(194,85,85,0.35)", color: "#c25555", fontSize: 13, cursor: "pointer" }}>
               Remover
             </button>
           )}
-          <button onClick={onClose} style={{ padding: "12px 16px", borderRadius: 10, background: "transparent", border: "1px solid var(--t-border)", color: "var(--t-text-mute)", fontSize: 13, cursor: "pointer" }}>
+          <button onClick={onClose}
+            style={{ padding: "12px 16px", borderRadius: 10, background: "transparent", border: "1px solid var(--t-border)", color: "var(--t-text-mute)", fontSize: 13, cursor: "pointer" }}>
             Cancelar
           </button>
         </div>
