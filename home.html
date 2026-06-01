@@ -143,6 +143,27 @@
     100% { transform: rotate(720deg) scale(1); opacity: 1; }
   }
 
+  @keyframes vg-save-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(18px) scale(0.93); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
+  }
+  @keyframes vg-save-out {
+    from { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.96); }
+  }
+  @keyframes vg-check-draw {
+    from { stroke-dashoffset: 16; }
+    to   { stroke-dashoffset: 0; }
+  }
+  @keyframes vg-save-bar {
+    from { width: 100%; }
+    to   { width: 0%; }
+  }
+  @keyframes vg-sparkle-spin {
+    0%, 100% { transform: rotate(0deg) scale(1); opacity: 0.5; }
+    50% { transform: rotate(180deg) scale(1.3); opacity: 0.9; }
+  }
+
   #root { min-height: 100vh; }
 </style>
 
@@ -174,7 +195,7 @@
 <script type="text/babel" src="components/topbar.jsx?v=20260601"></script>
 <script type="text/babel" src="components/dashboard.jsx?v=20260601"></script>
 <script type="text/babel" src="components/character-list.jsx?v=20260602"></script>
-<script type="text/babel" src="components/character-sheet.jsx?v=20260602"></script>
+<script type="text/babel" src="components/character-sheet.jsx?v=20260603"></script>
 <script type="text/babel" src="components/campaigns.jsx?v=20260601"></script>
 <script type="text/babel" src="components/players.jsx?v=20260602"></script>
 <script type="text/babel" src="components/compendium.jsx?v=20260601"></script>

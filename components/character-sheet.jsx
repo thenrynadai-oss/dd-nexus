@@ -501,6 +501,13 @@ const CreateCharacterModal = ({ onClose }) => {
     if (!form.name.trim()) return;
     const res = window.AppData?.createCharacter(form.name.trim(), form);
     if (!res || !res.ok) { alert(res?.msg || "Erro ao criar personagem."); return; }
+    const heroData = {
+      name: form.name.trim(), class: form.class, species: form.race,
+      background: form.background, alignment: form.alignment,
+      level: parseInt(form.level) || 1, hp: 0, hpMax: 0, ac: 10, speed: 30,
+    };
+    window.Auth?.addHero?.(heroData);
+    window.dispatchEvent(new Event("vg:auth-update"));
     onClose();
   };
   return (
@@ -608,12 +615,23 @@ const CharacterSheet = ({ heroIndex }) => {
   };
 
   const saveChar = () => {
+    let ok = false;
     if (heroIndex != null) {
       const res = window.Auth?.updateHero?.(heroIndex, char);
-      if (res?.ok) { setDirty(false); setSaved(true); setTimeout(() => setSaved(false), 2200); }
+      ok = !!res?.ok;
     } else {
+      const heroes = window.Auth?.getHeroes?.() || [];
+      const existIdx = heroes.findIndex(h => h.name === char.name);
+      if (existIdx >= 0) window.Auth?.updateHero?.(existIdx, char);
+      else if (char.name) window.Auth?.addHero?.(char);
       const res = window.AppData?.update("CHARACTER", char);
-      if (res?.ok) { setDirty(false); setSaved(true); setTimeout(() => setSaved(false), 2200); }
+      ok = !!res?.ok;
+    }
+    if (ok) {
+      window.dispatchEvent(new Event("vg:auth-update"));
+      setDirty(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2900);
     }
   };
 
@@ -1282,6 +1300,58 @@ const CharacterSheet = ({ heroIndex }) => {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Luxury save toast ─────────────────────────────────────────────── */}
+      {saved && (
+        <div style={{
+          position: "fixed", bottom: 36, left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 9999, pointerEvents: "none",
+          animation: "vg-save-in 380ms cubic-bezier(0.34,1.56,0.64,1) forwards",
+        }}>
+          <div className="glass-strong" style={{
+            padding: "16px 26px 20px", borderRadius: 22,
+            border: "1px solid rgba(218,180,120,0.3)",
+            boxShadow: "0 0 60px -12px rgba(218,162,90,0.4), 0 28px 70px -20px rgba(0,0,0,0.9)",
+            display: "flex", alignItems: "center", gap: 16,
+            minWidth: 270, position: "relative", overflow: "hidden",
+          }}>
+            {/* Ambient glow */}
+            <div style={{ position: "absolute", top: -30, left: -30, width: 100, height: 100, borderRadius: "50%", background: "rgba(218,162,90,0.1)", filter: "blur(30px)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", top: -20, right: -20, width: 70, height: 70, borderRadius: "50%", background: "rgba(123,168,93,0.08)", filter: "blur(20px)", pointerEvents: "none" }} />
+            {/* Check circle */}
+            <div style={{
+              width: 44, height: 44, borderRadius: "50%", flexShrink: 0, zIndex: 1,
+              background: "rgba(123,168,93,0.12)", border: "1px solid rgba(123,168,93,0.4)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
+                <path d="M3.5 9 L7 12.5 L14.5 5.5"
+                  stroke="#7ba85d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                  strokeDasharray="16" strokeDashoffset="16"
+                  style={{ animation: "vg-check-draw 440ms 140ms ease-out forwards" }} />
+              </svg>
+            </div>
+            {/* Text */}
+            <div style={{ zIndex: 1 }}>
+              <div className="serif" style={{ fontSize: 17, fontWeight: 600, color: "var(--t-text)", lineHeight: 1.1, letterSpacing: 0.2 }}>
+                Ficha salva
+              </div>
+              <div className="mono" style={{ fontSize: 10, color: "rgba(218,180,120,0.5)", marginTop: 4, letterSpacing: 0.6 }}>
+                {char.name}
+              </div>
+            </div>
+            {/* Sparkle */}
+            <div style={{ marginLeft: "auto", zIndex: 1, fontSize: 20, color: "rgba(218,162,90,0.55)", animation: "vg-sparkle-spin 2s ease-in-out infinite" }}>✦</div>
+            {/* Progress drain bar */}
+            <div style={{
+              position: "absolute", bottom: 0, left: 0, height: 2,
+              background: "linear-gradient(90deg, rgba(218,162,90,0.85), rgba(240,193,112,0.25))",
+              animation: "vg-save-bar 2900ms linear forwards",
+            }} />
           </div>
         </div>
       )}
