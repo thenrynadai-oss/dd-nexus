@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e1530"/>
+      <stop offset="100%" stop-color="#0c0918"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f0c84a"/>
+      <stop offset="50%" stop-color="#c8933a"/>
+      <stop offset="100%" stop-color="#8a5e18"/>
+    </linearGradient>
+    <linearGradient id="gold2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8b840"/>
+      <stop offset="100%" stop-color="#7a5010"/>
+    </linearGradient>
+  </defs>
+  <!-- Background edge-to-edge para maskable -->
+  <rect width="192" height="192" fill="url(#bg)"/>
+  <!-- Conteúdo inset na safe zone (80% = r76.8, centro 96,96) -->
+  <!-- Hexágono externo (R=72) -->
+  <polygon points="60,34 132,34 168,96 132,158 60,158 24,96"
+           fill="none" stroke="url(#gold)" stroke-width="5" stroke-linejoin="round"/>
+  <!-- Hexágono interno (R=62) -->
+  <polygon points="67,42.3 125,42.3 158,96 125,149.7 67,149.7 34,96"
+           fill="#0c0918" stroke="url(#gold)" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Estrela 8 pontas (R_out=44, R_in=16) -->
+  <polygon
+    points="96,52 101.7,76.7 127.1,62.9 112.3,84.4 140,96 112.3,107.6 127.1,129.1 101.7,115.3 96,140 90.3,115.3 64.9,129.1 79.7,107.6 52,96 79.7,84.4 64.9,62.9 90.3,76.7"
+    fill="url(#gold2)" stroke="url(#gold)" stroke-width="1.2" stroke-linejoin="round"/>
+  <line x1="96" y1="96" x2="96" y2="52"  stroke="#f0c84a" stroke-width="0.7" opacity="0.6"/>
+  <line x1="96" y1="96" x2="140" y2="96" stroke="#f0c84a" stroke-width="0.7" opacity="0.6"/>
+  <line x1="96" y1="96" x2="96" y2="140" stroke="#f0c84a" stroke-width="0.7" opacity="0.6"/>
+  <line x1="96" y1="96" x2="52" y2="96"  stroke="#f0c84a" stroke-width="0.7" opacity="0.6"/>
+  <circle cx="96" cy="96" r="7" fill="#f0c84a" opacity="0.15"/>
+</svg>

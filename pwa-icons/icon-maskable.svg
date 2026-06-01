@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#221306"/>
+      <stop offset="100%" stop-color="#0e0702"/>
+    </linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#edbb58"/>
+      <stop offset="100%" stop-color="#9b6412"/>
+    </linearGradient>
+  </defs>
+  <!-- Background sem cantos (launcher aplica o shape) -->
+  <rect width="192" height="192" fill="url(#b)"/>
+  <!-- Conteúdo dentro da safe zone (80% = raio 76.8, centro 96,96) -->
+  <!-- Portal: pilar esquerdo -->
+  <line x1="68" y1="138" x2="68" y2="94" stroke="url(#g)" stroke-width="9" stroke-linecap="round"/>
+  <!-- Portal: pilar direito -->
+  <line x1="124" y1="138" x2="124" y2="94" stroke="url(#g)" stroke-width="9" stroke-linecap="round"/>
+  <!-- Portal: arco (r=28 para gap de 56px) -->
+  <path d="M 68,94 A 28,28 0 0 0 124,94" fill="none" stroke="url(#g)" stroke-width="9" stroke-linecap="round"/>
+  <!-- Portal: base -->
+  <line x1="58" y1="138" x2="134" y2="138" stroke="url(#g)" stroke-width="7" stroke-linecap="round"/>
+  <!-- Pedra chave -->
+  <circle cx="96" cy="66" r="6" fill="#c8933a"/>
+  <circle cx="96" cy="66" r="3" fill="#1a0e04"/>
+  <!-- Letras VG -->
+  <text x="96" y="162" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="22" font-weight="bold" fill="url(#g)" letter-spacing="5">VG</text>
+</svg>

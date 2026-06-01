@@ -11,58 +11,127 @@ const Dashboard = ({ setView, setActiveCampaign, role = "mestre" }) => {
   if (!hasCampaigns) {
     return (
       <div data-screen-label="Dashboard">
-        {/* Hero de boas-vindas */}
-        <div className="glass" style={{
-          borderRadius: 22, padding: "88px 40px 80px",
-          textAlign: "center", position: "relative", overflow: "hidden",
-          minHeight: 440,
+
+        {/* ─── BANNER VASTERIA ─────────────────────────────────────── */}
+        <div style={{
+          position: "relative", borderRadius: 22, overflow: "hidden",
+          marginBottom: 20,
+          background: "linear-gradient(160deg, #130c38 0%, #0c0820 45%, #180830 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexWrap: "wrap", gap: 28, padding: "44px 48px",
+          boxShadow: "inset 0 0 80px rgba(60,20,120,0.3), 0 4px 40px rgba(0,0,0,0.6)",
+          border: "1px solid rgba(200,147,58,0.12)",
+          minHeight: 180,
         }}>
+          {/* Halo de luz */}
           <div style={{
-            position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse 700px 500px at 50% 40%, rgba(218,162,90,0.07), transparent 70%)",
+            position: "absolute", inset: 0, pointerEvents: "none",
+            background: "radial-gradient(ellipse 70% 80% at 50% 50%, rgba(90,40,180,0.2), transparent 70%)",
           }} />
+
+          {/* Logo hexágono */}
+          <div style={{ position: "relative", zIndex: 1, flexShrink: 0 }}>
+            {isDM ? (
+              /* Estrela 8 pontas — Mesa do Mestre */
+              <svg width="110" height="110" viewBox="0 0 192 192">
+                <defs>
+                  <linearGradient id="mg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f0c84a"/>
+                    <stop offset="50%" stopColor="#c8933a"/>
+                    <stop offset="100%" stopColor="#8a5e18"/>
+                  </linearGradient>
+                  <linearGradient id="mg2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#e8b840"/>
+                    <stop offset="100%" stopColor="#7a5010"/>
+                  </linearGradient>
+                </defs>
+                <polygon points="54,24 138,24 180,96 138,168 54,168 12,96"
+                  fill="none" stroke="url(#mg)" strokeWidth="6" strokeLinejoin="round"/>
+                <polygon points="60,34 132,34 168,96 132,158 60,158 24,96"
+                  fill="rgba(12,9,24,0.85)" stroke="url(#mg)" strokeWidth="3" strokeLinejoin="round"/>
+                <polygon
+                  points="96,44 102.7,82.5 132.8,59.2 109.5,90.1 148,96 109.5,101.9 132.8,132.8 102.7,109.5 96,148 89.3,109.5 59.2,132.8 82.5,102.7 44,96 82.5,89.3 59.2,59.2 89.3,82.5"
+                  fill="url(#mg2)" stroke="url(#mg)" strokeWidth="1.5" strokeLinejoin="round"/>
+                <line x1="96" y1="96" x2="96" y2="44" stroke="#f0c84a" strokeWidth="1" opacity="0.6"/>
+                <line x1="96" y1="96" x2="148" y2="96" stroke="#f0c84a" strokeWidth="1" opacity="0.6"/>
+                <line x1="96" y1="96" x2="96" y2="148" stroke="#f0c84a" strokeWidth="1" opacity="0.6"/>
+                <line x1="96" y1="96" x2="44" y2="96" stroke="#f0c84a" strokeWidth="1" opacity="0.6"/>
+                <line x1="96" y1="96" x2="132.8" y2="59.2" stroke="#f0c84a" strokeWidth="1" opacity="0.35"/>
+                <line x1="96" y1="96" x2="132.8" y2="132.8" stroke="#f0c84a" strokeWidth="1" opacity="0.35"/>
+                <line x1="96" y1="96" x2="59.2" y2="132.8" stroke="#f0c84a" strokeWidth="1" opacity="0.35"/>
+                <line x1="96" y1="96" x2="59.2" y2="59.2" stroke="#f0c84a" strokeWidth="1" opacity="0.35"/>
+              </svg>
+            ) : (
+              /* D20 — Mesa do Jogador */
+              <svg width="110" height="110" viewBox="0 0 192 192">
+                <defs>
+                  <linearGradient id="jg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f0c84a"/>
+                    <stop offset="50%" stopColor="#c8933a"/>
+                    <stop offset="100%" stopColor="#8a5e18"/>
+                  </linearGradient>
+                </defs>
+                <polygon points="54,24 138,24 180,96 138,168 54,168 12,96"
+                  fill="none" stroke="url(#jg)" strokeWidth="6" strokeLinejoin="round"/>
+                <polygon points="60,34 132,34 168,96 132,158 60,158 24,96"
+                  fill="rgba(12,9,24,0.85)" stroke="url(#jg)" strokeWidth="3" strokeLinejoin="round"/>
+                {/* Círculo do dado */}
+                <circle cx="96" cy="96" r="52" fill="none" stroke="url(#jg)" strokeWidth="2"/>
+                {/* Pentágono central */}
+                <polygon points="96,74 116.9,89.2 108.9,113.8 83.1,113.8 75.1,89.2"
+                  fill="none" stroke="url(#jg)" strokeWidth="2"/>
+                {/* 5 triângulos do pentágono aos vértices externos */}
+                <line x1="96" y1="74" x2="96" y2="44" stroke="url(#jg)" strokeWidth="1.5"/>
+                <line x1="116.9" y1="89.2" x2="145.5" y2="79.9" stroke="url(#jg)" strokeWidth="1.5"/>
+                <line x1="108.9" y1="113.8" x2="126.6" y2="138.1" stroke="url(#jg)" strokeWidth="1.5"/>
+                <line x1="83.1" y1="113.8" x2="65.4" y2="138.1" stroke="url(#jg)" strokeWidth="1.5"/>
+                <line x1="75.1" y1="89.2" x2="46.5" y2="79.9" stroke="url(#jg)" strokeWidth="1.5"/>
+                {/* Arestas externas do dado */}
+                <line x1="96" y1="44" x2="145.5" y2="79.9" stroke="url(#jg)" strokeWidth="1" opacity="0.55"/>
+                <line x1="145.5" y1="79.9" x2="126.6" y2="138.1" stroke="url(#jg)" strokeWidth="1" opacity="0.55"/>
+                <line x1="126.6" y1="138.1" x2="96" y2="148" stroke="url(#jg)" strokeWidth="1" opacity="0.55"/>
+                <line x1="96" y1="148" x2="65.4" y2="138.1" stroke="url(#jg)" strokeWidth="1" opacity="0.55"/>
+                <line x1="65.4" y1="138.1" x2="46.5" y2="79.9" stroke="url(#jg)" strokeWidth="1" opacity="0.55"/>
+                <line x1="46.5" y1="79.9" x2="96" y2="44" stroke="url(#jg)" strokeWidth="1" opacity="0.55"/>
+                {/* Números */}
+                <text x="96" y="68" textAnchor="middle" fill="#c8933a" fontSize="11" fontFamily="sans-serif" opacity="0.85">18</text>
+                <text x="122" y="96" textAnchor="middle" fill="#c8933a" fontSize="10" fontFamily="sans-serif" opacity="0.7">7</text>
+                <text x="112" y="132" textAnchor="middle" fill="#c8933a" fontSize="10" fontFamily="sans-serif" opacity="0.7">2</text>
+                <text x="80" y="132" textAnchor="middle" fill="#c8933a" fontSize="10" fontFamily="sans-serif" opacity="0.7">8</text>
+                <text x="70" y="96" textAnchor="middle" fill="#c8933a" fontSize="10" fontFamily="sans-serif" opacity="0.7">14</text>
+                {/* 20 central */}
+                <text x="96" y="105" textAnchor="middle" fill="#f0c84a" fontSize="20" fontFamily="sans-serif" fontWeight="bold">20</text>
+              </svg>
+            )}
+          </div>
+
+          {/* Texto VASTERIA + subtítulo */}
           <div style={{ position: "relative", zIndex: 1 }}>
             <div style={{
-              width: 80, height: 80, borderRadius: 20, margin: "0 auto 28px",
-              background: "linear-gradient(135deg, var(--t-accent-tint), var(--t-accent-soft))",
-              border: "1px solid var(--t-border-strong)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 0 40px -10px var(--t-accent-glow)",
-              animation: "float-soft 6s ease-in-out infinite",
-            }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
-                stroke="var(--t-accent-bright)" strokeWidth="1.5"
-                strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2 L20 7 L20 17 L12 22 L4 17 L4 7 Z" />
-                <path d="M12 8 L12 16 M8 10 L16 14 M16 10 L8 14" />
-              </svg>
-            </div>
-
-            <h1 className="serif" style={{
-              fontSize: 42, fontWeight: 600, color: "var(--t-text)",
-              margin: "0 0 16px", lineHeight: 1.1,
-            }}>
-              Bem-vindo ao Vasteria
-            </h1>
-
-            <p style={{
-              fontSize: 16, color: "var(--t-text-mute)", lineHeight: 1.7,
-              maxWidth: 460, margin: "0 auto 36px",
-            }}>
-              Sua mesa de RPG digital está pronta.<br />
-              Comece criando sua primeira campanha ou personagem.
-            </p>
-
-            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-              <Btn icon="plus" onClick={() => setView("campaigns")}>Nova campanha</Btn>
-              <Btn variant="ghost" icon="shield" onClick={() => setView("character")}>Criar personagem</Btn>
-              <Btn variant="ghost" icon="book" onClick={() => setView("compendium")}>Explorar compêndio</Btn>
-            </div>
+              fontFamily: "'Cinzel', 'Georgia', serif",
+              fontSize: "clamp(36px, 6vw, 70px)", fontWeight: 700,
+              letterSpacing: "0.06em",
+              background: "linear-gradient(180deg, #f0c84a 0%, #c8933a 55%, #8a5e18 100%)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              lineHeight: 1, marginBottom: 8,
+            }}>VASTERIA</div>
+            <div style={{
+              fontFamily: "'IM Fell English', 'Georgia', serif",
+              fontSize: "clamp(13px, 2vw, 20px)", fontStyle: "italic",
+              background: "linear-gradient(180deg, #d4a030 0%, #8a5e18 100%)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              letterSpacing: "0.05em",
+            }}>{isDM ? "Mesa do Mestre" : "Mesa do Jogador"}</div>
           </div>
+
+          {/* Diamante decorativo */}
+          <div style={{ position: "absolute", right: 22, bottom: 18, color: "rgba(200,147,58,0.45)", fontSize: 18, zIndex: 1 }}>✦</div>
         </div>
 
-        {/* 3 cards de acesso rápido */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 20 }}>
+        {/* ─── GRID DE AÇÕES ───────────────────────────────────────── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
           {[
             { icon: "scroll", label: "Campanhas", desc: "Crie e gerencie suas mesas de jogo", action: () => setView("campaigns") },
             { icon: "shield", label: "Personagens", desc: "Fichas, atributos e habilidades", action: () => setView("character") },

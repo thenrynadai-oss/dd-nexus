@@ -1,0 +1,42 @@
+{
+  "name": "Vasteria Gate",
+  "short_name": "Vasteria",
+  "description": "Portal D&D — fichas de personagem, biblioteca e campanhas",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0e0702",
+  "theme_color": "#c8933a",
+  "orientation": "any",
+  "lang": "pt-BR",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "/pwa-icons/vasteria-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icons/vasteria-logo-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Minha Ficha",
+      "short_name": "Ficha",
+      "description": "Abrir ficha de personagem",
+      "url": "/home.html?tab=ficha"
+    },
+    {
+      "name": "Compêndio",
+      "short_name": "Compêndio",
+      "description": "Abrir compêndio de magias e regras",
+      "url": "/home.html?tab=compendium"
+    }
+  ]
+}

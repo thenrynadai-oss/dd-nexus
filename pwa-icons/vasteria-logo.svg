@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e1530"/>
+      <stop offset="100%" stop-color="#0c0918"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f0c84a"/>
+      <stop offset="50%" stop-color="#c8933a"/>
+      <stop offset="100%" stop-color="#8a5e18"/>
+    </linearGradient>
+    <linearGradient id="gold2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8b840"/>
+      <stop offset="100%" stop-color="#7a5010"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="192" height="192" rx="36" fill="url(#bg)"/>
+
+  <!-- Hexágono externo (flat-top, R=84) -->
+  <!-- Vertices: L(12,96) TL(54,23) TR(138,23) R(180,96) BR(138,169) BL(54,169) -->
+  <polygon points="54,24 138,24 180,96 138,168 54,168 12,96"
+           fill="none" stroke="url(#gold)" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Hexágono interno (R=72) -->
+  <!-- Vertices: L(24,96) TL(60,33.6) TR(132,33.6) R(168,96) BR(132,158.4) BL(60,158.4) -->
+  <polygon points="60,34 132,34 168,96 132,158 60,158 24,96"
+           fill="#0c0918" stroke="url(#gold)" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- Estrela de 8 pontas (16 pontos alternando R_out=52 e R_in=19) -->
+  <!-- Calculados com centro (96,96), pontos externos em múltiplos de 45° a partir de -90° -->
+  <!-- Externos: 96,44 | 132.8,59.2 | 148,96 | 132.8,132.8 | 96,148 | 59.2,132.8 | 44,96 | 59.2,59.2 -->
+  <!-- Internos (R=19, offset 22.5°): 102.7,82.5 | 109.5,90.1 | 109.5,101.9 | 102.7,109.5 | 89.3,109.5 | 82.5,102.7 | 82.5,89.3 | 89.3,82.5 -->
+  <polygon
+    points="96,44 102.7,82.5 132.8,59.2 109.5,90.1 148,96 109.5,101.9 132.8,132.8 102.7,109.5 96,148 89.3,109.5 59.2,132.8 82.5,102.7 44,96 82.5,89.3 59.2,59.2 89.3,82.5"
+    fill="url(#gold2)" stroke="url(#gold)" stroke-width="1.5" stroke-linejoin="round"/>
+
+  <!-- Linhas de profundidade internas da estrela (do centro às pontas) -->
+  <line x1="96" y1="96" x2="96" y2="44"  stroke="#f0c84a" stroke-width="0.8" opacity="0.6"/>
+  <line x1="96" y1="96" x2="148" y2="96" stroke="#f0c84a" stroke-width="0.8" opacity="0.6"/>
+  <line x1="96" y1="96" x2="96" y2="148" stroke="#f0c84a" stroke-width="0.8" opacity="0.6"/>
+  <line x1="96" y1="96" x2="44" y2="96"  stroke="#f0c84a" stroke-width="0.8" opacity="0.6"/>
+  <line x1="96" y1="96" x2="132.8" y2="59.2"  stroke="#f0c84a" stroke-width="0.8" opacity="0.4"/>
+  <line x1="96" y1="96" x2="132.8" y2="132.8" stroke="#f0c84a" stroke-width="0.8" opacity="0.4"/>
+  <line x1="96" y1="96" x2="59.2" y2="132.8"  stroke="#f0c84a" stroke-width="0.8" opacity="0.4"/>
+  <line x1="96" y1="96" x2="59.2" y2="59.2"   stroke="#f0c84a" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- Brilho sutil no centro -->
+  <circle cx="96" cy="96" r="8" fill="#f0c84a" opacity="0.15"/>
+</svg>

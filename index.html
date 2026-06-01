@@ -4,6 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Vasteria Gate — Portal</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#c8933a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Vasteria" />
+  <link rel="icon" type="image/svg+xml" href="/pwa-icons/vasteria-logo.svg" />
+  <link rel="apple-touch-icon" href="/pwa-icons/vasteria-logo.svg" />
+
   <link rel="stylesheet" href="global.css" />
   <link rel="stylesheet" href="auth.css" />
 
@@ -122,5 +133,13 @@
   <script src="themes.js?v=20260508"></script>
   <script src="bg.js?v=20260508"></script>
   <script src="index.js?v=20260508"></script>
+
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+  </script>
 </body>
 </html>

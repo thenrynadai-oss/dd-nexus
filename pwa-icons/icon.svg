@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#221306"/>
+      <stop offset="100%" stop-color="#0e0702"/>
+    </linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#edbb58"/>
+      <stop offset="100%" stop-color="#9b6412"/>
+    </linearGradient>
+  </defs>
+  <!-- Background com cantos arredondados -->
+  <rect width="192" height="192" rx="36" fill="url(#b)"/>
+  <!-- Moldura externa sutil -->
+  <rect x="8" y="8" width="176" height="176" rx="30" fill="none" stroke="#c8933a" stroke-width="2" opacity="0.45"/>
+  <!-- Portal: pilar esquerdo -->
+  <line x1="64" y1="136" x2="64" y2="90" stroke="url(#g)" stroke-width="10" stroke-linecap="round"/>
+  <!-- Portal: pilar direito -->
+  <line x1="128" y1="136" x2="128" y2="90" stroke="url(#g)" stroke-width="10" stroke-linecap="round"/>
+  <!-- Portal: arco -->
+  <path d="M 64,90 A 32,32 0 0 0 128,90" fill="none" stroke="url(#g)" stroke-width="10" stroke-linecap="round"/>
+  <!-- Portal: base -->
+  <line x1="52" y1="136" x2="140" y2="136" stroke="url(#g)" stroke-width="7" stroke-linecap="round"/>
+  <!-- Pedra chave no topo do arco -->
+  <circle cx="96" cy="58" r="7" fill="#c8933a"/>
+  <circle cx="96" cy="58" r="3.5" fill="#1a0e04"/>
+  <!-- Letras VG -->
+  <text x="96" y="164" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="24" font-weight="bold" fill="url(#g)" letter-spacing="5">VG</text>
+</svg>
