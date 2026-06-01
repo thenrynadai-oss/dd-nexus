@@ -81,7 +81,8 @@ const App = () => {
           if (r === "jogador" && view === "players") setView("dashboard");
         }}
       />
-      <TopBar title={tt.t} subtitle={tt.s} breadcrumbs={tt.b} openDice={() => setDiceOpen(true)} role={role} />
+      <TopBar title={tt.t} subtitle={tt.s} breadcrumbs={tt.b} openDice={() => setDiceOpen(true)} role={role}
+    onBack={view === "character" ? () => setView("dashboard") : null} />
 
       {view === "dashboard" && <Dashboard setView={setView} setActiveCampaign={setActiveCampaign} role={role} />}
       {view === "campaigns" && <Campaigns activeCampaign={activeCampaign} setActiveCampaign={setActiveCampaign} role={role} />}

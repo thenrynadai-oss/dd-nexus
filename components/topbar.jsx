@@ -1,4 +1,4 @@
-const TopBar = ({ title, subtitle, breadcrumbs = [], openDice }) => {
+const TopBar = ({ title, subtitle, breadcrumbs = [], openDice, onBack }) => {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -6,7 +6,23 @@ const TopBar = ({ title, subtitle, breadcrumbs = [], openDice }) => {
       gap: 16,
     }} className="glass" >
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        {breadcrumbs.length > 0 && (
+        {onBack ? (
+          <button
+            onClick={onBack}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--t-border-strong)"; e.currentTarget.style.color = "var(--t-text)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--t-border)"; e.currentTarget.style.color = "var(--t-text-mute)"; }}
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              padding: "6px 12px", borderRadius: 9,
+              background: "rgba(218,162,90,0.05)", border: "1px solid var(--t-border)",
+              color: "var(--t-text-mute)", fontSize: 12, fontWeight: 600, cursor: "pointer",
+              transition: "border-color 160ms, color 160ms", flexShrink: 0,
+            }}
+          >
+            <Icon name="chevron" size={12} style={{ transform: "rotate(180deg)", display: "block" }} />
+            Voltar
+          </button>
+        ) : breadcrumbs.length > 0 && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--t-text-mute)" }} className="mono">
             {breadcrumbs.map((b, i) => (
               <React.Fragment key={i}>
