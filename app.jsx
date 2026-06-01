@@ -10,6 +10,7 @@ const App = () => {
     return window.innerWidth < 768 ? "mobile" : "desktop";
   });
   const [activeCampaign, setActiveCampaign] = React.useState(null);
+  const [activeHeroIndex, setActiveHeroIndex] = React.useState(null);
   const [diceOpen, setDiceOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -44,6 +45,7 @@ const App = () => {
   const titles = {
     dashboard: { t: isDM ? "Mesa do Mestre" : "Sua Mesa", s: isDM ? "Visão geral das suas campanhas e jogadores" : "Suas campanhas e personagem", b: ["Vasteria"] },
     campaigns: { t: "Campanhas", s: isDM ? "Suas mesas e crônicas" : "Mesas em que você joga", b: ["Vasteria", "Mesas"] },
+    "hero-list": { t: "Fichas de Personagem", s: "Selecione ou crie um personagem para aventurar", b: ["Vasteria", "Fichas"] },
     character: { t: isDM ? "Ficha de Personagem" : "Minha Ficha", s: "Atributos, habilidades e inventário do personagem", b: ["Vasteria", "Fichas"] },
     players: { t: "Jogadores", s: "Aventureiros das suas mesas", b: ["Vasteria", "Pessoas"] },
     notes: { t: isDM ? "Caderno do Mestre" : "Minhas Anotações", s: isDM ? "Notas, NPCs, segredos e ganchos" : "Suas notas pessoais e compartilhadas", b: ["Vasteria", "Anotações"] },
@@ -82,11 +84,12 @@ const App = () => {
         }}
       />
       <TopBar title={tt.t} subtitle={tt.s} breadcrumbs={tt.b} openDice={() => setDiceOpen(true)} role={role}
-    onBack={view === "character" ? () => setView("dashboard") : null} />
+    onBack={view === "character" ? () => setView("hero-list") : null} />
 
       {view === "dashboard" && <Dashboard setView={setView} setActiveCampaign={setActiveCampaign} role={role} />}
       {view === "campaigns" && <Campaigns activeCampaign={activeCampaign} setActiveCampaign={setActiveCampaign} role={role} />}
-      {view === "character" && <CharacterSheet role={role} />}
+      {view === "hero-list" && <CharacterList setView={setView} setActiveHeroIndex={setActiveHeroIndex} />}
+      {view === "character" && <CharacterSheet heroIndex={activeHeroIndex} role={role} />}
       {view === "players" && isDM && <Players setView={setView} setRole={setRole} role={role} />}
       {view === "notes" && <Notes role={role} />}
       {view === "compendium" && <Compendium />}

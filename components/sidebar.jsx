@@ -12,7 +12,7 @@ const Sidebar = ({ view, setView, openDice, role, setRole }) => {
   const dmItems = [
     { id: "dashboard", label: "Mesa", icon: "home" },
     { id: "campaigns", label: "Campanhas", icon: "scroll" },
-    { id: "character", label: "Ficha", icon: "shield" },
+    { id: "hero-list", label: "Fichas", icon: "shield" },
     { id: "players", label: "Jogadores", icon: "users" },
     { id: "notes", label: "Anotações", icon: "feather" },
     { id: "compendium", label: "Compêndio", icon: "book" },
@@ -20,7 +20,7 @@ const Sidebar = ({ view, setView, openDice, role, setRole }) => {
   ];
   const playerItems = [
     { id: "dashboard", label: "Mesa", icon: "home" },
-    { id: "character", label: "Minha Ficha", icon: "shield" },
+    { id: "hero-list", label: "Minha Ficha", icon: "shield" },
     { id: "campaigns", label: "Minhas Campanhas", icon: "scroll" },
     { id: "notes", label: "Minhas Notas", icon: "feather" },
     { id: "compendium", label: "Compêndio", icon: "book" },
@@ -93,7 +93,7 @@ const Sidebar = ({ view, setView, openDice, role, setRole }) => {
       <nav style={{ padding: "14px 12px", flex: 1 }}>
         <div className="mono" style={{ fontSize: 9, letterSpacing: 1.6, color: "var(--t-text-faint)", padding: "6px 10px 8px" }}>NAVEGAÇÃO</div>
         {items.map((it) => {
-          const active = view === it.id;
+          const active = view === it.id || (it.id === "hero-list" && view === "character");
           return (
             <button
               key={it.id}

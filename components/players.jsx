@@ -29,7 +29,7 @@ const AccountCard = ({ acc, isCurrent, onRoleChange }) => {
     }}>
       {/* Banner */}
       <div style={{
-        height: 76, position: "relative",
+        height: 90, position: "relative",
         background: acc.bannerImg
           ? `url(${acc.bannerImg}) center/cover no-repeat`
           : `linear-gradient(135deg, ${color}28 0%, ${color}0d 100%)`,
@@ -43,11 +43,8 @@ const AccountCard = ({ acc, isCurrent, onRoleChange }) => {
             color: "#7ba85d", fontSize: 10, fontWeight: 700, letterSpacing: 0.9,
           }}>ATIVO</div>
         )}
-      </div>
-
-      <div style={{ padding: "0 16px 16px" }}>
         {/* Avatar sobreposto ao banner */}
-        <div style={{ marginTop: -26, marginBottom: 10 }}>
+        <div style={{ position: "absolute", left: 16, bottom: -26, zIndex: 2 }}>
           {acc.profileImg ? (
             <img src={acc.profileImg} alt={acc.nome} style={{
               width: 52, height: 52, borderRadius: "50%",
@@ -65,6 +62,9 @@ const AccountCard = ({ acc, isCurrent, onRoleChange }) => {
             </div>
           )}
         </div>
+      </div>
+
+      <div style={{ padding: "30px 16px 16px" }}>
 
         {/* Nome + handle */}
         <div className="serif" style={{ fontSize: 16, fontWeight: 600, color: "var(--t-text)", lineHeight: 1.2, marginBottom: 2 }}>

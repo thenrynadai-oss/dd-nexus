@@ -536,9 +536,15 @@ const CreateCharacterModal = ({ onClose }) => {
 };
 
 // ─── CharacterSheet ───────────────────────────────────────────────────────────
-const CharacterSheet = () => {
+const CharacterSheet = ({ heroIndex }) => {
   const { CHARACTER = {} } = useAppMock();
-  const [char, setChar] = useState(() => normalizeCS(CHARACTER));
+  const [char, setChar] = useState(() => {
+    if (heroIndex != null) {
+      const heroes = window.Auth?.getHeroes?.() || [];
+      if (heroes[heroIndex]) return normalizeCS(heroes[heroIndex]);
+    }
+    return normalizeCS(CHARACTER);
+  });
   const [tab, setTab] = useState("frente");
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -602,8 +608,13 @@ const CharacterSheet = () => {
   };
 
   const saveChar = () => {
-    const res = window.AppData?.update("CHARACTER", char);
-    if (res?.ok) { setDirty(false); setSaved(true); setTimeout(() => setSaved(false), 2200); }
+    if (heroIndex != null) {
+      const res = window.Auth?.updateHero?.(heroIndex, char);
+      if (res?.ok) { setDirty(false); setSaved(true); setTimeout(() => setSaved(false), 2200); }
+    } else {
+      const res = window.AppData?.update("CHARACTER", char);
+      if (res?.ok) { setDirty(false); setSaved(true); setTimeout(() => setSaved(false), 2200); }
+    }
   };
 
   const prof = csProfBonus(char.level || 1);
